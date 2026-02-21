@@ -38,7 +38,7 @@ phonetrack-android-2026/
 - Min SDK: 26 | Target SDK: 35 | Compile SDK: 35
 - Kotlin 2.1.10 + AGP 8.8.0 + Gradle 8.12.1
 - Jetpack Compose (no XML layouts)
-- SharedPreferences file: `"phonetrack_prefs"` — keys: `sms_enabled` (Boolean), `sms_keyword` (String)
+- SharedPreferences file: `"phonetrack_prefs"` — keys: `sms_enabled` (Boolean), `sms_keyword` (String), `auto_start_on_boot` (Boolean)
 - No third-party libraries; only standard AndroidX
 
 ## Build Commands

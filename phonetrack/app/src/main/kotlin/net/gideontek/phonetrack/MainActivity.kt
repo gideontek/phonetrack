@@ -66,11 +66,16 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     )
     val keyword: StateFlow<String> = _keyword.asStateFlow()
 
+    private val _autoStartOnBoot = MutableStateFlow(prefs.getBoolean("auto_start_on_boot", false))
+    val autoStartOnBoot: StateFlow<Boolean> = _autoStartOnBoot.asStateFlow()
+
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
             "sms_enabled" -> _enabled.value = prefs.getBoolean("sms_enabled", false)
             "sms_keyword" -> _keyword.value =
                 prefs.getString("sms_keyword", "phonetrack") ?: "phonetrack"
+            "auto_start_on_boot" -> _autoStartOnBoot.value =
+                prefs.getBoolean("auto_start_on_boot", false)
         }
     }
 
@@ -88,6 +93,11 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putString("sms_keyword", value).apply()
     }
 
+    fun setAutoStartOnBoot(value: Boolean) {
+        _autoStartOnBoot.value = value
+        prefs.edit().putBoolean("auto_start_on_boot", value).apply()
+    }
+
     override fun onCleared() {
         super.onCleared()
         prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
@@ -102,6 +112,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val enabled by vm.enabled.collectAsState()
     val keyword by vm.keyword.collectAsState()
+    val autoStartOnBoot by vm.autoStartOnBoot.collectAsState()
 
     // Step 3 — background location (must be requested separately on Android 11+)
     val bgLocationLauncher = rememberLauncherForActivityResult(
@@ -141,6 +152,16 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
             ) {
                 Text("SMS Listening", style = MaterialTheme.typography.bodyLarge)
                 Switch(checked = enabled, onCheckedChange = { vm.setEnabled(it) })
+            }
+
+            // Start on boot toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text("Start on Boot", style = MaterialTheme.typography.bodyLarge)
+                Switch(checked = autoStartOnBoot, onCheckedChange = { vm.setAutoStartOnBoot(it) })
             }
 
             // Keyword field
@@ -196,6 +217,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 ) {
                     Text("Current Settings", style = MaterialTheme.typography.titleSmall)
                     Text("Listening: ${if (enabled) "ON" else "OFF"}")
+                    Text("Start on boot: ${if (autoStartOnBoot) "ON" else "OFF"}")
                     Text("Keyword: \"$keyword\"")
                     Text(
                         "Send \"$keyword\" as the first word of an SMS to trigger a location reply.",
