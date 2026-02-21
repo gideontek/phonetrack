@@ -1,0 +1,9 @@
+# Android build artifacts (also handled by phonetrack/.gitignore)
+phonetrack/local.properties
+phonetrack/.gradle/
+phonetrack/.idea/
+phonetrack/build/
+phonetrack/app/build/
+
+# OS artifacts
+.DS_Store
