@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -26,12 +27,21 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,17 +124,47 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val keyword by vm.keyword.collectAsState()
     val autoStartOnBoot by vm.autoStartOnBoot.collectAsState()
 
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // Permission check helpers
+    fun granted(vararg perms: String) = perms.all {
+        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+    }
+    fun checkSms() = granted(Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS)
+    fun checkLocation() = granted(Manifest.permission.ACCESS_FINE_LOCATION)
+    fun checkBgLocation() = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+        granted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+
+    // Permission states — initialized on composition, updated after each grant attempt
+    // and re-checked on every ON_RESUME (covers revocation from system Settings).
+    var smsGranted by remember { mutableStateOf(checkSms()) }
+    var locationGranted by remember { mutableStateOf(checkLocation()) }
+    var bgLocationGranted by remember { mutableStateOf(checkBgLocation()) }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                smsGranted = checkSms()
+                locationGranted = checkLocation()
+                bgLocationGranted = checkBgLocation()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     // Step 3 — background location (must be requested separately on Android 11+)
     val bgLocationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { /* permission result reflected via status card */ }
+    ) { bgLocationGranted = checkBgLocation() }
 
     // Step 2 — fine + coarse location; on success trigger step 3
     val locationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { results ->
-        val fineGranted = results[Manifest.permission.ACCESS_FINE_LOCATION] == true
-        if (fineGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+        locationGranted = results[Manifest.permission.ACCESS_FINE_LOCATION] == true
+        if (locationGranted && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             bgLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
         }
     }
@@ -132,7 +172,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     // Step 1 — SMS permissions
     val smsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* permission result reflected via status card */ }
+    ) { smsGranted = checkSms() }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -185,8 +225,9 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS)
                     )
                 },
+                enabled = !smsGranted,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("1. Grant SMS Permissions") }
+            ) { Text(if (smsGranted) "1. SMS Permissions (granted)" else "1. Grant SMS Permissions") }
 
             Button(
                 onClick = {
@@ -197,16 +238,18 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         )
                     )
                 },
+                enabled = !locationGranted,
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("2. Grant Location Permissions") }
+            ) { Text(if (locationGranted) "2. Location Permissions (granted)" else "2. Grant Location Permissions") }
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 Button(
                     onClick = {
                         bgLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
                     },
+                    enabled = !bgLocationGranted,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("3. Grant Background Location") }
+                ) { Text(if (bgLocationGranted) "3. Background Location (granted)" else "3. Grant Background Location") }
             }
 
             // Status card
