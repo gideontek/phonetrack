@@ -98,8 +98,11 @@ class SmsLocationService : Service() {
         )
         sendSms(
             to,
-            "geo:${loc.latitude},${loc.longitude}\n" +
-                "https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}"
+            "geo:${loc.latitude},${loc.longitude}"
+        )
+        sendSms(
+            to,
+            "https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}#map=10/${loc.latitude}/${loc.longitude}"
         )
     }
 
