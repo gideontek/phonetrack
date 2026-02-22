@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
 import androidx.core.content.ContextCompat
+import org.json.JSONArray
+import org.json.JSONObject
 
 /**
  * Listens for incoming SMS messages. If the app is enabled and the first word of the
@@ -29,6 +31,35 @@ class SmsReceiver : BroadcastReceiver() {
 
         val firstWord = body.trim().split("\\s+".toRegex()).firstOrNull()?.lowercase()
         if (firstWord != keyword) return
+
+        // --- Approvals gate ---
+        val blockAll = prefs.getBoolean("block_all", false)
+        val approvalsJson = prefs.getString("approvals_list", "[]") ?: "[]"
+        val approvalsArray = try { JSONArray(approvalsJson) } catch (_: Exception) { JSONArray() }
+
+        var senderIndex = -1
+        var senderState = "DEFAULT"
+        for (i in 0 until approvalsArray.length()) {
+            val obj = approvalsArray.optJSONObject(i) ?: continue
+            if (obj.optString("number") == sender) {
+                senderIndex = i
+                senderState = obj.optString("state", "DEFAULT")
+                break
+            }
+        }
+
+        if (senderIndex == -1) {
+            approvalsArray.put(JSONObject().put("number", sender).put("state", "DEFAULT"))
+            prefs.edit().putString("approvals_list", approvalsArray.toString()).apply()
+        }
+
+        val isApproved = when (senderState) {
+            "APPROVED" -> true
+            "BLOCKED" -> false
+            else -> !blockAll
+        }
+        if (!isApproved) return
+        // --- End approvals gate ---
 
         val serviceIntent = Intent(context, SmsLocationService::class.java)
             .putExtra("sender", sender)

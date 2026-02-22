@@ -13,41 +13,53 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.darkColorScheme
-import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.Card
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.input.KeyboardType
@@ -61,6 +73,14 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import org.json.JSONArray
+import org.json.JSONObject
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum class ApprovalState { DEFAULT, APPROVED, BLOCKED }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -105,6 +125,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _isLocked = MutableStateFlow(storedPin().isNotEmpty())
     val isLocked: StateFlow<Boolean> = _isLocked.asStateFlow()
 
+    private val _blockAll = MutableStateFlow(prefs.getBoolean("block_all", false))
+    val blockAll: StateFlow<Boolean> = _blockAll.asStateFlow()
+
+    private val _approvalsList = MutableStateFlow(parseApprovalsList())
+    val approvalsList: StateFlow<List<Pair<String, ApprovalState>>> = _approvalsList.asStateFlow()
+
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
             "sms_enabled" -> _enabled.value = prefs.getBoolean("sms_enabled", false)
@@ -113,11 +139,30 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "auto_start_on_boot" -> _autoStartOnBoot.value =
                 prefs.getBoolean("auto_start_on_boot", false)
             "settings_pin" -> _pinSet.value = storedPin().isNotEmpty()
+            "block_all" -> _blockAll.value = prefs.getBoolean("block_all", false)
+            "approvals_list" -> _approvalsList.value = parseApprovalsList()
         }
     }
 
     init {
         prefs.registerOnSharedPreferenceChangeListener(prefListener)
+    }
+
+    private fun parseApprovalsList(): List<Pair<String, ApprovalState>> {
+        val json = prefs.getString("approvals_list", "[]") ?: "[]"
+        val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
+        val result = mutableListOf<Pair<String, ApprovalState>>()
+        for (i in 0 until array.length()) {
+            val obj = array.optJSONObject(i) ?: continue
+            val number = obj.optString("number")
+            val state = when (obj.optString("state", "DEFAULT")) {
+                "APPROVED" -> ApprovalState.APPROVED
+                "BLOCKED" -> ApprovalState.BLOCKED
+                else -> ApprovalState.DEFAULT
+            }
+            if (number.isNotEmpty()) result.add(number to state)
+        }
+        return result
     }
 
     fun setEnabled(value: Boolean) {
@@ -161,6 +206,26 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         _isLocked.value = false
     }
 
+    fun setBlockAll(value: Boolean) {
+        _blockAll.value = value
+        prefs.edit().putBoolean("block_all", value).apply()
+    }
+
+    fun setNumberState(number: String, state: ApprovalState) {
+        val json = prefs.getString("approvals_list", "[]") ?: "[]"
+        val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
+        for (i in 0 until array.length()) {
+            val obj = array.optJSONObject(i) ?: continue
+            if (obj.optString("number") == number) {
+                obj.put("state", state.name)
+                array.put(i, obj)
+                break
+            }
+        }
+        prefs.edit().putString("approvals_list", array.toString()).apply()
+        _approvalsList.value = parseApprovalsList()
+    }
+
     override fun onCleared() {
         super.onCleared()
         prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
@@ -178,6 +243,8 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val autoStartOnBoot by vm.autoStartOnBoot.collectAsState()
     val isLocked by vm.isLocked.collectAsState()
     val pinSet by vm.pinSet.collectAsState()
+    val blockAll by vm.blockAll.collectAsState()
+    val approvalsList by vm.approvalsList.collectAsState()
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -325,6 +392,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
             modifier = Modifier
                 .fillMaxWidth()
                 .systemBarsPadding()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -459,6 +527,202 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                     )
                 }
             }
+
+            // Approvals card
+            ApprovalsCard(
+                blockAll = blockAll,
+                approvalsList = approvalsList,
+                isLocked = isLocked,
+                onBlockAllChange = { vm.setBlockAll(it) },
+                onNumberStateChange = { number, state -> vm.setNumberState(number, state) }
+            )
         }
+    }
+}
+
+@Composable
+fun ApprovalsCard(
+    blockAll: Boolean,
+    approvalsList: List<Pair<String, ApprovalState>>,
+    isLocked: Boolean,
+    onBlockAllChange: (Boolean) -> Unit,
+    onNumberStateChange: (String, ApprovalState) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Header row (always visible) — click to expand/collapse
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "Collapse approvals" else "Expand approvals"
+                )
+                Text(
+                    "Approvals",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp)
+                )
+                Text("Block all", style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(end = 4.dp))
+                Switch(
+                    checked = blockAll,
+                    onCheckedChange = onBlockAllChange,
+                    enabled = !isLocked
+                )
+            }
+
+            // Expanded body
+            if (expanded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                if (approvalsList.isEmpty()) {
+                    Text(
+                        "No requests received yet.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    )
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        for ((number, state) in approvalsList) {
+                            ApprovalRow(
+                                number = number,
+                                state = state,
+                                isLocked = isLocked,
+                                onStateChange = { newState -> onNumberStateChange(number, newState) }
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun ApprovalRow(
+    number: String,
+    state: ApprovalState,
+    isLocked: Boolean,
+    onStateChange: (ApprovalState) -> Unit
+) {
+    // rememberSwipeToDismissBoxState captures the lambda once via rememberSaveable,
+    // so we use rememberUpdatedState to always read the latest values inside it.
+    val currentState = rememberUpdatedState(state)
+    val currentIsLocked = rememberUpdatedState(isLocked)
+    val currentOnStateChange = rememberUpdatedState(onStateChange)
+
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { dismissValue ->
+            if (!currentIsLocked.value) {
+                when (dismissValue) {
+                    SwipeToDismissBoxValue.StartToEnd -> {
+                        val newState = if (currentState.value != ApprovalState.APPROVED)
+                            ApprovalState.APPROVED else ApprovalState.DEFAULT
+                        currentOnStateChange.value(newState)
+                    }
+                    SwipeToDismissBoxValue.EndToStart -> {
+                        val newState = if (currentState.value != ApprovalState.BLOCKED)
+                            ApprovalState.BLOCKED else ApprovalState.DEFAULT
+                        currentOnStateChange.value(newState)
+                    }
+                    else -> Unit
+                }
+            }
+            false // always spring back to centre
+        }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        enableDismissFromStartToEnd = !isLocked,
+        enableDismissFromEndToStart = !isLocked,
+        backgroundContent = {
+            val direction = dismissState.dismissDirection
+            val bgColor = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50)
+                SwipeToDismissBoxValue.EndToStart -> Color(0xFFF44336)
+                else -> Color.Transparent
+            }
+            val label = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> "Approve"
+                SwipeToDismissBoxValue.EndToStart -> "Block"
+                else -> ""
+            }
+            val alignment = when (direction) {
+                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                else -> Alignment.CenterEnd
+            }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp),
+                contentAlignment = alignment
+            ) {
+                androidx.compose.material3.Surface(
+                    color = bgColor,
+                    modifier = Modifier.fillMaxSize()
+                ) {}
+                Text(
+                    label,
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(horizontal = 16.dp)
+                )
+            }
+        }
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 1.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp, vertical = 6.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    number,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodyMedium
+                )
+                StateBadge(state)
+            }
+        }
+    }
+}
+
+@Composable
+fun StateBadge(state: ApprovalState) {
+    val (bgColor, textColor, label) = when (state) {
+        ApprovalState.APPROVED -> Triple(Color(0xFF4CAF50), Color.White, "APPROVED")
+        ApprovalState.BLOCKED  -> Triple(Color(0xFFF44336), Color.White, "BLOCKED")
+        ApprovalState.DEFAULT  -> Triple(
+            MaterialTheme.colorScheme.surfaceVariant,
+            MaterialTheme.colorScheme.onSurfaceVariant,
+            "DEFAULT"
+        )
+    }
+    androidx.compose.material3.Surface(
+        color = bgColor,
+        shape = MaterialTheme.shapes.small
+    ) {
+        Text(
+            label,
+            color = textColor,
+            style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
     }
 }
