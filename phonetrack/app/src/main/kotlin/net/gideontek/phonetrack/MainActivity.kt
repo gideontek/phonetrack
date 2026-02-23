@@ -3,6 +3,7 @@ package net.gideontek.phonetrack
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Build
@@ -33,6 +34,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.ShareLocation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -534,7 +536,13 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 approvalsList = approvalsList,
                 isLocked = isLocked,
                 onBlockAllChange = { vm.setBlockAll(it) },
-                onNumberStateChange = { number, state -> vm.setNumberState(number, state) }
+                onNumberStateChange = { number, state -> vm.setNumberState(number, state) },
+                onSendLocation = { number ->
+                    ContextCompat.startForegroundService(
+                        context,
+                        Intent(context, SmsLocationService::class.java).putExtra("sender", number)
+                    )
+                }
             )
         }
     }
@@ -546,7 +554,8 @@ fun ApprovalsCard(
     approvalsList: List<Pair<String, ApprovalState>>,
     isLocked: Boolean,
     onBlockAllChange: (Boolean) -> Unit,
-    onNumberStateChange: (String, ApprovalState) -> Unit
+    onNumberStateChange: (String, ApprovalState) -> Unit,
+    onSendLocation: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -598,7 +607,8 @@ fun ApprovalsCard(
                                 number = number,
                                 state = state,
                                 isLocked = isLocked,
-                                onStateChange = { newState -> onNumberStateChange(number, newState) }
+                                onStateChange = { newState -> onNumberStateChange(number, newState) },
+                                onSendLocation = { onSendLocation(number) }
                             )
                         }
                     }
@@ -613,7 +623,8 @@ fun ApprovalRow(
     number: String,
     state: ApprovalState,
     isLocked: Boolean,
-    onStateChange: (ApprovalState) -> Unit
+    onStateChange: (ApprovalState) -> Unit,
+    onSendLocation: () -> Unit
 ) {
     // rememberSwipeToDismissBoxState captures the lambda once via rememberSaveable,
     // so we use rememberUpdatedState to always read the latest values inside it.
@@ -678,6 +689,7 @@ fun ApprovalRow(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(horizontal = 16.dp)
                 )
+                
             }
         }
     ) {
@@ -694,9 +706,18 @@ fun ApprovalRow(
             ) {
                 Text(
                     number,
-                    modifier = Modifier.weight(1f),
                     style = MaterialTheme.typography.bodyMedium
                 )
+                if (state == ApprovalState.APPROVED) {
+                    IconButton(onClick = onSendLocation) {
+                        Icon(
+                            imageVector = Icons.Filled.ShareLocation,
+                            contentDescription = "Send location to $number",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.weight(1f))
                 StateBadge(state)
             }
         }
