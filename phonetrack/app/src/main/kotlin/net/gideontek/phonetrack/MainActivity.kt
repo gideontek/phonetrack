@@ -14,6 +14,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +27,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
@@ -470,24 +474,18 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 enabled = !isLocked
             )
 
-            // Permission rationale + buttons
-            Text(
-                "Grant permissions in order. Background location must be requested after location.",
-                style = MaterialTheme.typography.bodySmall
-            )
-
-            Button(
-                onClick = {
+            // Permissions card
+            PermissionsCard(
+                smsGranted = smsGranted,
+                locationGranted = locationGranted,
+                bgLocationGranted = bgLocationGranted,
+                isLocked = isLocked,
+                onSmsRequest = {
                     smsLauncher.launch(
                         arrayOf(Manifest.permission.RECEIVE_SMS, Manifest.permission.SEND_SMS)
                     )
                 },
-                enabled = !smsGranted && !isLocked,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (smsGranted) "1. SMS Permissions (granted)" else "1. Grant SMS Permissions") }
-
-            Button(
-                onClick = {
+                onLocationRequest = {
                     locationLauncher.launch(
                         arrayOf(
                             Manifest.permission.ACCESS_FINE_LOCATION,
@@ -495,19 +493,10 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         )
                     )
                 },
-                enabled = !locationGranted && !isLocked,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (locationGranted) "2. Location Permissions (granted)" else "2. Grant Location Permissions") }
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                Button(
-                    onClick = {
-                        bgLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
-                    },
-                    enabled = !bgLocationGranted && !isLocked,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text(if (bgLocationGranted) "3. Background Location (granted)" else "3. Grant Background Location") }
-            }
+                onBgLocationRequest = {
+                    bgLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                }
+            )
 
             // Status card
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -544,6 +533,91 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                     )
                 }
             )
+        }
+    }
+}
+
+@Composable
+fun PermissionDot(granted: Boolean) {
+    val color = MaterialTheme.colorScheme.primary
+    Box(
+        modifier = if (granted) {
+            Modifier.size(12.dp).background(color, CircleShape)
+        } else {
+            Modifier.size(12.dp).border(1.5.dp, color, CircleShape)
+        }
+    )
+}
+
+@Composable
+fun PermissionsCard(
+    smsGranted: Boolean,
+    locationGranted: Boolean,
+    bgLocationGranted: Boolean,
+    isLocked: Boolean,
+    onSmsRequest: () -> Unit,
+    onLocationRequest: () -> Unit,
+    onBgLocationRequest: () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            // Header row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { expanded = !expanded },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "Collapse permissions" else "Expand permissions"
+                )
+                Text(
+                    "Permissions",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 4.dp)
+                )
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    PermissionDot(smsGranted)
+                    PermissionDot(locationGranted)
+                    PermissionDot(bgLocationGranted)
+                }
+            }
+
+            // Expanded body
+            if (expanded) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        "Grant permissions in order. Background location must be requested after location.",
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    Button(
+                        onClick = onSmsRequest,
+                        enabled = !smsGranted && !isLocked,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (smsGranted) "1. SMS Permissions (granted)" else "1. Grant SMS Permissions") }
+                    Button(
+                        onClick = onLocationRequest,
+                        enabled = !locationGranted && !isLocked,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text(if (locationGranted) "2. Location Permissions (granted)" else "2. Grant Location Permissions") }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        Button(
+                            onClick = onBgLocationRequest,
+                            enabled = !bgLocationGranted && !isLocked,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (bgLocationGranted) "3. Background Location (granted)" else "3. Grant Background Location") }
+                    }
+                }
+            }
         }
     }
 }
