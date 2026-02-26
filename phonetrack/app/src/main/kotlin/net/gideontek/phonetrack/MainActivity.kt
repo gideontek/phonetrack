@@ -3,6 +3,7 @@ package net.gideontek.phonetrack
 import android.Manifest
 import android.app.Application
 import android.content.Context
+import android.location.LocationManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -81,6 +82,20 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
 import org.json.JSONObject
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+private fun isLocationServicesEnabled(context: Context): Boolean {
+    val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+        lm.isLocationEnabled
+    } else {
+        lm.isProviderEnabled(LocationManager.GPS_PROVIDER) ||
+        lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+    }
+}
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -269,6 +284,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     var smsGranted by remember { mutableStateOf(checkSms()) }
     var locationGranted by remember { mutableStateOf(checkLocation()) }
     var bgLocationGranted by remember { mutableStateOf(checkBgLocation()) }
+    var locationServicesEnabled by remember { mutableStateOf(isLocationServicesEnabled(context)) }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -276,6 +292,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 smsGranted = checkSms()
                 locationGranted = checkLocation()
                 bgLocationGranted = checkBgLocation()
+                locationServicesEnabled = isLocationServicesEnabled(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -343,7 +360,11 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                     when {
                         pinInput.length < 4 -> error = "PIN must be at least 4 digits"
                         pinInput != pinConfirm -> error = "PINs do not match"
-                        else -> { vm.setPin(pinInput); showSetPinDialog = false }
+                        else -> {
+                            vm.setPin(pinInput)
+                            showSetPinDialog = false
+                            Toast.makeText(context, "PIN Added", Toast.LENGTH_SHORT).show()
+                        }
                     }
                 }) { Text("Set PIN") }
             },
@@ -412,7 +433,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 if (pinSet && !isLocked) {
                     TextButton(onClick = {
                         vm.removePin()
-                        Toast.makeText(context, "PIN removed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "PIN Removed", Toast.LENGTH_SHORT).show()
                     }) {
                         Text("Remove PIN", style = MaterialTheme.typography.bodySmall)
                     }
@@ -513,6 +534,13 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                     Text("Start on boot: ${if (autoStartOnBoot) "ON" else "OFF"}")
                     Text("Keyword: \"$keyword\"")
                     Text(
+                        "Location services: ${if (locationServicesEnabled) "ON" else "OFF"}",
+                        color = if (locationServicesEnabled)
+                            MaterialTheme.colorScheme.onSurface
+                        else
+                            MaterialTheme.colorScheme.error
+                    )
+                    Text(
                         "Send \"$keyword\" as the first word of an SMS to trigger a location reply.",
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -524,6 +552,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 blockAll = blockAll,
                 approvalsList = approvalsList,
                 isLocked = isLocked,
+                locationServicesEnabled = locationServicesEnabled,
                 onBlockAllChange = { vm.setBlockAll(it) },
                 onNumberStateChange = { number, state -> vm.setNumberState(number, state) },
                 onSendLocation = { number ->
@@ -531,6 +560,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         context,
                         Intent(context, SmsLocationService::class.java).putExtra("sender", number)
                     )
+                    Toast.makeText(context, "Location Shared", Toast.LENGTH_SHORT).show()
                 }
             )
         }
@@ -627,6 +657,7 @@ fun ApprovalsCard(
     blockAll: Boolean,
     approvalsList: List<Pair<String, ApprovalState>>,
     isLocked: Boolean,
+    locationServicesEnabled: Boolean,
     onBlockAllChange: (Boolean) -> Unit,
     onNumberStateChange: (String, ApprovalState) -> Unit,
     onSendLocation: (String) -> Unit
@@ -681,6 +712,7 @@ fun ApprovalsCard(
                                 number = number,
                                 state = state,
                                 isLocked = isLocked,
+                                locationServicesEnabled = locationServicesEnabled,
                                 onStateChange = { newState -> onNumberStateChange(number, newState) },
                                 onSendLocation = { onSendLocation(number) }
                             )
@@ -697,6 +729,7 @@ fun ApprovalRow(
     number: String,
     state: ApprovalState,
     isLocked: Boolean,
+    locationServicesEnabled: Boolean,
     onStateChange: (ApprovalState) -> Unit,
     onSendLocation: () -> Unit
 ) {
@@ -783,11 +816,17 @@ fun ApprovalRow(
                     style = MaterialTheme.typography.bodyMedium
                 )
                 if (state == ApprovalState.APPROVED) {
-                    IconButton(onClick = onSendLocation) {
+                    IconButton(
+                        onClick = onSendLocation,
+                        enabled = locationServicesEnabled
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.ShareLocation,
                             contentDescription = "Send location to $number",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = if (locationServicesEnabled)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         )
                     }
                 }
