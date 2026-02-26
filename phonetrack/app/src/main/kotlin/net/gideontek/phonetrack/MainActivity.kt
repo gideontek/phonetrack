@@ -2,7 +2,9 @@ package net.gideontek.phonetrack
 
 import android.Manifest
 import android.app.Application
+import android.content.BroadcastReceiver
 import android.content.Context
+import android.content.IntentFilter
 import android.location.LocationManager
 import android.content.Intent
 import android.content.SharedPreferences
@@ -297,6 +299,17 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    DisposableEffect(context) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(ctx: Context, intent: Intent) {
+                locationServicesEnabled = isLocationServicesEnabled(context)
+            }
+        }
+        val filter = IntentFilter(LocationManager.PROVIDERS_CHANGED_ACTION)
+        context.registerReceiver(receiver, filter)
+        onDispose { context.unregisterReceiver(receiver) }
     }
 
     // Step 3 — background location (must be requested separately on Android 11+)
