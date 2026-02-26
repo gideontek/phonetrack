@@ -280,12 +280,15 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     fun checkLocation() = granted(Manifest.permission.ACCESS_FINE_LOCATION)
     fun checkBgLocation() = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
         granted(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+    fun checkNotifications() = Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+        granted(Manifest.permission.POST_NOTIFICATIONS)
 
     // Permission states — initialized on composition, updated after each grant attempt
     // and re-checked on every ON_RESUME (covers revocation from system Settings).
     var smsGranted by remember { mutableStateOf(checkSms()) }
     var locationGranted by remember { mutableStateOf(checkLocation()) }
     var bgLocationGranted by remember { mutableStateOf(checkBgLocation()) }
+    var notificationsGranted by remember { mutableStateOf(checkNotifications()) }
     var locationServicesEnabled by remember { mutableStateOf(isLocationServicesEnabled(context)) }
 
     DisposableEffect(lifecycleOwner) {
@@ -294,6 +297,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 smsGranted = checkSms()
                 locationGranted = checkLocation()
                 bgLocationGranted = checkBgLocation()
+                notificationsGranted = checkNotifications()
                 locationServicesEnabled = isLocationServicesEnabled(context)
             }
         }
@@ -331,6 +335,11 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val smsLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { smsGranted = checkSms() }
+
+    // Step 4 — POST_NOTIFICATIONS (Android 13+; needed for the location-services-off alert)
+    val notificationsLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { notificationsGranted = checkNotifications() }
 
     // PIN dialog state
     var showSetPinDialog by remember { mutableStateOf(false) }
@@ -513,6 +522,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 smsGranted = smsGranted,
                 locationGranted = locationGranted,
                 bgLocationGranted = bgLocationGranted,
+                notificationsGranted = notificationsGranted,
                 isLocked = isLocked,
                 onSmsRequest = {
                     smsLauncher.launch(
@@ -529,6 +539,11 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 },
                 onBgLocationRequest = {
                     bgLocationLauncher.launch(Manifest.permission.ACCESS_BACKGROUND_LOCATION)
+                },
+                onNotificationsRequest = {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
                 }
             )
 
@@ -597,10 +612,12 @@ fun PermissionsCard(
     smsGranted: Boolean,
     locationGranted: Boolean,
     bgLocationGranted: Boolean,
+    notificationsGranted: Boolean,
     isLocked: Boolean,
     onSmsRequest: () -> Unit,
     onLocationRequest: () -> Unit,
-    onBgLocationRequest: () -> Unit
+    onBgLocationRequest: () -> Unit,
+    onNotificationsRequest: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -631,6 +648,9 @@ fun PermissionsCard(
                     PermissionDot(smsGranted)
                     PermissionDot(locationGranted)
                     PermissionDot(bgLocationGranted)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        PermissionDot(notificationsGranted)
+                    }
                 }
             }
 
@@ -658,6 +678,13 @@ fun PermissionsCard(
                             enabled = !bgLocationGranted && !isLocked,
                             modifier = Modifier.fillMaxWidth()
                         ) { Text(if (bgLocationGranted) "3. Background Location (granted)" else "3. Grant Background Location") }
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        Button(
+                            onClick = onNotificationsRequest,
+                            enabled = !notificationsGranted && !isLocked,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text(if (notificationsGranted) "4. Notifications (granted)" else "4. Grant Notifications") }
                     }
                 }
             }
