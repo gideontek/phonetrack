@@ -3,6 +3,7 @@ package net.gideontek.phonetrack
 import android.Manifest
 import android.app.Application
 import android.content.BroadcastReceiver
+import android.telephony.SmsManager
 import android.content.Context
 import android.content.IntentFilter
 import android.location.LocationManager
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.RssFeed
 import androidx.compose.material.icons.filled.ShareLocation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -154,6 +156,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _approvalsList = MutableStateFlow(parseApprovalsList())
     val approvalsList: StateFlow<List<Pair<String, ApprovalState>>> = _approvalsList.asStateFlow()
 
+    private val _subscriptions = MutableStateFlow(SubscriptionManager.getAll(app))
+    val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
+
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
             "sms_enabled" -> _enabled.value = prefs.getBoolean("sms_enabled", false)
@@ -164,6 +169,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "settings_pin" -> _pinSet.value = storedPin().isNotEmpty()
             "block_all" -> _blockAll.value = prefs.getBoolean("block_all", false)
             "approvals_list" -> _approvalsList.value = parseApprovalsList()
+            "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
         }
     }
 
@@ -249,6 +255,23 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         _approvalsList.value = parseApprovalsList()
     }
 
+    fun cancelSubscription(number: String) {
+        val ctx = getApplication<Application>()
+        val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            ctx.getSystemService(SmsManager::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            SmsManager.getDefault()
+        }
+        smsManager.sendTextMessage(
+            number, null,
+            "[PhoneTrack] Your location subscription has been cancelled.",
+            null, null
+        )
+        SubscriptionManager.remove(ctx, number)
+        _subscriptions.value = SubscriptionManager.getAll(ctx)
+    }
+
     override fun onCleared() {
         super.onCleared()
         prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
@@ -268,6 +291,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val pinSet by vm.pinSet.collectAsState()
     val blockAll by vm.blockAll.collectAsState()
     val approvalsList by vm.approvalsList.collectAsState()
+    val subscriptions by vm.subscriptions.collectAsState()
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -579,6 +603,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
             ApprovalsCard(
                 blockAll = blockAll,
                 approvalsList = approvalsList,
+                subscriptions = subscriptions,
                 isLocked = isLocked,
                 locationServicesEnabled = locationServicesEnabled,
                 onBlockAllChange = { vm.setBlockAll(it) },
@@ -589,7 +614,8 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         Intent(context, SmsLocationService::class.java).putExtra("sender", number)
                     )
                     Toast.makeText(context, "Location Shared", Toast.LENGTH_SHORT).show()
-                }
+                },
+                onCancelSubscription = { number -> vm.cancelSubscription(number) }
             )
         }
     }
@@ -696,11 +722,13 @@ fun PermissionsCard(
 fun ApprovalsCard(
     blockAll: Boolean,
     approvalsList: List<Pair<String, ApprovalState>>,
+    subscriptions: List<Subscription>,
     isLocked: Boolean,
     locationServicesEnabled: Boolean,
     onBlockAllChange: (Boolean) -> Unit,
     onNumberStateChange: (String, ApprovalState) -> Unit,
-    onSendLocation: (String) -> Unit
+    onSendLocation: (String) -> Unit,
+    onCancelSubscription: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
 
@@ -753,8 +781,10 @@ fun ApprovalsCard(
                                 state = state,
                                 isLocked = isLocked,
                                 locationServicesEnabled = locationServicesEnabled,
+                                activeSubscription = subscriptions.find { it.number == number },
                                 onStateChange = { newState -> onNumberStateChange(number, newState) },
-                                onSendLocation = { onSendLocation(number) }
+                                onSendLocation = { onSendLocation(number) },
+                                onCancelSubscription = { onCancelSubscription(number) }
                             )
                         }
                     }
@@ -770,9 +800,39 @@ fun ApprovalRow(
     state: ApprovalState,
     isLocked: Boolean,
     locationServicesEnabled: Boolean,
+    activeSubscription: Subscription?,
     onStateChange: (ApprovalState) -> Unit,
-    onSendLocation: () -> Unit
+    onSendLocation: () -> Unit,
+    onCancelSubscription: () -> Unit
 ) {
+    var showSubDialog by remember { mutableStateOf(false) }
+
+    if (showSubDialog && activeSubscription != null) {
+        val minutesLeft = ((activeSubscription.expiresAt - System.currentTimeMillis()) / 60_000L)
+            .coerceAtLeast(0)
+        AlertDialog(
+            onDismissRequest = { showSubDialog = false },
+            title = { Text("Active Subscription") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text("Distance threshold: ${activeSubscription.distMeters} m")
+                    Text("Frequency: every ${activeSubscription.freqMinutes} min")
+                    Text("Duration: ${activeSubscription.durationMinutes} min total")
+                    Text("Expires in: $minutesLeft min")
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = { showSubDialog = false; onCancelSubscription() },
+                    enabled = !isLocked
+                ) { Text("Cancel Subscription") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showSubDialog = false }) { Text("Close") }
+            }
+        )
+    }
+
     // rememberSwipeToDismissBoxState captures the lambda once via rememberSaveable,
     // so we use rememberUpdatedState to always read the latest values inside it.
     val currentState = rememberUpdatedState(state)
@@ -868,6 +928,15 @@ fun ApprovalRow(
                             else
                                 MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                         )
+                    }
+                    if (activeSubscription != null) {
+                        IconButton(onClick = { showSubDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.RssFeed,
+                                contentDescription = "View subscription for $number",
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.weight(1f))

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Telephony hardware — marked not required so the app can also be installed on tablets/ChromeOS -->
     <uses-feature android:name="android.hardware.telephony" android:required="false" />
@@ -55,6 +56,12 @@
             android:name=".SmsLocationService"
             android:exported="false"
             android:foregroundServiceType="location" />
+
+        <!-- Allow WorkManager's SystemForegroundService to use location type -->
+        <service
+            android:name="androidx.work.impl.foreground.SystemForegroundService"
+            android:foregroundServiceType="location"
+            tools:node="merge" />
 
     </application>
 
