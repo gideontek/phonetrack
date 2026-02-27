@@ -57,11 +57,10 @@
             android:exported="false"
             android:foregroundServiceType="location" />
 
-        <!-- Allow WorkManager's SystemForegroundService to use location type -->
         <service
-            android:name="androidx.work.impl.foreground.SystemForegroundService"
-            android:foregroundServiceType="location"
-            tools:node="merge" />
+            android:name=".SubscriptionService"
+            android:exported="false"
+            android:foregroundServiceType="location" />
 
     </application>
 

@@ -23,7 +23,7 @@ class BootReceiver : BroadcastReceiver() {
 
         SubscriptionManager.pruneExpired(context) // silent — no SMS on boot
         if (SubscriptionManager.hasActive(context)) {
-            SubscriptionManager.ensureWorkerScheduled(context)
+            SubscriptionManager.ensureServiceRunning(context)
         }
     }
 }

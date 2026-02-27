@@ -87,7 +87,7 @@ class SmsReceiver : BroadcastReceiver() {
     ) {
         val sub = parseSubscribeParams(ctx, sender, keyword, tokens) ?: return
         SubscriptionManager.add(ctx, sub)
-        SubscriptionManager.ensureWorkerScheduled(ctx)
+        SubscriptionManager.ensureServiceRunning(ctx)
         // Immediate location fix (same as one-shot)
         ContextCompat.startForegroundService(
             ctx,
@@ -125,8 +125,8 @@ class SmsReceiver : BroadcastReceiver() {
                 "--freq" -> {
                     val v = tokens.getOrNull(i + 1)?.toIntOrNull()
                     if (v == null) { sendUsageError(ctx, sender, keyword); return null }
-                    if (v < 15) {
-                        sendSms(ctx, sender, "[PhoneTrack] Minimum frequency is 15 minutes")
+                    if (v < 1) {
+                        sendSms(ctx, sender, "[PhoneTrack] Minimum frequency is 1 minute")
                         return null
                     }
                     freq = v; i += 2

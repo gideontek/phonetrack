@@ -1,28 +1,25 @@
 package net.gideontek.phonetrack
 
 import android.content.Context
-import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.WorkManager
+import android.content.Intent
+import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
-import java.util.concurrent.TimeUnit
 
 data class Subscription(
     val number: String,
     val distMeters: Int,       // default 100 m
-    val freqMinutes: Int,      // default 15 (WorkManager minimum)
+    val freqMinutes: Int,      // default 15 min
     val durationMinutes: Int,  // default 240
     val subscribedAt: Long,
     val expiresAt: Long,       // subscribedAt + durationMinutes * 60_000L
-    val lastLat: Double,       // 0.0 sentinel = no fix sent yet by worker
+    val lastLat: Double,       // 0.0 sentinel = no fix sent yet by service
     val lastLon: Double,
-    val lastSentAt: Long       // set to subscribedAt on create; worker compares against this
+    val lastSentAt: Long       // set to subscribedAt on create; service compares against this
 )
 
 object SubscriptionManager {
     private const val PREFS_KEY = "subscriptions_list"
-    private const val WORKER_NAME = "subscription_check"
 
     fun getAll(ctx: Context): List<Subscription> {
         val prefs = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
@@ -59,7 +56,7 @@ object SubscriptionManager {
         prefs.edit().putString(PREFS_KEY, array.toString()).apply()
     }
 
-    /** Removes the subscription for [number]; cancels worker if list becomes empty. */
+    /** Removes the subscription for [number]; stops the service if the list becomes empty. */
     fun remove(ctx: Context, number: String) {
         val prefs = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
         val json = prefs.getString(PREFS_KEY, "[]") ?: "[]"
@@ -70,7 +67,7 @@ object SubscriptionManager {
             if (obj.optString("number") != number) newArray.put(obj)
         }
         prefs.edit().putString(PREFS_KEY, newArray.toString()).apply()
-        if (newArray.length() == 0) cancelWorker(ctx)
+        if (newArray.length() == 0) stopService(ctx)
     }
 
     fun updateTracking(ctx: Context, number: String, lat: Double, lon: Double, sentAt: Long) {
@@ -108,17 +105,17 @@ object SubscriptionManager {
         return expired
     }
 
-    fun ensureWorkerScheduled(ctx: Context) {
-        val request = PeriodicWorkRequestBuilder<SubscriptionWorker>(15, TimeUnit.MINUTES).build()
-        WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(
-            WORKER_NAME,
-            ExistingPeriodicWorkPolicy.KEEP,
-            request
+    /** Starts [SubscriptionService] as a foreground service if not already running. */
+    fun ensureServiceRunning(ctx: Context) {
+        ContextCompat.startForegroundService(
+            ctx,
+            Intent(ctx, SubscriptionService::class.java)
         )
     }
 
-    fun cancelWorker(ctx: Context) {
-        WorkManager.getInstance(ctx).cancelUniqueWork(WORKER_NAME)
+    /** Stops [SubscriptionService]. */
+    fun stopService(ctx: Context) {
+        ctx.stopService(Intent(ctx, SubscriptionService::class.java))
     }
 
     private fun toJson(sub: Subscription): JSONObject = JSONObject().apply {
