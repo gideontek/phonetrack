@@ -42,7 +42,10 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.RssFeed
+import androidx.compose.material.icons.filled.NetworkWifi1Bar
+import androidx.compose.material.icons.filled.NetworkWifi2Bar
+import androidx.compose.material.icons.filled.NetworkWifi3Bar
+import androidx.compose.material.icons.filled.SignalWifi4Bar
 import androidx.compose.material.icons.filled.ShareLocation
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -817,7 +820,7 @@ fun ApprovalRow(
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Text("Distance threshold: ${activeSubscription.distMeters} m")
                     Text("Frequency: every ${activeSubscription.freqMinutes} min")
-                    Text("Duration: ${activeSubscription.durationMinutes} min total")
+                    Text("Duration: ${activeSubscription.durationHours} hr total")
                     Text("Expires in: $minutesLeft min")
                 }
             },
@@ -930,9 +933,17 @@ fun ApprovalRow(
                         )
                     }
                     if (activeSubscription != null) {
+                        val remainingFraction = ((activeSubscription.expiresAt - System.currentTimeMillis()).toFloat() /
+                            (activeSubscription.durationHours * 3_600_000L).toFloat()).coerceIn(0f, 1f)
+                        val subIcon = when {
+                            remainingFraction >= 0.75f -> Icons.Filled.SignalWifi4Bar
+                            remainingFraction >= 0.50f -> Icons.Filled.NetworkWifi3Bar
+                            remainingFraction >= 0.25f -> Icons.Filled.NetworkWifi2Bar
+                            else -> Icons.Filled.NetworkWifi1Bar
+                        }
                         IconButton(onClick = { showSubDialog = true }) {
                             Icon(
-                                imageVector = Icons.Filled.RssFeed,
+                                imageVector = subIcon,
                                 contentDescription = "View subscription for $number",
                                 tint = MaterialTheme.colorScheme.primary
                             )

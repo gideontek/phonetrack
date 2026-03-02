@@ -10,9 +10,9 @@ data class Subscription(
     val number: String,
     val distMeters: Int,       // default 100 m
     val freqMinutes: Int,      // default 15 min
-    val durationMinutes: Int,  // default 240
+    val durationHours: Int,    // default 4
     val subscribedAt: Long,
-    val expiresAt: Long,       // subscribedAt + durationMinutes * 60_000L
+    val expiresAt: Long,       // subscribedAt + durationHours * 3_600_000L
     val lastLat: Double,       // 0.0 sentinel = no fix sent yet by service
     val lastLon: Double,
     val lastSentAt: Long       // set to subscribedAt on create; service compares against this
@@ -122,7 +122,7 @@ object SubscriptionManager {
         put("number", sub.number)
         put("distMeters", sub.distMeters)
         put("freqMinutes", sub.freqMinutes)
-        put("durationMinutes", sub.durationMinutes)
+        put("durationHours", sub.durationHours)
         put("subscribedAt", sub.subscribedAt)
         put("expiresAt", sub.expiresAt)
         put("lastLat", sub.lastLat)
@@ -132,9 +132,9 @@ object SubscriptionManager {
 
     private fun fromJson(obj: JSONObject): Subscription = Subscription(
         number = obj.optString("number"),
-        distMeters = obj.optInt("distMeters", 100),
+        distMeters = obj.optInt("distMeters", 200),
         freqMinutes = obj.optInt("freqMinutes", 15),
-        durationMinutes = obj.optInt("durationMinutes", 240),
+        durationHours = obj.optInt("durationHours", 4),
         subscribedAt = obj.optLong("subscribedAt"),
         expiresAt = obj.optLong("expiresAt"),
         lastLat = obj.optDouble("lastLat", 0.0),

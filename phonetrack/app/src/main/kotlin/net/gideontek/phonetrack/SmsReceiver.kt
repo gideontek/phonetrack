@@ -101,7 +101,7 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     /**
-     * Parses optional `--dist N --freq N --time N` tokens (any order).
+     * Parses optional `--dist N --freq N --hours N` tokens (any order).
      * Returns null and sends an error SMS if parsing fails.
      */
     private fun parseSubscribeParams(
@@ -110,9 +110,9 @@ class SmsReceiver : BroadcastReceiver() {
         keyword: String,
         tokens: List<String>
     ): Subscription? {
-        var dist = 100
+        var dist = 200
         var freq = 15
-        var time = 240
+        var hours = 4
 
         var i = 2
         while (i < tokens.size) {
@@ -131,10 +131,10 @@ class SmsReceiver : BroadcastReceiver() {
                     }
                     freq = v; i += 2
                 }
-                "--time" -> {
+                "--hours" -> {
                     val v = tokens.getOrNull(i + 1)?.toIntOrNull()
                     if (v == null) { sendUsageError(ctx, sender, keyword); return null }
-                    time = v; i += 2
+                    hours = v; i += 2
                 }
                 else -> { sendUsageError(ctx, sender, keyword); return null }
             }
@@ -145,9 +145,9 @@ class SmsReceiver : BroadcastReceiver() {
             number = sender,
             distMeters = dist,
             freqMinutes = freq,
-            durationMinutes = time,
+            durationHours = hours,
             subscribedAt = now,
-            expiresAt = now + time * 60_000L,
+            expiresAt = now + hours * 3_600_000L,
             lastLat = 0.0,
             lastLon = 0.0,
             lastSentAt = now
@@ -157,7 +157,7 @@ class SmsReceiver : BroadcastReceiver() {
     private fun sendUsageError(ctx: Context, sender: String, keyword: String) {
         sendSms(
             ctx, sender,
-            "[PhoneTrack] Usage: $keyword subscribe [--dist N] [--freq N] [--time N]"
+            "[PhoneTrack] Usage: $keyword subscribe [--dist N] [--freq N] [--hours N]"
         )
     }
 
