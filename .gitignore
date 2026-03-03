@@ -10,3 +10,7 @@ phonetrack/app/build/
 
 # Claude Code
 .claude/
+
+# IDE and planning (keep on disk, never commit)
+.vscode/
+plans/
