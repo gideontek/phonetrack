@@ -1,17 +1,24 @@
 # PhoneTrack Android 2026 — Claude Code Instructions
 
-## Plan Reference
+## Project Goals
 
-The active implementation plan is at `plans/MICRO_MVP_PLAN.md`.
-Read it before making any structural changes to the Android project.
+PhoneTrack is an open source Android app that focuses on location sharing over SMS messages without using data. It has a simple interface and defaults to common use cases but provides overrides when needed.
+
+## Design Constraints
+
+These rules must not be violated when making changes:
+
+- **No internet.** The `INTERNET` permission must never be added. All communication is SMS-only.
+- **No third-party libraries.** Only standard AndroidX. Do not add external dependencies to `build.gradle.kts`.
+- **No databases or files.** SharedPreferences (`"phonetrack_prefs"`) is the only persistent storage. Do not add Room, SQLite, or file I/O.
+- **No WorkManager for location.** The periodic location loop uses a Handler-based `ForegroundService` (`SubscriptionService`) — not WorkManager — to avoid Doze-mode deferrals. Keep it that way.
+- **No XML layouts.** Jetpack Compose only.
 
 ## Project Layout
 
 ```
 phonetrack-android-2026/
 ├── CLAUDE.md                   # this file
-├── plans/
-│   └── MICRO_MVP_PLAN.md       # micro-MVP specification
 └── phonetrack/                 # Android Studio project
     ├── build.gradle.kts        # root Gradle file (plugin declarations)
     ├── settings.gradle.kts     # module includes + repo config
@@ -25,8 +32,11 @@ phonetrack-android-2026/
             ├── AndroidManifest.xml
             ├── kotlin/net/gideontek/phonetrack/
             │   ├── MainActivity.kt        # Compose UI + ViewModel
-            │   ├── SmsReceiver.kt         # BroadcastReceiver
-            │   └── SmsLocationService.kt  # ForegroundService
+            │   ├── SmsReceiver.kt         # BroadcastReceiver (one-shot / subscribe / unsubscribe)
+            │   ├── SmsLocationService.kt  # ForegroundService — one-shot location reply
+            │   ├── Subscription.kt        # Subscription data class + SubscriptionManager
+            │   ├── SubscriptionService.kt # ForegroundService — periodic location loop
+            │   └── BootReceiver.kt        # BOOT_COMPLETED: auto-start + resume subscriptions
             └── res/values/
                 ├── strings.xml
                 └── themes.xml
@@ -38,7 +48,13 @@ phonetrack-android-2026/
 - Min SDK: 26 | Target SDK: 35 | Compile SDK: 35
 - Kotlin 2.1.10 + AGP 8.8.0 + Gradle 8.12.1
 - Jetpack Compose (no XML layouts)
-- SharedPreferences file: `"phonetrack_prefs"` — keys: `sms_enabled` (Boolean), `sms_keyword` (String), `auto_start_on_boot` (Boolean)
+- SharedPreferences file: `"phonetrack_prefs"` — keys:
+  - `sms_enabled` (Boolean)
+  - `sms_keyword` (String, default `"phonetrack"`)
+  - `auto_start_on_boot` (Boolean)
+  - `block_all` (Boolean) — reject all DEFAULT-state numbers when true
+  - `approvals_list` (JSON array of `{number, state}` where state ∈ DEFAULT/APPROVED/BLOCKED)
+  - `subscriptions_list` (JSON array of Subscription objects)
 - No third-party libraries; only standard AndroidX
 
 ## Build Commands
