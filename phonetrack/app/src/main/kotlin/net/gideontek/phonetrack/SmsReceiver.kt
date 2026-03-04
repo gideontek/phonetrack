@@ -39,32 +39,26 @@ class SmsReceiver : BroadcastReceiver() {
         if (firstWord != keyword) return
 
         // --- Approvals gate ---
-        val blockAll = prefs.getBoolean("block_all", false)
         val approvalsJson = prefs.getString("approvals_list", "[]") ?: "[]"
         val approvalsArray = try { JSONArray(approvalsJson) } catch (_: Exception) { JSONArray() }
 
-        var senderIndex = -1
-        var senderState = "DEFAULT"
+        var senderState = "NEW"
         for (i in 0 until approvalsArray.length()) {
             val obj = approvalsArray.optJSONObject(i) ?: continue
             if (obj.optString("number") == sender) {
-                senderIndex = i
-                senderState = obj.optString("state", "DEFAULT")
+                senderState = obj.optString("state", "PENDING")
                 break
             }
         }
 
-        if (senderIndex == -1) {
-            approvalsArray.put(JSONObject().put("number", sender).put("state", "DEFAULT"))
+        if (senderState == "NEW") {
+            // First contact — log as PENDING, do not reply
+            approvalsArray.put(JSONObject().put("number", sender).put("state", "PENDING"))
             prefs.edit().putString("approvals_list", approvalsArray.toString()).apply()
+            return
         }
 
-        val isApproved = when (senderState) {
-            "APPROVED" -> true
-            "BLOCKED" -> false
-            else -> !blockAll
-        }
-        if (!isApproved) return
+        if (senderState != "APPROVED") return
         // --- End approvals gate ---
 
         when (tokens.getOrNull(1)?.lowercase()) {

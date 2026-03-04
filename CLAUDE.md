@@ -52,8 +52,7 @@ phonetrack-android-2026/
   - `sms_enabled` (Boolean)
   - `sms_keyword` (String, default `"phonetrack"`)
   - `auto_start_on_boot` (Boolean)
-  - `block_all` (Boolean) — reject all DEFAULT-state numbers when true
-  - `approvals_list` (JSON array of `{number, state}` where state ∈ DEFAULT/APPROVED/BLOCKED)
+  - `approvals_list` (JSON array of `{number, state}` where state ∈ PENDING/APPROVED/BLOCKED)
   - `subscriptions_list` (JSON array of Subscription objects)
 - No third-party libraries; only standard AndroidX
 

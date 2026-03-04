@@ -76,6 +76,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -108,7 +109,7 @@ private fun isLocationServicesEnabled(context: Context): Boolean {
 // Enums
 // ---------------------------------------------------------------------------
 
-enum class ApprovalState { DEFAULT, APPROVED, BLOCKED }
+enum class ApprovalState { PENDING, APPROVED, BLOCKED }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -153,9 +154,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _isLocked = MutableStateFlow(storedPin().isNotEmpty())
     val isLocked: StateFlow<Boolean> = _isLocked.asStateFlow()
 
-    private val _blockAll = MutableStateFlow(prefs.getBoolean("block_all", false))
-    val blockAll: StateFlow<Boolean> = _blockAll.asStateFlow()
-
     private val _approvalsList = MutableStateFlow(parseApprovalsList())
     val approvalsList: StateFlow<List<Pair<String, ApprovalState>>> = _approvalsList.asStateFlow()
 
@@ -170,7 +168,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "auto_start_on_boot" -> _autoStartOnBoot.value =
                 prefs.getBoolean("auto_start_on_boot", false)
             "settings_pin" -> _pinSet.value = storedPin().isNotEmpty()
-            "block_all" -> _blockAll.value = prefs.getBoolean("block_all", false)
             "approvals_list" -> _approvalsList.value = parseApprovalsList()
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
         }
@@ -187,14 +184,20 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         for (i in 0 until array.length()) {
             val obj = array.optJSONObject(i) ?: continue
             val number = obj.optString("number")
-            val state = when (obj.optString("state", "DEFAULT")) {
+            val state = when (obj.optString("state", "PENDING")) {
                 "APPROVED" -> ApprovalState.APPROVED
                 "BLOCKED" -> ApprovalState.BLOCKED
-                else -> ApprovalState.DEFAULT
+                else -> ApprovalState.PENDING
             }
             if (number.isNotEmpty()) result.add(number to state)
         }
-        return result
+        return result.sortedBy { (_, state) ->
+            when (state) {
+                ApprovalState.PENDING  -> 0
+                ApprovalState.APPROVED -> 1
+                ApprovalState.BLOCKED  -> 2
+            }
+        }
     }
 
     fun setEnabled(value: Boolean) {
@@ -238,12 +241,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         _isLocked.value = false
     }
 
-    fun setBlockAll(value: Boolean) {
-        _blockAll.value = value
-        prefs.edit().putBoolean("block_all", value).apply()
-    }
-
     fun setNumberState(number: String, state: ApprovalState) {
+        if (state == ApprovalState.PENDING) return  // one-way door
         val json = prefs.getString("approvals_list", "[]") ?: "[]"
         val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
         for (i in 0 until array.length()) {
@@ -292,7 +291,6 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val autoStartOnBoot by vm.autoStartOnBoot.collectAsState()
     val isLocked by vm.isLocked.collectAsState()
     val pinSet by vm.pinSet.collectAsState()
-    val blockAll by vm.blockAll.collectAsState()
     val approvalsList by vm.approvalsList.collectAsState()
     val subscriptions by vm.subscriptions.collectAsState()
 
@@ -604,12 +602,10 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
 
             // Approvals card
             ApprovalsCard(
-                blockAll = blockAll,
                 approvalsList = approvalsList,
                 subscriptions = subscriptions,
                 isLocked = isLocked,
                 locationServicesEnabled = locationServicesEnabled,
-                onBlockAllChange = { vm.setBlockAll(it) },
                 onNumberStateChange = { number, state -> vm.setNumberState(number, state) },
                 onSendLocation = { number ->
                     ContextCompat.startForegroundService(
@@ -620,6 +616,8 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 },
                 onCancelSubscription = { number -> vm.cancelSubscription(number) }
             )
+
+            AboutCard()
         }
     }
 }
@@ -723,12 +721,10 @@ fun PermissionsCard(
 
 @Composable
 fun ApprovalsCard(
-    blockAll: Boolean,
     approvalsList: List<Pair<String, ApprovalState>>,
     subscriptions: List<Subscription>,
     isLocked: Boolean,
     locationServicesEnabled: Boolean,
-    onBlockAllChange: (Boolean) -> Unit,
     onNumberStateChange: (String, ApprovalState) -> Unit,
     onSendLocation: (String) -> Unit,
     onCancelSubscription: (String) -> Unit
@@ -754,13 +750,6 @@ fun ApprovalsCard(
                     modifier = Modifier
                         .weight(1f)
                         .padding(start = 4.dp)
-                )
-                Text("Block all", style = MaterialTheme.typography.bodySmall,
-                    modifier = Modifier.padding(end = 4.dp))
-                Switch(
-                    checked = blockAll,
-                    onCheckedChange = onBlockAllChange,
-                    enabled = !isLocked
                 )
             }
 
@@ -847,14 +836,20 @@ fun ApprovalRow(
             if (!currentIsLocked.value) {
                 when (dismissValue) {
                     SwipeToDismissBoxValue.StartToEnd -> {
-                        val newState = if (currentState.value != ApprovalState.APPROVED)
-                            ApprovalState.APPROVED else ApprovalState.DEFAULT
-                        currentOnStateChange.value(newState)
+                        val newState = when (currentState.value) {
+                            ApprovalState.PENDING  -> ApprovalState.APPROVED
+                            ApprovalState.BLOCKED  -> ApprovalState.APPROVED
+                            ApprovalState.APPROVED -> null  // no-op
+                        }
+                        newState?.let { currentOnStateChange.value(it) }
                     }
                     SwipeToDismissBoxValue.EndToStart -> {
-                        val newState = if (currentState.value != ApprovalState.BLOCKED)
-                            ApprovalState.BLOCKED else ApprovalState.DEFAULT
-                        currentOnStateChange.value(newState)
+                        val newState = when (currentState.value) {
+                            ApprovalState.PENDING  -> ApprovalState.BLOCKED
+                            ApprovalState.APPROVED -> ApprovalState.BLOCKED
+                            ApprovalState.BLOCKED  -> null  // no-op
+                        }
+                        newState?.let { currentOnStateChange.value(it) }
                     }
                     else -> Unit
                 }
@@ -870,13 +865,17 @@ fun ApprovalRow(
         backgroundContent = {
             val direction = dismissState.dismissDirection
             val bgColor = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> Color(0xFF4CAF50)
-                SwipeToDismissBoxValue.EndToStart -> Color(0xFFF44336)
+                SwipeToDismissBoxValue.StartToEnd ->
+                    if (state != ApprovalState.APPROVED) Color(0xFF4CAF50) else Color.Transparent
+                SwipeToDismissBoxValue.EndToStart ->
+                    if (state != ApprovalState.BLOCKED) Color(0xFFF44336) else Color.Transparent
                 else -> Color.Transparent
             }
             val label = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> "Approve"
-                SwipeToDismissBoxValue.EndToStart -> "Block"
+                SwipeToDismissBoxValue.StartToEnd ->
+                    if (state != ApprovalState.APPROVED) "Approve" else ""
+                SwipeToDismissBoxValue.EndToStart ->
+                    if (state != ApprovalState.BLOCKED) "Block" else ""
                 else -> ""
             }
             val alignment = when (direction) {
@@ -962,11 +961,7 @@ fun StateBadge(state: ApprovalState) {
     val (bgColor, textColor, label) = when (state) {
         ApprovalState.APPROVED -> Triple(Color(0xFF4CAF50), Color.White, "APPROVED")
         ApprovalState.BLOCKED  -> Triple(Color(0xFFF44336), Color.White, "BLOCKED")
-        ApprovalState.DEFAULT  -> Triple(
-            MaterialTheme.colorScheme.surfaceVariant,
-            MaterialTheme.colorScheme.onSurfaceVariant,
-            "DEFAULT"
-        )
+        ApprovalState.PENDING  -> Triple(Color(0xFFFF9800), Color.White, "PENDING")
     }
     androidx.compose.material3.Surface(
         color = bgColor,
@@ -977,6 +972,27 @@ fun StateBadge(state: ApprovalState) {
             color = textColor,
             style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+        )
+    }
+}
+
+@Composable
+fun AboutCard() {
+    val uriHandler = LocalUriHandler.current
+    val style = MaterialTheme.typography.bodySmall
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(2.dp)
+    ) {
+        Text("PhoneTrack ${BuildConfig.VERSION_NAME} · GPL-3.0", style = style)
+        Text(
+            "github.com/gideontek/phonetrack",
+            style = style,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.clickable {
+                uriHandler.openUri("https://github.com/gideontek/phonetrack")
+            }
         )
     }
 }
