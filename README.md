@@ -35,7 +35,7 @@ The tracked phone never pushes location unsolicited. It only responds to inbound
 
 PhoneTrack is **pull-based**: the tracked phone decides who gets a response. Though within the app a user can one-shot **push** their current location to an approved contact.
 
-- New senders are logged as **DEFAULT**. If *Block all* is off (the default), they receive a reply. If *Block all* is on, they are silently ignored until you explicitly approve them.
+- New senders are logged as **PENDING** and silently ignored until you explicitly approve them.
 - You can mark any number as **APPROVED** (always responds) or **BLOCKED** (always ignored) from within the app.
 - The app only responds when you have it enabled. You can disable it instantly from the main screen.
 
@@ -142,8 +142,7 @@ Cancels your active subscription. The phone replies to confirm cancellation.
 | SMS responding | Master on/off switch |
 | Keyword | The trigger word the phone listens for (default: `phonetrack`) |
 | Auto-start on boot | Resume responding automatically after the phone restarts |
-| Block all unknown numbers | Ignore DEFAULT-state numbers; only APPROVED numbers get replies |
-| Contacts list | Per-number approval state: DEFAULT / APPROVED / BLOCKED |
+| Contacts list | Per-number approval state: PENDING / APPROVED / BLOCKED |
 
 Active subscriptions are shown in the main screen and can be cancelled by swiping them away.
 
