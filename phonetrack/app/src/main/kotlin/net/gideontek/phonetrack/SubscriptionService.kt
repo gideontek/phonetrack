@@ -106,7 +106,7 @@ class SubscriptionService : Service() {
                         dist[0] >= sub.distMeters
                     }
                     if (shouldSend) {
-                        sendLocationSms(sub.number, loc)
+                        sendLocationSms(sub.number, loc, sub.lastLat, sub.lastLon)
                         SubscriptionManager.updateTracking(
                             this, sub.number, loc.latitude, loc.longitude, sendTime
                         )
@@ -180,11 +180,16 @@ class SubscriptionService : Service() {
     // SMS helpers (mirrors SmsLocationService)
     // -------------------------------------------------------------------------
 
-    private fun sendLocationSms(to: String, loc: Location) {
+    private fun sendLocationSms(to: String, loc: Location, prevLat: Double = 0.0, prevLon: Double = 0.0) {
+        val deltaStr = if (prevLat != 0.0 || prevLon != 0.0) {
+            val results = FloatArray(2)
+            Location.distanceBetween(prevLat, prevLon, loc.latitude, loc.longitude, results)
+            "\n${bearingToArrow(results[1])}${results[0].toInt()}m"
+        } else ""
         sendSms(
             to,
             "[PhoneTrack] Lat: ${loc.latitude}, Lon: ${loc.longitude}\n" +
-                "Acc: ${loc.accuracy.toInt()}m"
+                "Acc: ${loc.accuracy.toInt()}m$deltaStr"
         )
         sendSms(to, "geo:${loc.latitude},${loc.longitude}")
         sendSms(
@@ -192,6 +197,13 @@ class SubscriptionService : Service() {
             "https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}" +
                 "#map=10/${loc.latitude}/${loc.longitude}"
         )
+    }
+
+    /** Snaps a compass bearing (0–360°, clockwise from north) to the nearest of 8 arrow glyphs. */
+    private fun bearingToArrow(bearing: Float): String {
+        val b = ((bearing % 360) + 360) % 360
+        val index = ((b + 22.5f) / 45f).toInt() % 8
+        return arrayOf("⇑", "⇗", "⇒", "⇘", "⇓", "⇙", "⇐", "⇖")[index]
     }
 
     private fun sendSms(to: String, text: String) {
