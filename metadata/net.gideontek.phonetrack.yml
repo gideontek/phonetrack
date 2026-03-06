@@ -1,0 +1,46 @@
+Categories:
+  - Phone & SMS
+
+License: GPL-3.0-only
+
+AuthorName: gideontek
+SourceCode: https://github.com/gideontek/phonetrack
+IssueTracker: https://github.com/gideontek/phonetrack/issues
+
+AutoName: PhoneTrack
+Summary: Location sharing over SMS — no internet required
+Description: |-
+  PhoneTrack turns your Android phone into an SMS location beacon. Anyone who
+  knows your keyword can send a text to request your location, and the phone
+  replies automatically with coordinates, accuracy, and a map link — all over
+  plain SMS, with no data connection needed.
+
+  New senders are logged as PENDING and silently ignored until you explicitly
+  approve them. You can mark any number as APPROVED (always responds) or
+  BLOCKED (always ignored).
+
+  Features:
+
+  * One-shot location request: send the keyword, get GPS coordinates + OpenStreetMap link
+  * Subscribe for periodic updates — configurable frequency, distance threshold, and duration
+  * Each subscription update includes direction and distance moved since the last fix (e.g. ⇐314m)
+  * Approval gate: PENDING → APPROVED / BLOCKED per sender
+  * No internet permission — SMS only
+  * Works on Android 8.0 (API 26) and later
+
+RepoType: git
+Repo: https://github.com/gideontek/phonetrack
+
+Builds:
+  - versionName: '1.0'
+    versionCode: 1
+    commit: v1.0
+    subdir: phonetrack
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+
+CurrentVersion: '1.0'
+CurrentVersionCode: 1
