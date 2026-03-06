@@ -1,5 +1,6 @@
 Categories:
   - Phone & SMS
+  - Navigation
 
 License: GPL-3.0-only
 
@@ -7,26 +8,28 @@ AuthorName: gideontek
 SourceCode: https://github.com/gideontek/phonetrack
 IssueTracker: https://github.com/gideontek/phonetrack/issues
 
-AutoName: PhoneTrack
-Summary: Location sharing over SMS — no internet required
+AutoName: PhoneTrack SMS
+Summary: Focused location sharing over SMS
 Description: |-
-  PhoneTrack turns your Android phone into an SMS location beacon. Anyone who
-  knows your keyword can send a text to request your location, and the phone
-  replies automatically with coordinates, accuracy, and a map link — all over
-  plain SMS, with no data connection needed.
+  Location sharing that respects your privacy and your data plan. This phone track app 
+  (PhoneTrack) responds to SMS requests with your GPS coordinates — no internet required,
+  no account needed, no data used.
 
-  New senders are logged as PENDING and silently ignored until you explicitly
-  approve them. You can mark any number as APPROVED (always responds) or
-  BLOCKED (always ignored).
+  It focuses on one thing and keeps it simple. A trusted contact texts your keyword and
+  the phone texts back a location and an OpenStreetMap link. Need regular check-ins?
+  Subscribe for periodic updates that include how far and which direction you've moved. The 
+  sender doesn't even need the app installed.
 
-  Features:
+  New requests are held in a PENDING state until you decide: APPROVED numbers always
+  get a reply, BLOCKED numbers are quietly ignored. You don't have to think about it
+  until you want to.
 
-  * One-shot location request: send the keyword, get GPS coordinates + OpenStreetMap link
-  * Subscribe for periodic updates — configurable frequency, distance threshold, and duration
-  * Each subscription update includes direction and distance moved since the last fix (e.g. ⇐314m)
-  * Approval gate: PENDING → APPROVED / BLOCKED per sender
-  * No internet permission — SMS only
-  * Works on Android 8.0 (API 26) and later
+  * One-shot request: reply with GPS fix + OpenStreetMap link
+  * Subscriptions: periodic updates with heading and distance delta (e.g. ⇐314m)
+  * Approval gate: PENDING → APPROVED / BLOCKED
+  * Zero internet permission — SMS only, always
+  * Android 8.0 (API 26) and later
+
 
 RepoType: git
 Repo: https://github.com/gideontek/phonetrack
