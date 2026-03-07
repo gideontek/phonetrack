@@ -1,4 +1,4 @@
-package net.gideontek.phonetrack
+package com.gideontek.phonetrack
 
 import android.content.BroadcastReceiver
 import android.content.Context

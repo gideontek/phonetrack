@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "net.gideontek.phonetrack"
+    namespace = "com.gideontek.phonetrack"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "net.gideontek.phonetrack"
+        applicationId = "com.gideontek.phonetrack"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

@@ -1,4 +1,4 @@
-package net.gideontek.phonetrack
+package com.gideontek.phonetrack
 
 import android.Manifest
 import android.annotation.SuppressLint

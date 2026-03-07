@@ -30,7 +30,7 @@ phonetrack-android-2026/
         ├── build.gradle.kts
         └── src/main/
             ├── AndroidManifest.xml
-            ├── kotlin/net/gideontek/phonetrack/
+            ├── kotlin/com/gideontek/phonetrack/
             │   ├── MainActivity.kt        # Compose UI + ViewModel
             │   ├── SmsReceiver.kt         # BroadcastReceiver (one-shot / subscribe / unsubscribe)
             │   ├── SmsLocationService.kt  # ForegroundService — one-shot location reply
@@ -44,7 +44,7 @@ phonetrack-android-2026/
 
 ## Key Facts
 
-- Package: `net.gideontek.phonetrack`
+- Package: `com.gideontek.phonetrack`
 - Min SDK: 26 | Target SDK: 35 | Compile SDK: 35
 - Kotlin 2.1.10 + AGP 8.8.0 + Gradle 8.12.1
 - Jetpack Compose (no XML layouts)
