@@ -1,14 +1,14 @@
-# PhoneTrack
+# PhoneTrack SMS
 
 **Location sharing over SMS — no internet required.**
 
-PhoneTrack turns your Android phone into an SMS location beacon. Anyone who knows your keyword can send a text to request your location, and the phone replies automatically with coordinates, accuracy, battery level, and a map link — all over plain SMS, with no data connection needed.
+PhoneTrack SMS turns your Android phone into an SMS location beacon. Anyone who knows your keyword can send a text to request your location, and the phone replies automatically with coordinates, accuracy, battery level, and a map link — all over plain SMS, with no data connection needed.
 
 ---
 
-## Why PhoneTrack?
+## Why Phone Track?
 
-Most location-sharing apps require both parties to have internet, accounts, and the same app installed. PhoneTrack has no such dependencies. It works anywhere your phone can send and receive a text message.
+Most location-sharing apps require both parties to have internet, accounts, and the same app installed. PhoneTrack has no such dependencies. Track any phone even without a data connection. It works anywhere your phone can send and receive a text message.
 
 **Common use cases:**
 
