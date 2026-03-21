@@ -245,6 +245,10 @@ class SmsLocationService : Service() {
             "https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}" +
                 "#map=10/${loc.latitude}/${loc.longitude}"
         )
+        // Seed subscription tracking so the first periodic update has a meaningful delta.
+        if (SubscriptionManager.getFor(this, to) != null) {
+            SubscriptionManager.updateTracking(this, to, loc.latitude, loc.longitude, System.currentTimeMillis())
+        }
     }
 
     private fun sendSms(to: String, text: String) {
