@@ -35,8 +35,6 @@ class SubscriptionService : Service() {
         private const val CHANNEL_ID = "subscription_service"
         private const val LOCATION_TIMEOUT_MS = 60_000L
         private const val RETRY_DELAY_MS = 5 * 60_000L  // retry after location failure
-        private const val MIN_TICK_MS = 60_000L          // minimum sleep between ticks
-        private const val MAX_TICK_MS = 15 * 60_000L     // maximum sleep between ticks
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -83,10 +81,10 @@ class SubscriptionService : Service() {
 
         // 3. Check which subscribers are due for an update.
         val now = System.currentTimeMillis()
-        val dueSubs = subs.filter { now - it.lastSentAt >= it.freqMinutes * 60_000L }
+        val dueSubs = SubscriptionLogic.dueSubs(subs, now)
 
         if (dueSubs.isEmpty()) {
-            scheduleTick(computeNextTickDelay(subs, now))
+            scheduleTick(SubscriptionLogic.nextTickDelay(subs, now))
             return
         }
 
@@ -95,16 +93,16 @@ class SubscriptionService : Service() {
             onLocation = { loc ->
                 val sendTime = System.currentTimeMillis()
                 for (sub in dueSubs) {
-                    val shouldSend = if (sub.lastLat == 0.0 && sub.lastLon == 0.0) {
-                        true // first update for this subscriber
-                    } else {
-                        val dist = FloatArray(1)
+                    val dist = FloatArray(1)
+                    if (sub.lastLat != 0.0 || sub.lastLon != 0.0) {
                         Location.distanceBetween(
                             sub.lastLat, sub.lastLon,
                             loc.latitude, loc.longitude, dist
                         )
-                        dist[0] >= sub.distMeters
                     }
+                    val shouldSend = SubscriptionLogic.shouldSend(
+                        sub.lastLat, sub.lastLon, dist[0], sub.distMeters
+                    )
                     if (shouldSend) {
                         sendLocationSms(sub.number, loc, sub.lastLat, sub.lastLon)
                         SubscriptionManager.updateTracking(
@@ -114,23 +112,13 @@ class SubscriptionService : Service() {
                 }
                 // Reload subs (tracking was updated) and schedule next tick.
                 val updated = SubscriptionManager.getAll(this)
-                scheduleTick(computeNextTickDelay(updated, System.currentTimeMillis()))
+                scheduleTick(SubscriptionLogic.nextTickDelay(updated, System.currentTimeMillis()))
             },
             onFailure = {
                 // Location unavailable this cycle; retry sooner than the normal interval.
                 scheduleTick(RETRY_DELAY_MS)
             }
         )
-    }
-
-    /**
-     * Computes the delay in ms until the soonest subscriber becomes due.
-     * Clamped to [[MIN_TICK_MS], [MAX_TICK_MS]].
-     */
-    private fun computeNextTickDelay(subs: List<Subscription>, now: Long): Long {
-        if (subs.isEmpty()) return MAX_TICK_MS
-        val nextDueAt = subs.minOf { it.lastSentAt + it.freqMinutes * 60_000L }
-        return (nextDueAt - now).coerceIn(MIN_TICK_MS, MAX_TICK_MS)
     }
 
     // -------------------------------------------------------------------------
@@ -184,7 +172,7 @@ class SubscriptionService : Service() {
         val deltaStr = if (prevLat != 0.0 || prevLon != 0.0) {
             val results = FloatArray(2)
             Location.distanceBetween(prevLat, prevLon, loc.latitude, loc.longitude, results)
-            "\n${bearingToArrow(results[1])}${results[0].toInt()}m"
+            "\n${SubscriptionLogic.bearingToArrow(results[1])}${results[0].toInt()}m"
         } else ""
         sendSms(
             to,
@@ -197,13 +185,6 @@ class SubscriptionService : Service() {
             "https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}" +
                 "#map=10/${loc.latitude}/${loc.longitude}"
         )
-    }
-
-    /** Snaps a compass bearing (0–360°, clockwise from north) to the nearest of 8 arrow glyphs. */
-    private fun bearingToArrow(bearing: Float): String {
-        val b = ((bearing % 360) + 360) % 360
-        val index = ((b + 22.5f) / 45f).toInt() % 8
-        return arrayOf("⇑", "⇗", "⇒", "⇘", "⇓", "⇙", "⇐", "⇖")[index]
     }
 
     private fun sendSms(to: String, text: String) {

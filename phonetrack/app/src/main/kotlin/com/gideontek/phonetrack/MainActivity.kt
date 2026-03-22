@@ -105,11 +105,6 @@ private fun isLocationServicesEnabled(context: Context): Boolean {
     }
 }
 
-// ---------------------------------------------------------------------------
-// Enums
-// ---------------------------------------------------------------------------
-
-enum class ApprovalState { PENDING, APPROVED, BLOCKED }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -191,13 +186,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             }
             if (number.isNotEmpty()) result.add(number to state)
         }
-        return result.sortedBy { (_, state) ->
-            when (state) {
-                ApprovalState.PENDING  -> 0
-                ApprovalState.APPROVED -> 1
-                ApprovalState.BLOCKED  -> 2
-            }
-        }
+        return result.sortedBy { (_, state) -> ApprovalLogic.sortKey(state) }
     }
 
     fun setEnabled(value: Boolean) {
@@ -242,7 +231,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setNumberState(number: String, state: ApprovalState) {
-        if (state == ApprovalState.PENDING) return  // one-way door
+        val current = _approvalsList.value.find { it.first == number }?.second ?: ApprovalState.PENDING
+        if (!ApprovalLogic.canTransition(current, state)) return
         val json = prefs.getString("approvals_list", "[]") ?: "[]"
         val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
         for (i in 0 until array.length()) {
