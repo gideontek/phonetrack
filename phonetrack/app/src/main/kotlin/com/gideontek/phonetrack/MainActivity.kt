@@ -18,37 +18,20 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.LockOpen
-import androidx.compose.material.icons.filled.NetworkWifi1Bar
-import androidx.compose.material.icons.filled.NetworkWifi2Bar
-import androidx.compose.material.icons.filled.NetworkWifi3Bar
-import androidx.compose.material.icons.filled.SignalWifi4Bar
-import androidx.compose.material.icons.filled.ShareLocation
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.Icon
@@ -58,22 +41,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
-import androidx.compose.material3.SwipeToDismissBox
-import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.platform.LocalUriHandler
@@ -85,11 +63,13 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import org.json.JSONArray
-import org.json.JSONObject
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -609,360 +589,6 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
 
             AboutCard()
         }
-    }
-}
-
-@Composable
-fun PermissionDot(granted: Boolean) {
-    val color = MaterialTheme.colorScheme.primary
-    Box(
-        modifier = if (granted) {
-            Modifier.size(12.dp).background(color, CircleShape)
-        } else {
-            Modifier.size(12.dp).border(1.5.dp, color, CircleShape)
-        }
-    )
-}
-
-@Composable
-fun PermissionsCard(
-    smsGranted: Boolean,
-    locationGranted: Boolean,
-    bgLocationGranted: Boolean,
-    notificationsGranted: Boolean,
-    isLocked: Boolean,
-    onSmsRequest: () -> Unit,
-    onLocationRequest: () -> Unit,
-    onBgLocationRequest: () -> Unit,
-    onNotificationsRequest: () -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Header row
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = if (expanded) "Collapse permissions" else "Expand permissions"
-                )
-                Text(
-                    "Permissions",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp)
-                )
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    PermissionDot(smsGranted)
-                    PermissionDot(locationGranted)
-                    PermissionDot(bgLocationGranted)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        PermissionDot(notificationsGranted)
-                    }
-                }
-            }
-
-            // Expanded body
-            if (expanded) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Grant permissions in order. Background location must be requested after location.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                    Button(
-                        onClick = onSmsRequest,
-                        enabled = !smsGranted && !isLocked,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text(if (smsGranted) "1. SMS Permissions (granted)" else "1. Grant SMS Permissions") }
-                    Button(
-                        onClick = onLocationRequest,
-                        enabled = !locationGranted && !isLocked,
-                        modifier = Modifier.fillMaxWidth()
-                    ) { Text(if (locationGranted) "2. Location Permissions (granted)" else "2. Grant Location Permissions") }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        Button(
-                            onClick = onBgLocationRequest,
-                            enabled = !bgLocationGranted && !isLocked,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (bgLocationGranted) "3. Background Location (granted)" else "3. Grant Background Location") }
-                    }
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                        Button(
-                            onClick = onNotificationsRequest,
-                            enabled = !notificationsGranted && !isLocked,
-                            modifier = Modifier.fillMaxWidth()
-                        ) { Text(if (notificationsGranted) "4. Notifications (granted)" else "4. Grant Notifications") }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ApprovalsCard(
-    approvalsList: List<Pair<String, ApprovalState>>,
-    subscriptions: List<Subscription>,
-    isLocked: Boolean,
-    locationServicesEnabled: Boolean,
-    onNumberStateChange: (String, ApprovalState) -> Unit,
-    onSendLocation: (String) -> Unit,
-    onCancelSubscription: (String) -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-
-    Card(modifier = Modifier.fillMaxWidth()) {
-        Column(modifier = Modifier.padding(12.dp)) {
-            // Header row (always visible) — click to expand/collapse
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded },
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-                    contentDescription = if (expanded) "Collapse approvals" else "Expand approvals"
-                )
-                Text(
-                    "Approvals",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(start = 4.dp)
-                )
-            }
-
-            // Expanded body
-            if (expanded) {
-                Spacer(modifier = Modifier.height(8.dp))
-                if (approvalsList.isEmpty()) {
-                    Text(
-                        "No requests received yet.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                    )
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        for ((number, state) in approvalsList) {
-                            ApprovalRow(
-                                number = number,
-                                state = state,
-                                isLocked = isLocked,
-                                locationServicesEnabled = locationServicesEnabled,
-                                activeSubscription = subscriptions.find { it.number == number },
-                                onStateChange = { newState -> onNumberStateChange(number, newState) },
-                                onSendLocation = { onSendLocation(number) },
-                                onCancelSubscription = { onCancelSubscription(number) }
-                            )
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun ApprovalRow(
-    number: String,
-    state: ApprovalState,
-    isLocked: Boolean,
-    locationServicesEnabled: Boolean,
-    activeSubscription: Subscription?,
-    onStateChange: (ApprovalState) -> Unit,
-    onSendLocation: () -> Unit,
-    onCancelSubscription: () -> Unit
-) {
-    var showSubDialog by remember { mutableStateOf(false) }
-
-    if (showSubDialog && activeSubscription != null) {
-        val minutesLeft = ((activeSubscription.expiresAt - System.currentTimeMillis()) / 60_000L)
-            .coerceAtLeast(0)
-        AlertDialog(
-            onDismissRequest = { showSubDialog = false },
-            title = { Text("Active Subscription") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Distance threshold: ${activeSubscription.distMeters} m")
-                    Text("Frequency: every ${activeSubscription.freqMinutes} min")
-                    Text("Duration: ${activeSubscription.durationHours} hr total")
-                    Text("Expires in: $minutesLeft min")
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = { showSubDialog = false; onCancelSubscription() },
-                    enabled = !isLocked
-                ) { Text("Cancel Subscription") }
-            },
-            dismissButton = {
-                TextButton(onClick = { showSubDialog = false }) { Text("Close") }
-            }
-        )
-    }
-
-    // rememberSwipeToDismissBoxState captures the lambda once via rememberSaveable,
-    // so we use rememberUpdatedState to always read the latest values inside it.
-    val currentState = rememberUpdatedState(state)
-    val currentIsLocked = rememberUpdatedState(isLocked)
-    val currentOnStateChange = rememberUpdatedState(onStateChange)
-
-    val dismissState = rememberSwipeToDismissBoxState(
-        confirmValueChange = { dismissValue ->
-            if (!currentIsLocked.value) {
-                when (dismissValue) {
-                    SwipeToDismissBoxValue.StartToEnd -> {
-                        val newState = when (currentState.value) {
-                            ApprovalState.PENDING  -> ApprovalState.APPROVED
-                            ApprovalState.BLOCKED  -> ApprovalState.APPROVED
-                            ApprovalState.APPROVED -> null  // no-op
-                        }
-                        newState?.let { currentOnStateChange.value(it) }
-                    }
-                    SwipeToDismissBoxValue.EndToStart -> {
-                        val newState = when (currentState.value) {
-                            ApprovalState.PENDING  -> ApprovalState.BLOCKED
-                            ApprovalState.APPROVED -> ApprovalState.BLOCKED
-                            ApprovalState.BLOCKED  -> null  // no-op
-                        }
-                        newState?.let { currentOnStateChange.value(it) }
-                    }
-                    else -> Unit
-                }
-            }
-            false // always spring back to centre
-        }
-    )
-
-    SwipeToDismissBox(
-        state = dismissState,
-        enableDismissFromStartToEnd = !isLocked,
-        enableDismissFromEndToStart = !isLocked,
-        backgroundContent = {
-            val direction = dismissState.dismissDirection
-            val bgColor = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd ->
-                    if (state != ApprovalState.APPROVED) Color(0xFF4CAF50) else Color.Transparent
-                SwipeToDismissBoxValue.EndToStart ->
-                    if (state != ApprovalState.BLOCKED) Color(0xFFF44336) else Color.Transparent
-                else -> Color.Transparent
-            }
-            val label = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd ->
-                    if (state != ApprovalState.APPROVED) "Approve" else ""
-                SwipeToDismissBoxValue.EndToStart ->
-                    if (state != ApprovalState.BLOCKED) "Block" else ""
-                else -> ""
-            }
-            val alignment = when (direction) {
-                SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                else -> Alignment.CenterEnd
-            }
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp),
-                contentAlignment = alignment
-            ) {
-                androidx.compose.material3.Surface(
-                    color = bgColor,
-                    modifier = Modifier.fillMaxSize()
-                ) {}
-                Text(
-                    label,
-                    color = Color.White,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
-                
-            }
-        }
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 1.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    number,
-                    style = MaterialTheme.typography.bodyMedium
-                )
-                if (state == ApprovalState.APPROVED) {
-                    IconButton(
-                        onClick = onSendLocation,
-                        enabled = locationServicesEnabled
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ShareLocation,
-                            contentDescription = "Send location to $number",
-                            tint = if (locationServicesEnabled)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
-                        )
-                    }
-                    if (activeSubscription != null) {
-                        val remainingFraction = ((activeSubscription.expiresAt - System.currentTimeMillis()).toFloat() /
-                            (activeSubscription.durationHours * 3_600_000L).toFloat()).coerceIn(0f, 1f)
-                        val subIcon = when {
-                            remainingFraction >= 0.75f -> Icons.Filled.SignalWifi4Bar
-                            remainingFraction >= 0.50f -> Icons.Filled.NetworkWifi3Bar
-                            remainingFraction >= 0.25f -> Icons.Filled.NetworkWifi2Bar
-                            else -> Icons.Filled.NetworkWifi1Bar
-                        }
-                        IconButton(onClick = { showSubDialog = true }) {
-                            Icon(
-                                imageVector = subIcon,
-                                contentDescription = "View subscription for $number",
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-                }
-                Spacer(modifier = Modifier.weight(1f))
-                StateBadge(state)
-            }
-        }
-    }
-}
-
-@Composable
-fun StateBadge(state: ApprovalState) {
-    val (bgColor, textColor, label) = when (state) {
-        ApprovalState.APPROVED -> Triple(Color(0xFF4CAF50), Color.White, "APPROVED")
-        ApprovalState.BLOCKED  -> Triple(Color(0xFFF44336), Color.White, "BLOCKED")
-        ApprovalState.PENDING  -> Triple(Color(0xFFFF9800), Color.White, "PENDING")
-    }
-    androidx.compose.material3.Surface(
-        color = bgColor,
-        shape = MaterialTheme.shapes.small
-    ) {
-        Text(
-            label,
-            color = textColor,
-            style = MaterialTheme.typography.labelSmall,
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-        )
     }
 }
 
