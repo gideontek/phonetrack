@@ -12,7 +12,7 @@ object SmsComposer {
     fun composeOneShotLocation(lat: Double, lon: Double, accuracy: Int, battery: Int): List<String> = listOf(
         "[PhoneTrack] Lat: $lat, Lon: $lon\nAcc: ${accuracy}m, Bat: $battery%",
         "geo:$lat,$lon",
-        "https://www.openstreetmap.org/?mlat=$lat&mlon=$lon#map=10/$lat/$lon"
+        "https://www.openstreetmap.org/?mlat=$lat&mlon=$lon#map=14/$lat/$lon"
     )
 
     fun composeSubscriptionLocation(
@@ -30,7 +30,7 @@ object SmsComposer {
         return listOf(
             "[PhoneTrack] Lat: $lat, Lon: $lon\nAcc: ${accuracy}m$deltaStr",
             "geo:$lat,$lon",
-            "https://www.openstreetmap.org/?mlat=$lat&mlon=$lon#map=10/$lat/$lon"
+            "https://www.openstreetmap.org/?mlat=$lat&mlon=$lon#map=14/$lat/$lon"
         )
     }
 
