@@ -19,7 +19,6 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.telephony.SmsManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 
@@ -65,7 +64,7 @@ class SmsLocationService : Service() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            sendSms(sender, "[PhoneTrack] Location permission not granted")
+            SmsSender.sendPermissionError(this, sender)
             stopSelf()
             return
         }
@@ -95,7 +94,7 @@ class SmsLocationService : Service() {
             waitTimeoutRunnable = null
             unregisterProviderReceiver()
             dismissAlertNotification()
-            sendSms(sender, "[PhoneTrack] Location unavailable (services disabled)")
+            SmsSender.sendServicesDisabledError(this, sender)
             stopSelf()
         }
         waitTimeoutRunnable = timeoutRunnable
@@ -132,7 +131,7 @@ class SmsLocationService : Service() {
 
         val timeoutRunnable = Runnable {
             locationManager?.removeUpdates(locationListener ?: return@Runnable)
-            sendSms(sender, "[PhoneTrack] Location unavailable (timeout)")
+            SmsSender.sendTimeoutError(this, sender)
             stopSelf()
         }
         handler.postDelayed(timeoutRunnable, TIMEOUT_MS)
@@ -140,7 +139,13 @@ class SmsLocationService : Service() {
         locationListener = LocationListener { location ->
             handler.removeCallbacks(timeoutRunnable)
             locationManager?.removeUpdates(locationListener!!)
-            sendLocationSms(sender, location)
+            val battery = (getSystemService(Context.BATTERY_SERVICE) as BatteryManager)
+                .getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+            SmsSender.sendOneShotLocation(this, sender, location, battery)
+            // Seed subscription tracking so the first periodic update has a meaningful delta.
+            if (SubscriptionManager.getFor(this, sender) != null) {
+                SubscriptionManager.updateTracking(this, sender, location.latitude, location.longitude, System.currentTimeMillis())
+            }
             stopSelf()
         }
 
@@ -151,7 +156,7 @@ class SmsLocationService : Service() {
                 LocationManager.NETWORK_PROVIDER
             else -> {
                 handler.removeCallbacks(timeoutRunnable)
-                sendSms(sender, "[PhoneTrack] No location provider available")
+                SmsSender.sendNoProviderError(this, sender)
                 stopSelf()
                 return
             }
@@ -225,40 +230,6 @@ class SmsLocationService : Service() {
             }
             providerChangeReceiver = null
         }
-    }
-
-    // -------------------------------------------------------------------------
-    // SMS helpers
-    // -------------------------------------------------------------------------
-
-    private fun sendLocationSms(to: String, loc: Location) {
-        val battery = (getSystemService(Context.BATTERY_SERVICE) as BatteryManager)
-            .getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-        sendSms(
-            to,
-            "[PhoneTrack] Lat: ${loc.latitude}, Lon: ${loc.longitude}\n" +
-                "Acc: ${loc.accuracy.toInt()}m, Bat: $battery%"
-        )
-        sendSms(to, "geo:${loc.latitude},${loc.longitude}")
-        sendSms(
-            to,
-            "https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}" +
-                "#map=10/${loc.latitude}/${loc.longitude}"
-        )
-        // Seed subscription tracking so the first periodic update has a meaningful delta.
-        if (SubscriptionManager.getFor(this, to) != null) {
-            SubscriptionManager.updateTracking(this, to, loc.latitude, loc.longitude, System.currentTimeMillis())
-        }
-    }
-
-    private fun sendSms(to: String, text: String) {
-        val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            getSystemService(SmsManager::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            SmsManager.getDefault()
-        }
-        smsManager.sendTextMessage(to, null, text, null, null)
     }
 
     // -------------------------------------------------------------------------

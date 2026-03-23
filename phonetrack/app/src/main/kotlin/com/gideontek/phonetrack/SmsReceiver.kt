@@ -3,9 +3,7 @@ package com.gideontek.phonetrack
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.provider.Telephony
-import android.telephony.SmsManager
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -81,7 +79,7 @@ class SmsReceiver : BroadcastReceiver() {
     ) {
         val params = SmsCommandParser.parseSubscribe(tokens.drop(2))
         if (params == null) {
-            sendSms(ctx, sender, "[PhoneTrack] Usage: $keyword subscribe [--dist N] [--freq N] [--hours N]")
+            SmsSender.sendUsageHint(ctx, sender, keyword)
             return
         }
         val now = System.currentTimeMillis()
@@ -106,17 +104,7 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun handleUnsubscribe(ctx: Context, sender: String) {
-        sendSms(ctx, sender, "[PhoneTrack] Your location subscription has been cancelled.")
+        SmsSender.sendSubscriptionCancelled(ctx, sender)
         SubscriptionManager.remove(ctx, sender)
-    }
-
-    private fun sendSms(ctx: Context, to: String, text: String) {
-        val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ctx.getSystemService(SmsManager::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            SmsManager.getDefault()
-        }
-        smsManager.sendTextMessage(to, null, text, null, null)
     }
 }

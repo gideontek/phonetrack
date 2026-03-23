@@ -12,11 +12,9 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
-import android.telephony.SmsManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 
@@ -66,7 +64,7 @@ class SubscriptionService : Service() {
         // 1. Prune expired subscriptions; notify each one.
         val expired = SubscriptionManager.pruneExpired(this)
         for (sub in expired) {
-            sendSms(sub.number, "[PhoneTrack] Your location subscription has ended.")
+            SmsSender.sendSubscriptionExpired(this, sub.number)
         }
 
         // 2. Reload; stop if no subscribers remain.
@@ -104,7 +102,7 @@ class SubscriptionService : Service() {
                         sub.lastLat, sub.lastLon, dist[0], sub.distMeters
                     )
                     if (shouldSend) {
-                        sendLocationSms(sub.number, loc, sub.lastLat, sub.lastLon)
+                        SmsSender.sendSubscriptionLocation(this, sub.number, loc, sub.lastLat, sub.lastLon)
                         SubscriptionManager.updateTracking(
                             this, sub.number, loc.latitude, loc.longitude, sendTime
                         )
@@ -162,39 +160,6 @@ class SubscriptionService : Service() {
             onLocation(loc)
         }
         lm.requestSingleUpdate(provider, locationListener!!, Looper.getMainLooper())
-    }
-
-    // -------------------------------------------------------------------------
-    // SMS helpers (mirrors SmsLocationService)
-    // -------------------------------------------------------------------------
-
-    private fun sendLocationSms(to: String, loc: Location, prevLat: Double = 0.0, prevLon: Double = 0.0) {
-        val deltaStr = if (prevLat != 0.0 || prevLon != 0.0) {
-            val results = FloatArray(2)
-            Location.distanceBetween(prevLat, prevLon, loc.latitude, loc.longitude, results)
-            "\n${SubscriptionLogic.bearingToArrow(results[1])}${results[0].toInt()}m"
-        } else ""
-        sendSms(
-            to,
-            "[PhoneTrack] Lat: ${loc.latitude}, Lon: ${loc.longitude}\n" +
-                "Acc: ${loc.accuracy.toInt()}m$deltaStr"
-        )
-        sendSms(to, "geo:${loc.latitude},${loc.longitude}")
-        sendSms(
-            to,
-            "https://www.openstreetmap.org/?mlat=${loc.latitude}&mlon=${loc.longitude}" +
-                "#map=10/${loc.latitude}/${loc.longitude}"
-        )
-    }
-
-    private fun sendSms(to: String, text: String) {
-        val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            getSystemService(SmsManager::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            SmsManager.getDefault()
-        }
-        smsManager.sendTextMessage(to, null, text, null, null)
     }
 
     // -------------------------------------------------------------------------
