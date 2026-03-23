@@ -166,6 +166,63 @@ class SubscriptionLogicTest {
     }
 
     // -------------------------------------------------------------------------
+    // Subscription timing — no-send preserves 60 s retry
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `nextTickDelay after no-send with default 15min freq clamps to MIN`() {
+        val T = 1_000_000L
+        val s = sub(freqMinutes = 15, lastSentAt = T)
+        // check fired at T + 900_000; no send → lastSentAt still T
+        val now = T + 900_000L          // exactly 15 min later
+        // nextDueAt = T + 900_000 = now → delay = 0 → MIN
+        assertEquals(SubscriptionLogic.MIN_TICK_MS, SubscriptionLogic.nextTickDelay(listOf(s), now))
+    }
+
+    @Test
+    fun `nextTickDelay after no-send with custom 4min freq clamps to MIN`() {
+        val T = 1_000_000L
+        val s = sub(freqMinutes = 4, lastSentAt = T)
+        val now = T + 240_000L          // exactly 4 min later
+        // nextDueAt = T + 240_000 = now → delay = 0 → MIN
+        assertEquals(SubscriptionLogic.MIN_TICK_MS, SubscriptionLogic.nextTickDelay(listOf(s), now))
+    }
+
+    @Test
+    fun `dueSubs sub is immediately due on 60s retry tick after no-send`() {
+        val T = 1_000_000L
+        val s = sub(freqMinutes = 15, lastSentAt = T)
+        // 60 s after the no-send check at T+15min:
+        val now = T + 900_000L + 60_000L
+        // now - lastSentAt = 960_000 >= 900_000 → due
+        assertEquals(listOf(s), SubscriptionLogic.dueSubs(listOf(s), now))
+    }
+
+    @Test
+    fun `nextTickDelay after successful send uses custom 4min freq`() {
+        val T = 1_000_000L
+        val s = sub(freqMinutes = 4, lastSentAt = T)   // just sent
+        // nextDueAt = T + 240_000; now = T → delay = 240_000 (within [MIN, MAX])
+        assertEquals(240_000L, SubscriptionLogic.nextTickDelay(listOf(s), T))
+    }
+
+    @Test
+    fun `dueSubs custom 4min freq not yet due 3min after send`() {
+        val T = 1_000_000L
+        val s = sub(freqMinutes = 4, lastSentAt = T)
+        // now - T = 180_000 < 240_000 → not due
+        assertEquals(emptyList<Subscription>(), SubscriptionLogic.dueSubs(listOf(s), T + 180_000L))
+    }
+
+    @Test
+    fun `dueSubs custom 4min freq exactly due after 4min`() {
+        val T = 1_000_000L
+        val s = sub(freqMinutes = 4, lastSentAt = T)
+        // now - T = 240_000 >= 240_000 → due
+        assertEquals(listOf(s), SubscriptionLogic.dueSubs(listOf(s), T + 240_000L))
+    }
+
+    // -------------------------------------------------------------------------
     // bearingToArrow
     // -------------------------------------------------------------------------
 
