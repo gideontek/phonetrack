@@ -3,7 +3,6 @@ package com.gideontek.phonetrack
 import android.Manifest
 import android.app.Application
 import android.content.BroadcastReceiver
-import android.telephony.SmsManager
 import android.content.Context
 import android.content.IntentFilter
 import android.location.LocationManager
@@ -229,17 +228,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun cancelSubscription(number: String) {
         val ctx = getApplication<Application>()
-        val smsManager: SmsManager = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            ctx.getSystemService(SmsManager::class.java)
-        } else {
-            @Suppress("DEPRECATION")
-            SmsManager.getDefault()
-        }
-        smsManager.sendTextMessage(
-            number, null,
-            "[PhoneTrack] Your location subscription has been cancelled.",
-            null, null
-        )
+        SmsSender.sendSubscriptionCancelled(ctx, number)
         SubscriptionManager.remove(ctx, number)
         _subscriptions.value = SubscriptionManager.getAll(ctx)
     }
