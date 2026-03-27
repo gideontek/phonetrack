@@ -9,13 +9,13 @@ IssueTracker: https://github.com/gideontek/phonetrack/issues
 AutoName: PhoneTrack SMS
 Summary: Focused location sharing over SMS
 Description: |-
-  Location sharing that respects your privacy and your data plan. This phone track app 
+  Location sharing that respects your privacy and your data plan. This phone track app
   (PhoneTrack SMS) responds to text message requests with your GPS coordinates — no internet required,
   no account needed, no data used.
 
   It focuses on one thing and keeps it simple. A trusted contact texts your keyword and
   the phone texts back a location and an OpenStreetMap link. Need regular check-ins?
-  Subscribe for periodic updates that include how far and which direction you've moved. The 
+  Subscribe for periodic updates that include how far and which direction you've moved. The
   sender doesn't even need the app installed.
 
   New requests are held in a PENDING state until you decide: APPROVED numbers always
