@@ -1,0 +1,2 @@
+* Subscribe command now uses --time flag instead of --hours
+* VS Code / VSCodium build and debug support added
