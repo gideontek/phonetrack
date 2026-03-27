@@ -35,9 +35,9 @@ Builds:
     versionCode: 2
     commit: '1.1'
     subdir: phonetrack
-    output: app/build/outputs/apk/release/app-release-unsigned.apk
     gradle:
       - yes
+    output: app/build/outputs/apk/release/app-release-unsigned.apk
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
