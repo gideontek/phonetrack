@@ -41,7 +41,7 @@ object SmsComposer {
         listOf("[PhoneTrack] Your location subscription has been cancelled.")
 
     fun composeUsageHint(keyword: String): List<String> =
-        listOf("[PhoneTrack] Usage: $keyword subscribe [--dist N] [--freq N] [--hours N]")
+        listOf("[PhoneTrack] Usage: $keyword subscribe [--dist N] [--freq N] [--time N]")
 
     fun composePermissionError(): List<String> =
         listOf("[PhoneTrack] Location permission not granted")

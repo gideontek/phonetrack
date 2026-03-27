@@ -4,7 +4,7 @@ data class SubscribeParams(val dist: Int, val freq: Int, val hours: Int)
 
 object SmsCommandParser {
 
-    /** Parses "--dist N --freq N --hours N" tokens (any order, all optional).
+    /** Parses "--dist N --freq N --time N" tokens (any order, all optional).
      *  Returns null on any error (unknown flag, missing value, freq < 1). */
     fun parseSubscribe(tokens: List<String>): SubscribeParams? {
         var dist = 200
@@ -23,7 +23,7 @@ object SmsCommandParser {
                     if (v < 1) return null
                     freq = v; i += 2
                 }
-                "--hours" -> {
+                "--time" -> {
                     val v = tokens.getOrNull(i + 1)?.toIntOrNull() ?: return null
                     hours = v; i += 2
                 }

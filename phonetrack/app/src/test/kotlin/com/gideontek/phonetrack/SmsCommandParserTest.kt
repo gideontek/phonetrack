@@ -17,7 +17,7 @@ class SmsCommandParserTest {
     @Test
     fun `all flags explicit`() {
         val result = SmsCommandParser.parseSubscribe(
-            listOf("--dist", "500", "--freq", "10", "--hours", "8")
+            listOf("--dist", "500", "--freq", "10", "--time", "8")
         )
         assertNotNull(result)
         assertEquals(500, result!!.dist)
@@ -28,7 +28,7 @@ class SmsCommandParserTest {
     @Test
     fun `any order`() {
         val result = SmsCommandParser.parseSubscribe(
-            listOf("--hours", "2", "--dist", "300", "--freq", "5")
+            listOf("--time", "2", "--dist", "300", "--freq", "5")
         )
         assertNotNull(result)
         assertEquals(300, result!!.dist)
@@ -57,8 +57,8 @@ class SmsCommandParserTest {
     }
 
     @Test
-    fun `missing value after hours flag returns null`() {
-        assertNull(SmsCommandParser.parseSubscribe(listOf("--hours")))
+    fun `missing value after time flag returns null`() {
+        assertNull(SmsCommandParser.parseSubscribe(listOf("--time")))
     }
 
     @Test
