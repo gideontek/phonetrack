@@ -429,12 +429,12 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Title row: [PhoneTrack]----[Remove PIN?][lock icon]
+            // Title row: [PhoneTrack SMS]----[Remove PIN?][lock icon]
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("PhoneTrack", style = MaterialTheme.typography.headlineMedium)
+                Text("PhoneTrack SMS", style = MaterialTheme.typography.headlineMedium)
                 Spacer(modifier = Modifier.weight(1f))
                 if (pinSet && !isLocked) {
                     TextButton(onClick = {
@@ -590,7 +590,7 @@ fun AboutCard() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
-        Text("PhoneTrack ${BuildConfig.VERSION_NAME} · GPL-3.0", style = style)
+        Text("PhoneTrack SMS ${BuildConfig.VERSION_NAME} · GPL-3.0", style = style)
         Text(
             "github.com/gideontek/phonetrack",
             style = style,

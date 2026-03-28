@@ -1,8 +1,8 @@
-Location sharing that respects your privacy and your data plan. PhoneTrack SMS responds to text message requests with your GPS coordinates — no internet required, no account needed, no data used.
+Location sharing that respects your privacy and your data plan. This phone track app (PhoneTrack SMS) responds to text message requests with your GPS coordinates — no internet required, no account needed, no data used.
 
-A trusted contact texts your keyword and the phone texts back a location and an OpenStreetMap link. Need regular check-ins? Subscribe for periodic updates that include how far and which direction you've moved. The sender doesn't even need the app installed.
+It focuses on one thing and keeps it simple. A trusted contact texts your keyword and the phone texts back a location and an OpenStreetMap link. Need regular check-ins? Subscribe for periodic updates that include how far and which direction you've moved. The sender doesn't even need the app installed.
 
-New requests are held in a PENDING state until you decide: APPROVED numbers always get a reply, BLOCKED numbers are quietly ignored.
+New requests are held in a PENDING state until you decide: APPROVED numbers always get a reply, BLOCKED numbers are quietly ignored. You don't have to think about it until you want to.
 
 Features:
 * One-shot location request: reply with GPS fix + OpenStreetMap link
