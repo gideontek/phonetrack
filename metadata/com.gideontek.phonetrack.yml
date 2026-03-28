@@ -7,25 +7,6 @@ SourceCode: https://github.com/gideontek/phonetrack
 IssueTracker: https://github.com/gideontek/phonetrack/issues
 
 AutoName: PhoneTrack SMS
-Description: |-
-  Location sharing that respects your privacy and your data plan. This phone track app
-  (PhoneTrack SMS) responds to text message requests with your GPS coordinates — no internet required,
-  no account needed, no data used.
-
-  It focuses on one thing and keeps it simple. A trusted contact texts your keyword and
-  the phone texts back a location and an OpenStreetMap link. Need regular check-ins?
-  Subscribe for periodic updates that include how far and which direction you've moved. The
-  sender doesn't even need the app installed.
-
-  New requests are held in a PENDING state until you decide: APPROVED numbers always
-  get a reply, BLOCKED numbers are quietly ignored. You don't have to think about it
-  until you want to.
-
-  * One-shot request: reply with GPS fix + OpenStreetMap link
-  * Subscriptions: periodic updates with heading and distance delta (e.g. ⇐314m)
-  * Approval gate: PENDING → APPROVED / BLOCKED
-  * Zero internet permission — SMS only, always
-  * Android 8.0 (API 26) and later
 
 RepoType: git
 Repo: https://github.com/gideontek/phonetrack
@@ -33,7 +14,7 @@ Repo: https://github.com/gideontek/phonetrack
 Builds:
   - versionName: '1.1'
     versionCode: 2
-    commit: '1.1'
+    commit: c255da9ade5a231a6af62203eb2d965ff5c0db9b
     subdir: phonetrack
     gradle:
       - yes
