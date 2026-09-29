@@ -55,6 +55,14 @@ class SmsLocationService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        // Callers (SmsReceiver) must verify ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION
+        // is already granted *before* calling startForegroundService() for this class.
+        // This service declares foregroundServiceType="location", and startForeground()
+        // must be called immediately once started this way (skipping it, or calling it
+        // without the permission already held, both crash the process on Android 14+ /
+        // targetSdk 35 — one via SecurityException, the other via
+        // ForegroundServiceDidNotStartInTimeException) — so the check can't safely live
+        // here; it has to gate the startForegroundService() call itself.
         startForeground(NOTIFICATION_ID, buildForegroundNotification())
         fetchAndSend(sender)
         return START_NOT_STICKY
@@ -64,6 +72,8 @@ class SmsLocationService : Service() {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
+            // Defense in depth only — callers are expected to have already checked this
+            // before starting the service (see the note in onStartCommand above).
             SmsSender.sendPermissionError(this, sender)
             stopSelf()
             return

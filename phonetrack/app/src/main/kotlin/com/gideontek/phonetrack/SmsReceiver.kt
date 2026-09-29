@@ -1,9 +1,12 @@
 package com.gideontek.phonetrack
 
+import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.provider.Telephony
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -62,13 +65,31 @@ class SmsReceiver : BroadcastReceiver() {
         when (tokens.getOrNull(1)?.lowercase()) {
             "subscribe" -> handleSubscribe(context, sender, keyword, tokens)
             "unsubscribe" -> handleUnsubscribe(context, sender)
-            else -> {
-                ContextCompat.startForegroundService(
-                    context,
-                    Intent(context, SmsLocationService::class.java).putExtra("sender", sender)
-                )
-            }
+            else -> startLocationFetch(context, sender)
         }
+    }
+
+    /**
+     * Starts [SmsLocationService] for a one-shot location fetch, replying with a
+     * permission-error SMS instead if ACCESS_FINE_LOCATION isn't granted.
+     *
+     * That service declares foregroundServiceType="location", and calling
+     * startForegroundService() when the permission isn't already held leads to a
+     * guaranteed crash inside the service (either a SecurityException from
+     * startForeground() itself, or a ForegroundServiceDidNotStartInTimeException if it's
+     * skipped) — so this must be checked here, before the service is ever started.
+     */
+    private fun startLocationFetch(ctx: Context, sender: String) {
+        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            SmsSender.sendPermissionError(ctx, sender)
+            return
+        }
+        ContextCompat.startForegroundService(
+            ctx,
+            Intent(ctx, SmsLocationService::class.java).putExtra("sender", sender)
+        )
     }
 
     private fun handleSubscribe(
@@ -97,10 +118,7 @@ class SmsReceiver : BroadcastReceiver() {
         SubscriptionManager.add(ctx, sub)
         SubscriptionManager.ensureServiceRunning(ctx)
         // Immediate location fix (same as one-shot)
-        ContextCompat.startForegroundService(
-            ctx,
-            Intent(ctx, SmsLocationService::class.java).putExtra("sender", sender)
-        )
+        startLocationFetch(ctx, sender)
     }
 
     private fun handleUnsubscribe(ctx: Context, sender: String) {

@@ -1,7 +1,10 @@
 package com.gideontek.phonetrack
 
+import android.Manifest
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -105,8 +108,21 @@ object SubscriptionManager {
         return expired
     }
 
-    /** Starts [SubscriptionService] as a foreground service if not already running. */
+    /**
+     * Starts [SubscriptionService] as a foreground service if not already running.
+     * No-ops if ACCESS_FINE_LOCATION isn't granted: that service declares
+     * foregroundServiceType="location", and calling startForegroundService() when the
+     * permission isn't already held leads to a guaranteed crash inside the service
+     * (either a SecurityException from startForeground() itself, or a
+     * ForegroundServiceDidNotStartInTimeException if it's skipped) — so this has to be
+     * checked here, before the service is ever started, not inside it. Safe to call
+     * speculatively (e.g. from BootReceiver): the service will be started for real the
+     * next time this is called after permission is granted.
+     */
     fun ensureServiceRunning(ctx: Context) {
+        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) return
         ContextCompat.startForegroundService(
             ctx,
             Intent(ctx, SubscriptionService::class.java)
