@@ -64,5 +64,7 @@ object SmsSender {
             SmsManager.getDefault()
         }
         smsManager.sendTextMessage(to, null, text, null, null)
+        ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
+            .edit().putLong("last_send_at", System.currentTimeMillis()).apply()
     }
 }

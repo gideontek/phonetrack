@@ -62,6 +62,8 @@ class SmsReceiver : BroadcastReceiver() {
         if (senderState != "APPROVED") return
         // --- End approvals gate ---
 
+        prefs.edit().putLong("last_receive_at", System.currentTimeMillis()).apply()
+
         when (tokens.getOrNull(1)?.lowercase()) {
             "subscribe" -> handleSubscribe(context, sender, keyword, tokens)
             "unsubscribe" -> handleUnsubscribe(context, sender)
