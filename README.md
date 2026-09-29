@@ -95,7 +95,7 @@ If location services are turned off when the request arrives, the phone posts a 
 ### Subscribe (periodic updates)
 
 ```
-phonetrack subscribe [--dist N] [--freq N] [--hours N]
+phonetrack subscribe [--dist N] [--freq N] [--time N]
 ```
 
 Starts a recurring location subscription. The phone sends an immediate fix, then continues sending updates on a schedule until the subscription expires or you cancel it.
@@ -104,7 +104,7 @@ Starts a recurring location subscription. The phone sends an immediate fix, then
 |--------|---------|---------|
 | `--dist N` | 200 m | Only send an update if you have moved more than N metres since the last one |
 | `--freq N` | 15 min | Send an update at most every N minutes (minimum: 1) |
-| `--hours N` | 4 h | Cancel the subscription automatically after N hours |
+| `--time N` | 4 h | Cancel the subscription automatically after N hours |
 
 **Examples:**
 
@@ -114,12 +114,12 @@ phonetrack subscribe
 Updates every 15 minutes for 4 hours, skipped if you haven't moved 200 m.
 
 ```
-phonetrack subscribe --freq 5 --hours 1
+phonetrack subscribe --freq 5 --time 1
 ```
 Updates every 5 minutes for 1 hour.
 
 ```
-phonetrack subscribe --dist 0 --freq 10 --hours 8
+phonetrack subscribe --dist 0 --freq 10 --time 8
 ```
 Updates every 10 minutes for 8 hours regardless of movement.
 
