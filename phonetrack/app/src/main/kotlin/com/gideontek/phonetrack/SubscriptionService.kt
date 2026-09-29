@@ -42,6 +42,17 @@ class SubscriptionService : Service() {
     private var locationTimeoutRunnable: Runnable? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // SubscriptionManager.ensureServiceRunning() — the sole caller that starts this
+        // service — must verify ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION is already
+        // granted before calling startForegroundService(). This service declares
+        // foregroundServiceType="location", and startForeground() must be called
+        // immediately once started this way (skipping it, or calling it without the
+        // permission already held, both crash the process on Android 14+ / targetSdk 35
+        // — one via SecurityException, the other via
+        // ForegroundServiceDidNotStartInTimeException) — so the check can't safely live
+        // here; it has to gate the startForegroundService() call itself. (Permission
+        // being revoked *after* a successful start is a separate case, already handled
+        // by fetchLocation()'s onFailure → retry path below.)
         startForeground(NOTIFICATION_ID, buildNotification())
         // Cancel any pending tick and run immediately so a new/replaced subscription
         // gets its first update without waiting for the previous tick delay.

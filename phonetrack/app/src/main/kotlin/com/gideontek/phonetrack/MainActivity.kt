@@ -44,6 +44,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -65,6 +66,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.LockOpen
+import androidx.compose.material.icons.filled.Refresh
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -134,6 +137,15 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _subscriptions = MutableStateFlow(SubscriptionManager.getAll(app))
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
 
+    // Timestamps of the most recent inbound SMS request / outbound SMS reply, written by
+    // SmsReceiver and SmsSender respectively. Drives the live StreamStatusIndicator state
+    // via StreamActivityLogic — see HomeScreen.
+    private val _lastReceiveAt = MutableStateFlow(prefs.getLong("last_receive_at", 0L))
+    val lastReceiveAt: StateFlow<Long> = _lastReceiveAt.asStateFlow()
+
+    private val _lastSendAt = MutableStateFlow(prefs.getLong("last_send_at", 0L))
+    val lastSendAt: StateFlow<Long> = _lastSendAt.asStateFlow()
+
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
         when (key) {
             "sms_enabled" -> _enabled.value = prefs.getBoolean("sms_enabled", false)
@@ -144,6 +156,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "settings_pin" -> _pinSet.value = storedPin().isNotEmpty()
             "approvals_list" -> _approvalsList.value = parseApprovalsList()
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
+            "last_receive_at" -> _lastReceiveAt.value = prefs.getLong("last_receive_at", 0L)
+            "last_send_at" -> _lastSendAt.value = prefs.getLong("last_send_at", 0L)
         }
     }
 
@@ -226,6 +240,21 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         _approvalsList.value = parseApprovalsList()
     }
 
+    /**
+     * Debug-only: simulates a receive/send event pair so the real [StreamActivityLogic]
+     * window (and decay) can be previewed without a real SMS. Writes through the same
+     * prefs keys SmsReceiver/SmsSender use, so the UI reacts exactly as it would in
+     * production — see the debug cycle button in HomeScreen (BuildConfig.DEBUG only).
+     */
+    fun debugSimulateStream(target: StreamState) {
+        val now = System.currentTimeMillis()
+        val past = 0L
+        prefs.edit()
+            .putLong("last_receive_at", if (target.receivesInbound) now else past)
+            .putLong("last_send_at", if (target.sendsOutbound) now else past)
+            .apply()
+    }
+
     fun cancelSubscription(number: String) {
         val ctx = getApplication<Application>()
         SmsSender.sendSubscriptionCancelled(ctx, number)
@@ -252,6 +281,8 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val pinSet by vm.pinSet.collectAsState()
     val approvalsList by vm.approvalsList.collectAsState()
     val subscriptions by vm.subscriptions.collectAsState()
+    val lastReceiveAt by vm.lastReceiveAt.collectAsState()
+    val lastSendAt by vm.lastSendAt.collectAsState()
 
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -328,6 +359,29 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     // PIN dialog state
     var showSetPinDialog by remember { mutableStateOf(false) }
     var showUnlockDialog by remember { mutableStateOf(false) }
+
+    // Live stream state — reflects real, recent send/receive SMS activity, plus any
+    // active subscription (see StreamActivityLogic). `now` re-ticks once per second only
+    // while a recency window is active and no subscription is running, so the indicator
+    // decays back to Inactive without polling forever. While a subscription is active,
+    // sending stays on continuously and no ticking is needed — the `subscriptions` list
+    // itself already triggers recomposition the moment it ends.
+    val hasActiveSubscription = subscriptions.isNotEmpty()
+    var now by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(lastReceiveAt, lastSendAt, hasActiveSubscription) {
+        now = System.currentTimeMillis()
+        if (!hasActiveSubscription) {
+            while (StreamActivityLogic.currentState(lastReceiveAt, lastSendAt, now, false) != StreamState.Inactive) {
+                delay(1000)
+                now = System.currentTimeMillis()
+            }
+        }
+    }
+    val streamState = StreamActivityLogic.currentState(lastReceiveAt, lastSendAt, now, hasActiveSubscription)
+
+    // Debug-only: cycles debugSimulateStream() through all 4 states so the real
+    // StreamActivityLogic window/decay can be previewed without a real SMS.
+    var debugStateIndex by remember { mutableStateOf(0) }
 
     // Set-PIN dialog — shown when no PIN is set and the lock button is tapped
     if (showSetPinDialog) {
@@ -444,6 +498,18 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         Text("Remove PIN", style = MaterialTheme.typography.bodySmall)
                     }
                 }
+                if (BuildConfig.DEBUG) {
+                    IconButton(onClick = {
+                        debugStateIndex = (debugStateIndex + 1) % StreamState.values().size
+                        vm.debugSimulateStream(StreamState.values()[debugStateIndex])
+                    }) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = "Cycle stream state (debug)"
+                        )
+                    }
+                }
+
                 IconButton(onClick = {
                     when {
                         !pinSet -> showSetPinDialog = true   // no PIN: prompt to set one
@@ -459,6 +525,22 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         contentDescription = if (isLocked) "Unlock settings" else "Lock settings",
                         tint = if (!pinSet) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
                                else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+            }
+
+            StreamStatusIndicator(
+                state = streamState,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = if (subscriptions.isNotEmpty()) subscriptions.size.toString() else "·",
+                        style = MaterialTheme.typography.headlineLarge
+                    )
+                    Text(
+                        text = streamState.name.uppercase(),
+                        style = MaterialTheme.typography.labelSmall
                     )
                 }
             }

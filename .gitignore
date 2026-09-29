@@ -1,7 +1,6 @@
 # Android build artifacts (also handled by phonetrack/.gitignore)
 phonetrack/local.properties
 phonetrack/.gradle/
-phonetrack/.idea/
 phonetrack/build/
 phonetrack/app/build/
 
@@ -12,5 +11,7 @@ phonetrack/app/build/
 .claude/
 
 # IDE and planning (keep on disk, never commit)
+# Unprefixed so it matches whether the IDE is opened at the repo root or at phonetrack/.
+.idea/
 .vscode/
 plans/
