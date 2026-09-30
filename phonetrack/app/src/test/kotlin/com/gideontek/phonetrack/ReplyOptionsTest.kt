@@ -5,15 +5,22 @@ import org.junit.Test
 
 class ReplyOptionsTest {
 
-    @Test fun `the default is the map link alone`() {
+    @Test fun `the default is coordinates, accuracy, battery and the map link`() {
         val d = ReplyOptions.DEFAULT
-        assertTrue(d.osm)
-        assertFalse(d.coords || d.accuracy || d.battery || d.time || d.geo)
-        assertEquals(1, d.count)
+        assertTrue(d.coords && d.accuracy && d.battery && d.osm)
+        assertFalse(d.time || d.geo)
+        assertEquals(4, d.count)
     }
 
-    @Test fun `a no-argument instance equals the default`() {
-        assertEquals(ReplyOptions.DEFAULT, ReplyOptions())
+    @Test fun `a no-argument instance has everything off`() {
+        assertEquals(0, ReplyOptions().count)
+        assertFalse(ReplyOptions().hasAny)
+    }
+
+    @Test fun `link-only is just the map link`() {
+        val l = ReplyOptions.LINK_ONLY
+        assertTrue(l.osm)
+        assertEquals(1, l.count)
     }
 
     @Test fun `count reflects the parts switched on`() {
@@ -28,8 +35,9 @@ class ReplyOptionsTest {
         assertFalse(ReplyOptions(false, false, false, false, false, false).hasAny)
     }
 
-    @Test fun `normalizing an all-off set gives the map link`() {
-        assertEquals(ReplyOptions.DEFAULT, ReplyOptions(false, false, false, false, false, false).normalized())
+    @Test fun `normalizing an all-off set gives the map link alone`() {
+        assertEquals(ReplyOptions.LINK_ONLY, ReplyOptions(false, false, false, false, false, false).normalized())
+        assertEquals(ReplyOptions.LINK_ONLY, ReplyOptions().normalized())
     }
 
     @Test fun `normalizing leaves any non-empty set alone`() {

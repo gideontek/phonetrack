@@ -22,7 +22,7 @@ object SmsSender {
         charging = battery?.charging ?: false
     )
 
-    /** One-shot reply: the parts chosen in Reply contents (default: just the map link). */
+    /** One-shot reply: the parts chosen in Reply contents (default: coordinates, accuracy, battery and the map link). */
     fun sendOneShotLocation(ctx: Context, to: String, loc: Location, battery: DeviceStatus.Battery) {
         SmsComposer.composeLocation(fixOf(loc, battery), ReplyOptionsStore.read(ctx))
             .forEach { sendRaw(ctx, to, it) }

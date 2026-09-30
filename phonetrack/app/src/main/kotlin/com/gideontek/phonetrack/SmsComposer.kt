@@ -38,6 +38,9 @@ object SmsComposer {
 
     private const val PREFIX = "[PhoneTrack] "
 
+    /** OpenStreetMap zoom for the link: 12 shows the surrounding city/district rather than one street. */
+    private const val OSM_ZOOM = 12
+
     /**
      * One-shot or periodic location reply, containing what [options] select. [prevLat] / [prevLon]
      * (0.0/0.0 = none) add the movement arrow and distance since the previous update.
@@ -96,7 +99,7 @@ object SmsComposer {
         val la = fmt(fix.lat)
         val lo = fmt(fix.lon)
         val geo = if (o.geo) "geo:$la,$lo" else null
-        val osm = if (o.osm) "https://www.openstreetmap.org/?mlat=$la&mlon=$lo#map=14/$la/$lo" else null
+        val osm = if (o.osm) "https://www.openstreetmap.org/?mlat=$la&mlon=$lo#map=$OSM_ZOOM/$la/$lo" else null
         val body = lines.joinToString("\n")
 
         val out = mutableListOf<String>()

@@ -1,8 +1,10 @@
 package com.gideontek.phonetrack
 
 /**
- * What a location reply contains. The default is just the OpenStreetMap link; every other part is
- * opt-in from the "Reply contents" settings card.
+ * What a location reply contains. The app's default ([DEFAULT]) is coordinates, accuracy, battery
+ * and the OpenStreetMap link; time of fix and the `geo:` link are opt-in from the "Reply contents"
+ * settings card. The constructor itself starts with everything off, so `ReplyOptions(coords = true)`
+ * means exactly "coordinates only".
  *
  * - [coords]   `Lat: 37.7749, Lon: -122.4194`
  * - [accuracy] `Acc: 5m`
@@ -20,7 +22,7 @@ data class ReplyOptions(
     val battery: Boolean = false,
     val time: Boolean = false,
     val geo: Boolean = false,
-    val osm: Boolean = true
+    val osm: Boolean = false
 ) {
     val hasAny: Boolean get() = coords || accuracy || battery || time || geo || osm
 
@@ -28,9 +30,13 @@ data class ReplyOptions(
     val count: Int get() = listOf(coords, accuracy, battery, time, geo, osm).count { it }
 
     /** A reply with nothing in it is useless, so an all-off set means "just the map link". */
-    fun normalized(): ReplyOptions = if (hasAny) this else copy(osm = true)
+    fun normalized(): ReplyOptions = if (hasAny) this else LINK_ONLY
 
     companion object {
-        val DEFAULT = ReplyOptions()
+        /** What a reply contains until the owner changes it. */
+        val DEFAULT = ReplyOptions(coords = true, accuracy = true, battery = true, osm = true)
+
+        /** The minimal reply: used when nothing is selected, or nothing selected has anything to show. */
+        val LINK_ONLY = ReplyOptions(osm = true)
     }
 }

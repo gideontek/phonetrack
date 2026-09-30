@@ -9,7 +9,7 @@ class SmsComposerTest {
     // composeLocation (one-shot and periodic)
     // -------------------------------------------------------------------------
 
-    private val url = "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194#map=14/37.7749/-122.4194"
+    private val url = "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194"
     private val all = ReplyOptions(coords = true, accuracy = true, battery = true, time = true, geo = true, osm = true)
 
     // 2026-09-30 18:32:00 UTC
@@ -24,8 +24,16 @@ class SmsComposerTest {
     )
 
     @Test
-    fun `the default reply is a single prefixed map link`() {
-        assertEquals(listOf("[PhoneTrack] $url"), SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT))
+    fun `the default reply is one SMS with coordinates, accuracy, battery and the map link`() {
+        assertEquals(
+            listOf("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85%\n$url"),
+            SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT)
+        )
+    }
+
+    @Test
+    fun `the link-only reply is a single prefixed map link`() {
+        assertEquals(listOf("[PhoneTrack] $url"), SmsComposer.composeLocation(fix(), ReplyOptions.LINK_ONLY))
     }
 
     @Test
@@ -130,8 +138,8 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `movement shows even with the default link-only reply and the arrow keeps it from merging`() {
-        val msgs = SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT, prevLat = 37.7649, prevLon = -122.4194)
+    fun `movement shows even with the link-only reply and the arrow keeps it from merging`() {
+        val msgs = SmsComposer.composeLocation(fix(), ReplyOptions.LINK_ONLY, prevLat = 37.7649, prevLon = -122.4194)
         assertEquals(2, msgs.size)
         assertTrue(msgs[0].startsWith("[PhoneTrack] "))
         assertTrue(msgs[0].contains("⇑"))
@@ -169,7 +177,7 @@ class SmsComposerTest {
             LocationFix(37.774929123456, -122.419415987654, 5, 0L), ReplyOptions(geo = true, osm = true)
         )
         assertTrue(msgs.contains("geo:37.77493,-122.41942"))
-        assertTrue(msgs.any { it.contains("mlat=37.77493&mlon=-122.41942#map=14/37.77493/-122.41942") })
+        assertTrue(msgs.any { it.contains("mlat=37.77493&mlon=-122.41942#map=12/37.77493/-122.41942") })
     }
 
     @Test
@@ -273,9 +281,20 @@ class SmsComposerTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `last known with the default options is one message headed with the fix age`() {
+    fun `last known with the default options is one message headed with the fix age, without battery`() {
         val msgs = SmsComposer.composeLastKnown(fix(), ReplyOptions.DEFAULT, 12 * 60_000L)
-        assertEquals(listOf("[PhoneTrack] Last known (12m ago)\n$url"), msgs)
+        assertEquals(
+            listOf("[PhoneTrack] Last known (12m ago)\nLat: 37.7749, Lon: -122.4194\nAcc: 5m\n$url"),
+            msgs
+        )
+    }
+
+    @Test
+    fun `last known with the link-only option is one message with the age and the link`() {
+        assertEquals(
+            listOf("[PhoneTrack] Last known (12m ago)\n$url"),
+            SmsComposer.composeLastKnown(fix(), ReplyOptions.LINK_ONLY, 12 * 60_000L)
+        )
     }
 
     @Test

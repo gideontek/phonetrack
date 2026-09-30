@@ -2,7 +2,7 @@
 
 **Location sharing over SMS — no internet required.**
 
-PhoneTrack SMS turns your Android phone into an SMS location beacon. Anyone who knows your keyword can send a text to request your location, and the phone replies automatically with a map link (and, if you choose, coordinates, accuracy, battery level and more) — all over plain SMS, with no data connection needed.
+PhoneTrack SMS turns your Android phone into an SMS location beacon. Anyone who knows your keyword can send a text to request your location, and the phone replies automatically with coordinates, accuracy, battery level and a map link (configurable) — all over plain SMS, with no data connection needed.
 
 ---
 
@@ -88,13 +88,15 @@ Any other word after the keyword (for example `phonetrack hello`) gets the help 
 phonetrack
 ```
 
-The phone acquires a GPS fix and replies with what you've chosen under **Reply contents** in the app. By default that is a single SMS holding just an OpenStreetMap link, which opens the location in any browser:
+The phone acquires a GPS fix and replies with what you've chosen under **Reply contents** in the app. By default that is one SMS with the coordinates, accuracy, battery level and an OpenStreetMap link (which opens the location in any browser):
 
 ```
-[PhoneTrack] https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=14/51.5074/-0.1278
+[PhoneTrack] Lat: 51.5074, Lon: -0.1278
+Acc: 8m, Bat: 73%
+https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
-You can switch on any of these parts (at least one must stay on):
+You can switch any of these parts on or off (at least one must stay on; the time of fix and the `geo:` link are off by default):
 
 | Part | Looks like |
 |------|------------|
@@ -110,7 +112,7 @@ With everything on, a reply looks like this (two SMS, because the text and the m
 ```
 [PhoneTrack] Lat: 51.5074, Lon: -0.1278
 Acc: 8m, Bat: 73%, Time: 14:32Z
-https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=14/51.5074/-0.1278
+https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 
 geo:51.5074,-0.1278
 ```
@@ -129,7 +131,9 @@ Replies immediately with the newest location the phone already has cached, using
 
 ```
 [PhoneTrack] Last known (12m ago)
-https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=14/51.5074/-0.1278
+Lat: 51.5074, Lon: -0.1278
+Acc: 8m
+https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
 This does not turn the GPS on, so it works when a fresh fix can't be obtained (for example indoors), but the position may be stale. If nothing is cached the phone says so.
