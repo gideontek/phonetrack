@@ -181,6 +181,20 @@ Cancels your active subscription. The phone replies to confirm cancellation, or 
 
 Active subscriptions are shown in the main screen and can be cancelled by swiping them away.
 
+### Limits
+
+PhoneTrack protects itself, and your SMS bill, against floods:
+
+| Limit | Default | What happens past it |
+|-------|---------|----------------------|
+| Commands per approved sender | 20 per hour | The first extra message gets "Too many requests"; the rest are ignored until the hour is up. Every command counts, `help` included. |
+| Concurrent subscriptions | 10 | A new subscriber is told "Too many active subscriptions". Re-subscribing replaces your own and is always allowed. |
+| New unknown numbers recorded | 10 per hour | Extras are ignored silently. |
+| Pending list | 50 numbers | The oldest pending number is dropped to make room (it simply texts again). Approved and blocked numbers are never dropped. |
+| Stale pending numbers | 30 days | Pending numbers that haven't contacted you for a month are removed. |
+
+The first two can be changed only through the `max_subscriptions` and `rate_limit_per_hour` preferences; there is no setting for them in the app yet.
+
 ---
 
 ## Building from source

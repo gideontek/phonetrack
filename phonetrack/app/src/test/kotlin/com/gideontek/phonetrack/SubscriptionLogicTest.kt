@@ -117,6 +117,47 @@ class SubscriptionLogicTest {
     }
 
     // -------------------------------------------------------------------------
+    // canAdd (subscription cap)
+    // -------------------------------------------------------------------------
+
+    private fun subFor(number: String, expiresAt: Long) = sub(expiresAt = expiresAt).copy(number = number)
+
+    @Test
+    fun `canAdd allows a new subscriber below the cap`() {
+        val subs = listOf(subFor("+15550000001", 9_999L), subFor("+15550000002", 9_999L))
+        assertTrue(SubscriptionLogic.canAdd(subs, "+15550000003", 1_000L, max = 3))
+    }
+
+    @Test
+    fun `canAdd refuses a new subscriber at the cap`() {
+        val subs = listOf(subFor("+15550000001", 9_999L), subFor("+15550000002", 9_999L))
+        assertFalse(SubscriptionLogic.canAdd(subs, "+15550000003", 1_000L, max = 2))
+    }
+
+    @Test
+    fun `canAdd always lets an existing subscriber replace their own at the cap`() {
+        val subs = listOf(subFor("+15550000001", 9_999L), subFor("+15550000002", 9_999L))
+        assertTrue(SubscriptionLogic.canAdd(subs, "+15550000001", 1_000L, max = 2))
+    }
+
+    @Test
+    fun `canAdd recognises the same subscriber under another spelling`() {
+        val subs = listOf(subFor("+15551234567", 9_999L))
+        assertTrue(SubscriptionLogic.canAdd(subs, "555-123-4567", 1_000L, max = 1))
+    }
+
+    @Test
+    fun `canAdd does not count expired subscriptions against the cap`() {
+        val subs = listOf(subFor("+15550000001", 500L), subFor("+15550000002", 9_999L))
+        assertTrue(SubscriptionLogic.canAdd(subs, "+15550000003", 1_000L, max = 2))
+    }
+
+    @Test
+    fun `canAdd with no subscriptions allows one`() {
+        assertTrue(SubscriptionLogic.canAdd(emptyList(), "+15550000001", 1_000L, max = 1))
+    }
+
+    // -------------------------------------------------------------------------
     // shouldFetch
     // -------------------------------------------------------------------------
 

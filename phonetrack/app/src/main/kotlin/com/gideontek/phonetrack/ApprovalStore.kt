@@ -28,6 +28,10 @@ object ApprovalStore {
     fun setState(ctx: Context, number: String, state: ApprovalState) =
         update(ctx) { ApprovalLogic.withState(it, number, state) }
 
+    /** Drops stale PENDING entries (see [ApprovalLogic.prune]). */
+    fun prune(ctx: Context, now: Long = System.currentTimeMillis()) =
+        update(ctx) { ApprovalLogic.prune(it, now) }
+
     /** Atomically reads the list, applies [transform], and writes it back if it changed. */
     fun update(ctx: Context, transform: (List<ApprovalEntry>) -> List<ApprovalEntry>) {
         synchronized(lock) {

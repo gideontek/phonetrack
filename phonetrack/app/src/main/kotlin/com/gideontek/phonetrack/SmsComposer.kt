@@ -110,6 +110,12 @@ object SmsComposer {
         return "${hours / 24}d"
     }
 
+    fun composeRateLimited(): List<String> =
+        listOf("[PhoneTrack] Too many requests. Try again in a while.")
+
+    fun composeSubscriptionLimit(): List<String> =
+        listOf("[PhoneTrack] Too many active subscriptions on this phone. Try again later.")
+
     fun composePermissionError(): List<String> =
         listOf("[PhoneTrack] Location permission not granted")
 

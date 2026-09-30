@@ -159,6 +159,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         prefs.registerOnSharedPreferenceChangeListener(prefListener)
         // Registered first so the migration's writes refresh the flows above.
         PrefsMigration.run(app)
+        // Drop pending numbers that haven't contacted us in a month.
+        ApprovalStore.prune(app)
         // The "start on boot" setting was removed: the listener state is persisted and simply
         // restored after a reboot. Drop the stale key left behind by older versions.
         if (prefs.contains("auto_start_on_boot")) {

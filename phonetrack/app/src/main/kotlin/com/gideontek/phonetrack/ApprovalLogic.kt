@@ -31,19 +31,57 @@ object ApprovalLogic {
     }
 
     /**
-     * Records contact from [sender]: an unknown number is appended as PENDING (stored
-     * normalized); a matching PENDING entry just gets its [ApprovalEntry.lastSeen] refreshed.
-     * APPROVED and BLOCKED entries are left untouched.
+     * Records contact from [sender].
+     *
+     * An unknown number is appended as PENDING (stored normalized). First, stale pending
+     * entries are pruned, and if the list still holds [maxPending] pending entries the oldest
+     * (by lastSeen) is evicted to make room; an evicted real contact just texts again.
+     * APPROVED and BLOCKED entries are never evicted.
+     *
+     * A matching PENDING entry has its [ApprovalEntry.lastSeen] refreshed, but at most once per
+     * [SmsLimits.PENDING_TOUCH_INTERVAL_MS], so a number hammering us doesn't rewrite the whole
+     * list on every message. APPROVED and BLOCKED entries are left untouched.
      */
-    fun upsertPending(entries: List<ApprovalEntry>, sender: String, now: Long): List<ApprovalEntry> {
+    fun upsertPending(
+        entries: List<ApprovalEntry>,
+        sender: String,
+        now: Long,
+        maxPending: Int = SmsLimits.MAX_PENDING
+    ): List<ApprovalEntry> {
         if (entries.none { PhoneNumber.matches(it.number, sender) }) {
-            return entries + ApprovalEntry(PhoneNumber.normalize(sender), ApprovalState.PENDING, now, now)
+            var kept = prune(entries, now)
+            val cap = maxPending.coerceAtLeast(1)
+            while (kept.count { it.state == ApprovalState.PENDING } >= cap) {
+                kept = evictOldestPending(kept)
+            }
+            return kept + ApprovalEntry(PhoneNumber.normalize(sender), ApprovalState.PENDING, now, now)
         }
         return entries.map {
-            if (it.state == ApprovalState.PENDING && PhoneNumber.matches(it.number, sender)) {
-                it.copy(lastSeen = now)
-            } else it
+            if (it.state == ApprovalState.PENDING &&
+                PhoneNumber.matches(it.number, sender) &&
+                now - it.lastSeen >= SmsLimits.PENDING_TOUCH_INTERVAL_MS
+            ) it.copy(lastSeen = now) else it
         }
+    }
+
+    /**
+     * Drops PENDING entries not heard from for more than [maxAgeMs]. APPROVED and BLOCKED
+     * entries are never pruned, and a PENDING entry with no timestamp (lastSeen 0) is kept.
+     */
+    fun prune(
+        entries: List<ApprovalEntry>,
+        now: Long,
+        maxAgeMs: Long = SmsLimits.PENDING_MAX_AGE_MS
+    ): List<ApprovalEntry> = entries.filterNot {
+        it.state == ApprovalState.PENDING && it.lastSeen != 0L && now - it.lastSeen > maxAgeMs
+    }
+
+    /** Removes the PENDING entry with the smallest lastSeen (the first one on a tie); no-op if none. */
+    fun evictOldestPending(entries: List<ApprovalEntry>): List<ApprovalEntry> {
+        val oldest = entries.filter { it.state == ApprovalState.PENDING }.minByOrNull { it.lastSeen }
+            ?: return entries
+        val index = entries.indexOfFirst { it === oldest }
+        return entries.filterIndexed { i, _ -> i != index }
     }
 
     /**

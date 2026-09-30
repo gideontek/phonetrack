@@ -62,6 +62,14 @@ object SmsSender {
         SmsComposer.composeNoCachedLocation(keyword).forEach { sendRaw(ctx, to, it) }
     }
 
+    fun sendRateLimited(ctx: Context, to: String) {
+        SmsComposer.composeRateLimited().forEach { sendRaw(ctx, to, it) }
+    }
+
+    fun sendSubscriptionLimit(ctx: Context, to: String) {
+        SmsComposer.composeSubscriptionLimit().forEach { sendRaw(ctx, to, it) }
+    }
+
     fun sendPermissionError(ctx: Context, to: String) {
         SmsComposer.composePermissionError().forEach { sendRaw(ctx, to, it) }
     }

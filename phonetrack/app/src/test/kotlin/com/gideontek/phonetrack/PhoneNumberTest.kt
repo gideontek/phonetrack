@@ -133,4 +133,27 @@ class PhoneNumberTest {
         )
         pairs.forEach { (a, b) -> assertEquals(PhoneNumber.matches(a, b), PhoneNumber.matches(b, a)) }
     }
+
+    // -------------------------------------------------------------------------
+    // rateKey
+    // -------------------------------------------------------------------------
+
+    @Test fun `rateKey is the last ten digits`() {
+        assertEquals("5551234567", PhoneNumber.rateKey("+15551234567"))
+    }
+
+    @Test fun `rateKey is shared by spellings that match`() {
+        assertEquals(PhoneNumber.rateKey("+15551234567"), PhoneNumber.rateKey("555-123-4567"))
+        assertEquals(PhoneNumber.rateKey("+15551234567"), PhoneNumber.rateKey("15551234567"))
+        assertEquals(PhoneNumber.rateKey("+447911123456"), PhoneNumber.rateKey("07911123456"))
+    }
+
+    @Test fun `rateKey differs for different numbers`() {
+        assertNotEquals(PhoneNumber.rateKey("+15551234567"), PhoneNumber.rateKey("+15551234568"))
+    }
+
+    @Test fun `rateKey keeps short numbers whole and alphanumeric IDs as is`() {
+        assertEquals("5551234", PhoneNumber.rateKey("555-1234"))
+        assertEquals("MyBank", PhoneNumber.rateKey(" MyBank "))
+    }
 }

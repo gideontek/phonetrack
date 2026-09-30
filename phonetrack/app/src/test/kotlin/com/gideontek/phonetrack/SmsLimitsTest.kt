@@ -39,4 +39,28 @@ class SmsLimitsTest {
     fun `body limit is 320`() {
         assertEquals(320, SmsLimits.MAX_BODY)
     }
+
+    @Test
+    fun `rate limit is at least one`() {
+        assertEquals(1, SmsLimits.coerceRateLimit(0))
+        assertEquals(1, SmsLimits.coerceRateLimit(-5))
+        assertEquals(20, SmsLimits.coerceRateLimit(20))
+        assertEquals(500, SmsLimits.coerceRateLimit(500))
+    }
+
+    @Test
+    fun `max subscriptions is clamped to 1 through the ceiling`() {
+        assertEquals(1, SmsLimits.coerceMaxSubscriptions(0))
+        assertEquals(1, SmsLimits.coerceMaxSubscriptions(-3))
+        assertEquals(10, SmsLimits.coerceMaxSubscriptions(10))
+        assertEquals(20, SmsLimits.coerceMaxSubscriptions(999))
+    }
+
+    @Test
+    fun `the defaults are the agreed values`() {
+        assertEquals(20, SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR)
+        assertEquals(10, SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
+        assertEquals(50, SmsLimits.MAX_PENDING)
+        assertEquals(10, SmsLimits.NEW_PENDING_PER_HOUR)
+    }
 }

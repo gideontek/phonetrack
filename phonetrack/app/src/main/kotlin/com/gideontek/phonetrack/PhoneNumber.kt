@@ -56,5 +56,15 @@ object PhoneNumber {
         return n >= MIN_DIGITS && da.takeLast(n) == db.takeLast(n)
     }
 
+    /**
+     * A stable key for per-sender accounting (rate limits). Uses the same trailing digits
+     * [matches] compares, so alternate spellings of one number ("+1555…" / "555…") share a
+     * key and can't be used to get a second budget. Alphanumeric IDs are returned as-is.
+     */
+    fun rateKey(raw: String): String {
+        val n = normalize(raw)
+        return if (hasLetter(n)) n else n.filter { it.isDigit() }.takeLast(MATCH_DIGITS)
+    }
+
     private fun hasLetter(s: String) = s.any { it.isLetter() }
 }

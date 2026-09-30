@@ -24,6 +24,17 @@ object SubscriptionLogic {
      *  must be enabled and at least one subscriber must be due. */
     fun shouldFetch(smsEnabled: Boolean, dueCount: Int): Boolean = smsEnabled && dueCount > 0
 
+    /**
+     * True if [number] may subscribe. Replacing its own active subscription is always allowed;
+     * a new one needs fewer than [max] active subscriptions. Expired entries linger in prefs
+     * until the service next ticks, so they must not count against the cap.
+     */
+    fun canAdd(subs: List<Subscription>, number: String, now: Long, max: Int): Boolean {
+        val active = subs.filter { it.expiresAt > now }
+        if (active.any { PhoneNumber.matches(it.number, number) }) return true
+        return active.size < max
+    }
+
     /** Returns subs whose expiresAt <= now. */
     fun expiredSubs(subs: List<Subscription>, now: Long): List<Subscription> =
         subs.filter { it.expiresAt <= now }
