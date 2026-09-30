@@ -4,6 +4,7 @@ import android.content.Context
 import android.location.Location
 import android.os.Build
 import android.telephony.SmsManager
+import android.util.Log
 
 /**
  * Single entry point for all outgoing SMS messages. Every public method delegates
@@ -36,6 +37,10 @@ object SmsSender {
         SmsComposer.composeSubscriptionCancelled().forEach { sendRaw(ctx, to, it) }
     }
 
+    fun sendNoSubscription(ctx: Context, to: String) {
+        SmsComposer.composeNoSubscription().forEach { sendRaw(ctx, to, it) }
+    }
+
     fun sendUsageHint(ctx: Context, to: String, keyword: String) {
         SmsComposer.composeUsageHint(keyword).forEach { sendRaw(ctx, to, it) }
     }
@@ -63,7 +68,19 @@ object SmsSender {
             @Suppress("DEPRECATION")
             SmsManager.getDefault()
         }
-        smsManager.sendTextMessage(to, null, text, null, null)
+        // A send failure (permission revoked, malformed number, etc.) must not crash the
+        // receiver or service that called us, so log it and skip the last_send_at update.
+        try {
+            val parts = smsManager.divideMessage(text)
+            if (parts.size > 1) {
+                smsManager.sendMultipartTextMessage(to, null, parts, null, null)
+            } else {
+                smsManager.sendTextMessage(to, null, text, null, null)
+            }
+        } catch (e: RuntimeException) {
+            Log.w("SmsSender", "Failed to send SMS", e)
+            return
+        }
         ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
             .edit().putLong("last_send_at", System.currentTimeMillis()).apply()
     }

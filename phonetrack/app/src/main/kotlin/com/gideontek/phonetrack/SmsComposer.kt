@@ -1,5 +1,8 @@
 package com.gideontek.phonetrack
 
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
+import java.util.Locale
 import kotlin.math.*
 
 /**
@@ -9,11 +12,23 @@ import kotlin.math.*
  */
 object SmsComposer {
 
-    fun composeOneShotLocation(lat: Double, lon: Double, accuracy: Int, battery: Int): List<String> = listOf(
-        "[PhoneTrack] Lat: $lat, Lon: $lon\nAcc: ${accuracy}m, Bat: $battery%",
-        "geo:$lat,$lon",
-        "https://www.openstreetmap.org/?mlat=$lat&mlon=$lon#map=14/$lat/$lon"
-    )
+    /**
+     * Formats a coordinate with at most 5 decimals (~1 m), no trailing zeros, always with a
+     * '.' separator. Raw Double.toString() can print 17 digits or scientific notation ("1.0E-4").
+     * DecimalFormat isn't thread-safe, so a new one is built per call.
+     */
+    private fun fmt(d: Double): String =
+        DecimalFormat("0.#####", DecimalFormatSymbols(Locale.US)).format(d)
+
+    fun composeOneShotLocation(lat: Double, lon: Double, accuracy: Int, battery: Int): List<String> {
+        val la = fmt(lat)
+        val lo = fmt(lon)
+        return listOf(
+            "[PhoneTrack] Lat: $la, Lon: $lo\nAcc: ${accuracy}m, Bat: $battery%",
+            "geo:$la,$lo",
+            "https://www.openstreetmap.org/?mlat=$la&mlon=$lo#map=14/$la/$lo"
+        )
+    }
 
     fun composeSubscriptionLocation(
         lat: Double,
@@ -27,10 +42,12 @@ object SmsComposer {
             val bearing = initialBearing(prevLat, prevLon, lat, lon)
             "\n${SubscriptionLogic.bearingToArrow(bearing.toFloat())}${distM.toInt()}m"
         } else ""
+        val la = fmt(lat)
+        val lo = fmt(lon)
         return listOf(
-            "[PhoneTrack] Lat: $lat, Lon: $lon\nAcc: ${accuracy}m$deltaStr",
-            "geo:$lat,$lon",
-            "https://www.openstreetmap.org/?mlat=$lat&mlon=$lon#map=14/$lat/$lon"
+            "[PhoneTrack] Lat: $la, Lon: $lo\nAcc: ${accuracy}m$deltaStr",
+            "geo:$la,$lo",
+            "https://www.openstreetmap.org/?mlat=$la&mlon=$lo#map=14/$la/$lo"
         )
     }
 
@@ -39,6 +56,9 @@ object SmsComposer {
 
     fun composeSubscriptionCancelled(): List<String> =
         listOf("[PhoneTrack] Your location subscription has been cancelled.")
+
+    fun composeNoSubscription(): List<String> =
+        listOf("[PhoneTrack] You have no active location subscription.")
 
     fun composeUsageHint(keyword: String): List<String> =
         listOf("[PhoneTrack] Usage: $keyword subscribe [--dist N] [--freq N] [--time N]")
