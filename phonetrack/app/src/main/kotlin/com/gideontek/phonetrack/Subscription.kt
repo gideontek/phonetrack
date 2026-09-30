@@ -129,6 +129,17 @@ object SubscriptionManager {
         )
     }
 
+    /**
+     * Starts the periodic service if there are stored subscriptions and the permissions allow
+     * it. A subscription can be accepted and stored while the phone isn't yet allowed to act on
+     * it (background location missing); this is what makes it start working once the owner
+     * resolves that — called when the app is resumed or returns from the permission flow, and
+     * on the next approved command. Idempotent and a no-op while permissions are still missing.
+     */
+    fun resumeIfPossible(ctx: Context) {
+        if (hasActive(ctx)) ensureServiceRunning(ctx)
+    }
+
     /** Stops [SubscriptionService]. */
     fun stopService(ctx: Context) {
         ctx.stopService(Intent(ctx, SubscriptionService::class.java))

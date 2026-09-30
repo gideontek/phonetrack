@@ -309,6 +309,9 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 bgLocationGranted = checkBgLocation()
                 notificationsGranted = checkNotifications()
                 locationServicesEnabled = isLocationServicesEnabled(context)
+                // Subscriptions stored while a permission was missing start working as soon
+                // as the owner has resolved it and come back here.
+                SubscriptionManager.resumeIfPossible(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
@@ -329,7 +332,10 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     // Step 3 — background location (must be requested separately on Android 11+)
     val bgLocationLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { bgLocationGranted = checkBgLocation() }
+    ) {
+        bgLocationGranted = checkBgLocation()
+        SubscriptionManager.resumeIfPossible(context)
+    }
 
     // Step 2 — fine + coarse location; on success trigger step 3
     val locationLauncher = rememberLauncherForActivityResult(

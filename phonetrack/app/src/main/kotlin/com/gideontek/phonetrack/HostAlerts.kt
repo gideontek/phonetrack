@@ -7,9 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
-import android.provider.Settings
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 
@@ -39,15 +37,18 @@ object HostAlerts {
             NotificationChannel(CHANNEL_ID, "PhoneTrack alerts", NotificationManager.IMPORTANCE_HIGH)
         )
 
-        val openSettings = PendingIntent.getActivity(
+        // Open the app rather than the system settings page: its permission flow handles the
+        // grant, and resuming it starts any stored subscriptions.
+        val openApp = PendingIntent.getActivity(
             ctx,
             0,
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", ctx.packageName, null)),
+            Intent(ctx, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         val what = if (requester == null) "Location updates" else "A location request from $requester"
-        val text = "$what couldn't be answered. Tap to open settings, then set Location " +
-            "permission to \"Allow all the time\"."
+        val text = "$what couldn't be answered. Tap to open PhoneTrack, then allow Location " +
+            "\"all the time\". Saved subscriptions start working once you do."
         nm.notify(
             BACKGROUND_LOCATION_ID,
             NotificationCompat.Builder(ctx, CHANNEL_ID)
@@ -55,7 +56,7 @@ object HostAlerts {
                 .setContentText(text)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setSmallIcon(android.R.drawable.ic_dialog_alert)
-                .setContentIntent(openSettings)
+                .setContentIntent(openApp)
                 .setAutoCancel(true)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .build()

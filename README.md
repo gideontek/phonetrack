@@ -45,7 +45,7 @@ PhoneTrack is **pull-based**: the tracked phone decides who gets a response. Tho
 
 - Android 8.0 (API 26) or later
 - A SIM card with SMS capability
-- Location permission set to **Allow all the time** (background location). Without it Android won't let PhoneTrack start its location service when a text arrives, so it can't send a fix: the requester just gets a "Location permission not granted" reply, and the phone shows a notification that opens PhoneTrack's settings so you can change it
+- Location permission set to **Allow all the time** (background location). Without it Android won't let PhoneTrack start its location service when a text arrives, so it can't send a fix: the requester just gets a "Location permission not granted" reply, and the phone shows a notification that opens PhoneTrack so you can change it. A subscription that was accepted in the meantime is kept and starts sending as soon as you do
 - **RCS chats turned off** between PhoneTrack's phone and anyone sending it commands (see below)
 
 RCS messages are invisible to PhoneTrack — and to every other third-party app. Android only delivers RCS content to the device's default messaging app (almost always Google Messages); there's no broadcast or API for other apps to observe it, by design. If RCS is active for a conversation, commands sent from that number will silently never arrive. To fix it, turn off RCS chats for the relevant conversation (or globally): in Google Messages, go to **Settings → RCS chats** and turn off **Turn on RCS chats**. This forces that conversation back to plain SMS, which PhoneTrack can see.
