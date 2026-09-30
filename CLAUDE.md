@@ -44,6 +44,8 @@ phonetrack-android-2026/
             │   ├── ApprovalStore.kt       # Prefs/JSON store for the approvals list (synchronized)
             │   ├── NumberMigration.kt     # Pure merge logic for the numbers migration
             │   ├── PrefsMigration.kt      # One-time versioned upgrade of stored data
+            │   ├── RateLimiter.kt         # Pure fixed-window rate limiter
+            │   ├── RateStore.kt           # Prefs/JSON store for rate-limiter state (synchronized)
             │   ├── SmsLocationService.kt  # ForegroundService — one-shot location reply
             │   ├── Subscription.kt        # Subscription data class + SubscriptionManager
             │   ├── SubscriptionService.kt # ForegroundService — periodic location loop
@@ -66,6 +68,9 @@ phonetrack-android-2026/
   - `approvals_list` (JSON array of `{number, state, firstSeen, lastSeen}` where state ∈ PENDING/APPROVED/BLOCKED; numbers stored normalized, timestamps epoch ms)
   - `subscriptions_list` (JSON array of Subscription objects; numbers stored normalized)
   - `prefs_schema_version` (Int; 1 = numbers normalized, see `PrefsMigration`)
+  - `max_subscriptions` (Int, default 10, coerced to 1..20; concurrent non-expired subscriptions)
+  - `rate_limit_per_hour` (Int, default 20, min 1; commands per approved sender per hour)
+  - `rate_state` (JSON object of `key -> {start, count, noticed}`; see `RateLimiter`/`RateStore`)
   - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)
 - No third-party libraries; only standard AndroidX
 

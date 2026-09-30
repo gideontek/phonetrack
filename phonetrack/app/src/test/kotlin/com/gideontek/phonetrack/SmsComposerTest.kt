@@ -219,6 +219,22 @@ class SmsComposerTest {
     @Test fun `formatAge boundary 60s becomes 1m`() { assertEquals("1m", SmsComposer.formatAge(60_000L)) }
 
     @Test
+    fun `composeRateLimited is a single prefixed message`() {
+        val msgs = SmsComposer.composeRateLimited()
+        assertEquals(1, msgs.size)
+        assertTrue(msgs[0].startsWith("[PhoneTrack]"))
+        assertTrue(msgs[0].contains("Too many requests"))
+    }
+
+    @Test
+    fun `composeSubscriptionLimit is a single prefixed message`() {
+        val msgs = SmsComposer.composeSubscriptionLimit()
+        assertEquals(1, msgs.size)
+        assertTrue(msgs[0].startsWith("[PhoneTrack]"))
+        assertTrue(msgs[0].contains("Too many active subscriptions"))
+    }
+
+    @Test
     fun `composePermissionError returns correct text`() {
         val msgs = SmsComposer.composePermissionError()
         assertEquals(1, msgs.size)

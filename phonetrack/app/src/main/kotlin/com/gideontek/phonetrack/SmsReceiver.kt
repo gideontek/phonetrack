@@ -49,8 +49,16 @@ class SmsReceiver : BroadcastReceiver() {
         if (!PhoneNumber.isReplyable(sender)) return
 
         when (ApprovalStore.stateFor(context, sender)) {
-            null, ApprovalState.PENDING -> {
-                // First contact (or another try while pending): record it, do not reply
+            null -> {
+                // First contact: record it (never reply), unless too many new numbers have
+                // shown up this hour. Flooders are dropped silently.
+                if (RateStore.check(context, "newpending", SmsLimits.NEW_PENDING_PER_HOUR).allowed) {
+                    ApprovalStore.upsertPending(context, sender, System.currentTimeMillis())
+                }
+                return
+            }
+            ApprovalState.PENDING -> {
+                // Another try while pending: refresh lastSeen (throttled), do not reply
                 ApprovalStore.upsertPending(context, sender, System.currentTimeMillis())
                 return
             }
@@ -58,6 +66,17 @@ class SmsReceiver : BroadcastReceiver() {
             ApprovalState.APPROVED -> Unit
         }
         // --- End approvals gate ---
+
+        // Per-sender limit on commands, every kind included (help and unknown words cost us an
+        // SMS reply too). The first excess message gets one notice; the rest are dropped silently.
+        val rateLimit = SmsLimits.coerceRateLimit(
+            prefs.getInt("rate_limit_per_hour", SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR)
+        )
+        val decision = RateStore.check(context, "in:" + PhoneNumber.rateKey(sender), rateLimit)
+        if (!decision.allowed) {
+            if (decision.sendNotice) SmsSender.sendRateLimited(context, sender)
+            return
+        }
 
         prefs.edit().putLong("last_receive_at", System.currentTimeMillis()).apply()
 
@@ -115,6 +134,14 @@ class SmsReceiver : BroadcastReceiver() {
         params: SubscribeParams
     ) {
         val now = System.currentTimeMillis()
+        val maxSubscriptions = SmsLimits.coerceMaxSubscriptions(
+            ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
+                .getInt("max_subscriptions", SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
+        )
+        if (!SubscriptionLogic.canAdd(SubscriptionManager.getAll(ctx), sender, now, maxSubscriptions)) {
+            SmsSender.sendSubscriptionLimit(ctx, sender)
+            return
+        }
         val sub = Subscription(
             number = PhoneNumber.normalize(sender),
             distMeters = params.dist,
