@@ -138,11 +138,85 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `composeUsageHint includes keyword`() {
-        val msgs = SmsComposer.composeUsageHint("mytrack")
+    fun `composeHelp lists every command with the keyword`() {
+        val msgs = SmsComposer.composeHelp("mytrack")
         assertEquals(1, msgs.size)
-        assertTrue(msgs[0].contains("mytrack"))
+        val text = msgs[0]
+        assertTrue(text.contains("mytrack last"))
+        assertTrue(text.contains("mytrack subscribe [--dist M] [--freq MIN] [--time H]"))
+        assertTrue(text.contains("mytrack unsubscribe"))
+        assertTrue(text.contains("mytrack help"))
     }
+
+    @Test
+    fun `composeHelp is plain ASCII so it stays GSM-7 friendly`() {
+        assertTrue(SmsComposer.composeHelp("phonetrack")[0].all { it.code < 128 })
+    }
+
+    @Test
+    fun `composeInvalidSubscribe names the problem and the usage`() {
+        val msgs = SmsComposer.composeInvalidSubscribe("--freq must be 1-1440 (minutes)", "mytrack")
+        assertEquals(1, msgs.size)
+        assertTrue(msgs[0].contains("--freq must be 1-1440 (minutes)"))
+        assertTrue(msgs[0].contains("mytrack subscribe"))
+    }
+
+    // -------------------------------------------------------------------------
+    // composeSubscribeAck
+    // -------------------------------------------------------------------------
+
+    // 2026-09-30 18:32:00 UTC
+    private val endsAt = 1_790_793_120_000L
+
+    @Test
+    fun `composeSubscribeAck states frequency movement duration and end time in UTC`() {
+        val msgs = SmsComposer.composeSubscribeAck("mytrack", SubscribeParams(200, 15, 4), endsAt)
+        assertEquals(1, msgs.size)
+        assertTrue(msgs[0].contains("update every 15 min"))
+        assertTrue(msgs[0].contains("only if moved 200m+"))
+        assertTrue(msgs[0].contains("for 4h"))
+        assertTrue(msgs[0].contains("ends Sep 30 18:32Z"))
+        assertTrue(msgs[0].contains("\"mytrack unsubscribe\""))
+    }
+
+    @Test
+    fun `composeSubscribeAck with dist 0 says regardless of movement`() {
+        val msgs = SmsComposer.composeSubscribeAck("mytrack", SubscribeParams(0, 5, 1), endsAt)
+        assertTrue(msgs[0].contains("regardless of movement"))
+        assertFalse(msgs[0].contains("only if moved"))
+    }
+
+    // -------------------------------------------------------------------------
+    // last known location
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `composeLastKnown returns 3 messages headed with the fix age`() {
+        val msgs = SmsComposer.composeLastKnown(51.5074, -0.1278, 12, 12 * 60_000L)
+        assertEquals(3, msgs.size)
+        assertEquals(
+            "[PhoneTrack] Last known (12m ago)\nLat: 51.5074, Lon: -0.1278\nAcc: 12m",
+            msgs[0]
+        )
+        assertEquals("geo:51.5074,-0.1278", msgs[1])
+        assertTrue(msgs[2].contains("openstreetmap.org"))
+    }
+
+    @Test
+    fun `composeNoCachedLocation suggests the one-shot command`() {
+        val msgs = SmsComposer.composeNoCachedLocation("mytrack")
+        assertEquals(1, msgs.size)
+        assertTrue(msgs[0].contains("\"mytrack\""))
+    }
+
+    @Test fun `formatAge seconds`() { assertEquals("45s", SmsComposer.formatAge(45_000L)) }
+    @Test fun `formatAge minutes`() { assertEquals("12m", SmsComposer.formatAge(12 * 60_000L + 30_000L)) }
+    @Test fun `formatAge hours`() { assertEquals("3h", SmsComposer.formatAge(3 * 3_600_000L + 59_000L)) }
+    @Test fun `formatAge days`() { assertEquals("2d", SmsComposer.formatAge(49 * 3_600_000L)) }
+    @Test fun `formatAge zero`() { assertEquals("0s", SmsComposer.formatAge(0L)) }
+    @Test fun `formatAge negative clamps to zero`() { assertEquals("0s", SmsComposer.formatAge(-5_000L)) }
+    @Test fun `formatAge boundary 59s`() { assertEquals("59s", SmsComposer.formatAge(59_999L)) }
+    @Test fun `formatAge boundary 60s becomes 1m`() { assertEquals("1m", SmsComposer.formatAge(60_000L)) }
 
     @Test
     fun `composePermissionError returns correct text`() {

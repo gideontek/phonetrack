@@ -13,11 +13,14 @@ import org.json.JSONObject
 
 /**
  * Listens for incoming SMS messages. If the app is enabled and the first word of the
- * message body matches the configured keyword, it dispatches based on the second token:
+ * message body matches the configured keyword, an approved sender's command is parsed by
+ * [SmsCommandParser] and dispatched:
  *
- * - "subscribe"   → create/replace a subscription, schedule the periodic worker, send immediate fix
+ * - (nothing)     → one-shot location reply
+ * - "subscribe"   → create/replace a subscription, confirm it, send an immediate fix
  * - "unsubscribe" → cancel the sender's subscription
- * - anything else → one-shot location reply (existing behaviour)
+ * - "last"        → reply with the cached last-known fix (no GPS wake-up)
+ * - anything else → help reply
  */
 class SmsReceiver : BroadcastReceiver() {
 
@@ -28,12 +31,16 @@ class SmsReceiver : BroadcastReceiver() {
         val enabled = prefs.getBoolean("sms_enabled", false)
         val keyword = prefs.getString("sms_keyword", "phonetrack")?.lowercase() ?: return
         if (!enabled || keyword.isBlank()) return
+        // Our own replies start with "[PhoneTrack]"; a keyword that could match them would
+        // let two phones answer each other forever.
+        if (keyword.startsWith("[")) return
 
         val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent)
         if (messages.isNullOrEmpty()) return
 
         val sender = messages[0].originatingAddress ?: return
         val body = messages.joinToString("") { it.messageBody }
+        if (body.length > SmsLimits.MAX_BODY) return
 
         val tokens = body.trim().split("\\s+".toRegex())
         val firstWord = tokens.firstOrNull()?.lowercase()
@@ -64,12 +71,20 @@ class SmsReceiver : BroadcastReceiver() {
 
         prefs.edit().putLong("last_receive_at", System.currentTimeMillis()).apply()
 
-        when (tokens.getOrNull(1)?.lowercase()) {
-            "subscribe" -> handleSubscribe(context, sender, keyword, tokens)
-            "unsubscribe" -> handleUnsubscribe(context, sender)
-            else -> startLocationFetch(context, sender)
+        when (val command = SmsCommandParser.parse(tokens.drop(1))) {
+            SmsCommand.OneShot -> startLocationFetch(context, sender)
+            is SmsCommand.Subscribe -> handleSubscribe(context, sender, keyword, command.params)
+            is SmsCommand.InvalidSubscribe ->
+                SmsSender.sendInvalidSubscribe(context, sender, command.message, keyword)
+            SmsCommand.Unsubscribe -> handleUnsubscribe(context, sender)
+            SmsCommand.Last -> handleLast(context, sender, keyword)
+            SmsCommand.Help -> SmsSender.sendHelp(context, sender, keyword)
         }
     }
+
+    private fun hasLocationPermission(ctx: Context) =
+        ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
 
     /**
      * Starts [SmsLocationService] for a one-shot location fetch, replying with a
@@ -82,9 +97,7 @@ class SmsReceiver : BroadcastReceiver() {
      * skipped) — so this must be checked here, before the service is ever started.
      */
     private fun startLocationFetch(ctx: Context, sender: String) {
-        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
+        if (!hasLocationPermission(ctx)) {
             SmsSender.sendPermissionError(ctx, sender)
             return
         }
@@ -98,13 +111,8 @@ class SmsReceiver : BroadcastReceiver() {
         ctx: Context,
         sender: String,
         keyword: String,
-        tokens: List<String>
+        params: SubscribeParams
     ) {
-        val params = SmsCommandParser.parseSubscribe(tokens.drop(2))
-        if (params == null) {
-            SmsSender.sendUsageHint(ctx, sender, keyword)
-            return
-        }
         val now = System.currentTimeMillis()
         val sub = Subscription(
             number = sender,
@@ -119,8 +127,23 @@ class SmsReceiver : BroadcastReceiver() {
         )
         SubscriptionManager.add(ctx, sub)
         SubscriptionManager.ensureServiceRunning(ctx)
+        SmsSender.sendSubscribeAck(ctx, sender, keyword, params, sub.expiresAt)
         // Immediate location fix (same as one-shot)
         startLocationFetch(ctx, sender)
+    }
+
+    /** Replies from the cached fix; starts no service, so the GPS is never woken. */
+    private fun handleLast(ctx: Context, sender: String, keyword: String) {
+        if (!hasLocationPermission(ctx)) {
+            SmsSender.sendPermissionError(ctx, sender)
+            return
+        }
+        val loc = LastKnownLocation.get(ctx)
+        if (loc == null) {
+            SmsSender.sendNoCachedLocation(ctx, sender, keyword)
+        } else {
+            SmsSender.sendLastKnown(ctx, sender, loc, System.currentTimeMillis())
+        }
     }
 
     private fun handleUnsubscribe(ctx: Context, sender: String) {

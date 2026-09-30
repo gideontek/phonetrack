@@ -70,7 +70,17 @@ PhoneTrack remembers whether SMS responding is on or off, and picks up where it 
 
 ## SMS command reference
 
-All commands start with your keyword (shown here as `phonetrack`). Commands are case-insensitive.
+All commands start with your keyword (shown here as `phonetrack`). Commands and options are case-insensitive. A phone keyboard that turns `--` into a long dash (`—`) is fine.
+
+| Command | What it does |
+|---------|--------------|
+| `phonetrack` | Get a fresh location fix |
+| `phonetrack last` | Get the last location the phone already has, without waking the GPS |
+| `phonetrack subscribe [options]` | Start periodic updates |
+| `phonetrack unsubscribe` | Stop periodic updates |
+| `phonetrack help` | List the commands |
+
+Any other word after the keyword (for example `phonetrack hello`) gets the help reply, not a location. Messages longer than 320 characters are ignored.
 
 ### One-shot location request
 
@@ -96,19 +106,35 @@ https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=14/51.5074/-0.1278
 
 If location services are turned off when the request arrives, the phone posts a high-priority notification with a 60-second countdown. If you re-enable location services within that window, the fix is sent automatically.
 
+### Last known location
+
+```
+phonetrack last
+```
+
+Replies immediately with the newest location the phone already has cached, in the same three-message format as a one-shot request, headed with how old it is:
+
+```
+[PhoneTrack] Last known (12m ago)
+Lat: 51.5074, Lon: -0.1278
+Acc: 8m
+```
+
+This does not turn the GPS on, so it works when a fresh fix can't be obtained (for example indoors), but the position may be stale. If nothing is cached the phone says so.
+
 ### Subscribe (periodic updates)
 
 ```
 phonetrack subscribe [--dist N] [--freq N] [--time N]
 ```
 
-Starts a recurring location subscription. The phone sends an immediate fix, then continues sending updates on a schedule until the subscription expires or you cancel it.
+Starts a recurring location subscription. The phone confirms the settings, sends an immediate fix, then continues sending updates on a schedule until the subscription expires or you cancel it.
 
-| Option | Default | Meaning |
-|--------|---------|---------|
-| `--dist N` | 200 m | Only send an update if you have moved more than N metres since the last one |
-| `--freq N` | 15 min | Send an update at most every N minutes (minimum: 1) |
-| `--time N` | 4 h | Cancel the subscription automatically after N hours |
+| Option | Default | Allowed | Meaning |
+|--------|---------|---------|---------|
+| `--dist N` | 200 m | 0–50000 | Only send an update if you have moved at least N metres since the last one (0 = always) |
+| `--freq N` | 15 min | 1–1440 | Send an update at most every N minutes |
+| `--time N` | 4 h | 1–168 | Cancel the subscription automatically after N hours |
 
 **Examples:**
 
@@ -127,7 +153,13 @@ phonetrack subscribe --dist 0 --freq 10 --time 8
 ```
 Updates every 10 minutes for 8 hours regardless of movement.
 
-If the subscription parameters are invalid, the phone replies with a usage hint.
+The confirmation looks like:
+
+```
+[PhoneTrack] Subscribed: update every 15 min, only if moved 200m+, for 4h (ends Sep 30 18:32Z). Text "phonetrack unsubscribe" to stop.
+```
+
+The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
 
 ### Unsubscribe
 
@@ -135,7 +167,7 @@ If the subscription parameters are invalid, the phone replies with a usage hint.
 phonetrack unsubscribe
 ```
 
-Cancels your active subscription. The phone replies to confirm cancellation.
+Cancels your active subscription. The phone replies to confirm cancellation, or tells you there was nothing to cancel.
 
 ---
 
@@ -144,7 +176,7 @@ Cancels your active subscription. The phone replies to confirm cancellation.
 | Setting | Description |
 |---------|-------------|
 | SMS responding | Master on/off switch |
-| Keyword | The trigger word the phone listens for (default: `phonetrack`) |
+| Keyword | The trigger word the phone listens for (default: `phonetrack`). One word, no spaces, and it can't start with `[` |
 | Contacts list | Per-number approval state: PENDING / APPROVED / BLOCKED |
 
 Active subscriptions are shown in the main screen and can be cancelled by swiping them away.

@@ -32,7 +32,13 @@ phonetrack-android-2026/
             ├── AndroidManifest.xml
             ├── kotlin/com/gideontek/phonetrack/
             │   ├── MainActivity.kt        # Compose UI + ViewModel
-            │   ├── SmsReceiver.kt         # BroadcastReceiver (one-shot / subscribe / unsubscribe)
+            │   ├── SmsReceiver.kt         # BroadcastReceiver (gate + dispatch on SmsCommand)
+            │   ├── SmsCommand.kt          # Sealed parsed command (one-shot / subscribe / unsubscribe / last / help)
+            │   ├── SmsCommandParser.kt    # Pure parser + subscribe flag validation
+            │   ├── SmsLimits.kt           # Command bounds, body cap, keyword sanitizing
+            │   ├── SmsComposer.kt         # Pure reply-text builders
+            │   ├── SmsSender.kt           # Outgoing SMS (multipart, crash-safe)
+            │   ├── LastKnownLocation.kt   # Newest cached fix for the `last` command
             │   ├── SmsLocationService.kt  # ForegroundService — one-shot location reply
             │   ├── Subscription.kt        # Subscription data class + SubscriptionManager
             │   ├── SubscriptionService.kt # ForegroundService — periodic location loop
