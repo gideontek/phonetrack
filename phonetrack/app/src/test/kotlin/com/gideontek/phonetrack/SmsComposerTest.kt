@@ -70,8 +70,58 @@ class SmsComposerTest {
     }
 
     // -------------------------------------------------------------------------
+    // Coordinate formatting
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `coordinates keep short values without trailing zeros`() {
+        val msgs = SmsComposer.composeOneShotLocation(51.5074, -0.1278, 8, 73)
+        assertEquals("[PhoneTrack] Lat: 51.5074, Lon: -0.1278\nAcc: 8m, Bat: 73%", msgs[0])
+        assertEquals("geo:51.5074,-0.1278", msgs[1])
+        assertEquals("https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=14/51.5074/-0.1278", msgs[2])
+    }
+
+    @Test
+    fun `coordinates never use scientific notation`() {
+        val msgs = SmsComposer.composeOneShotLocation(0.0001, -0.00002, 5, 50)
+        assertTrue(msgs[0].contains("Lat: 0.0001, Lon: -0.00002"))
+        assertFalse(msgs.any { it.contains("E-") })
+    }
+
+    @Test
+    fun `coordinates are trimmed to 5 decimals`() {
+        val msgs = SmsComposer.composeOneShotLocation(37.774929123456, -122.419415987654, 5, 50)
+        assertEquals("geo:37.77493,-122.41942", msgs[1])
+    }
+
+    @Test
+    fun `subscription coordinates use the same formatting`() {
+        val msgs = SmsComposer.composeSubscriptionLocation(37.774929123456, -122.419415987654, 5, 0.0, 0.0)
+        assertEquals("geo:37.77493,-122.41942", msgs[1])
+    }
+
+    @Test
+    fun `coordinates use dot separator regardless of default locale`() {
+        val original = java.util.Locale.getDefault()
+        try {
+            java.util.Locale.setDefault(java.util.Locale.GERMANY)
+            val msgs = SmsComposer.composeOneShotLocation(51.5074, -0.1278, 8, 73)
+            assertEquals("geo:51.5074,-0.1278", msgs[1])
+        } finally {
+            java.util.Locale.setDefault(original)
+        }
+    }
+
+    // -------------------------------------------------------------------------
     // Single-message composers
     // -------------------------------------------------------------------------
+
+    @Test
+    fun `composeNoSubscription returns correct text`() {
+        val msgs = SmsComposer.composeNoSubscription()
+        assertEquals(1, msgs.size)
+        assertTrue(msgs[0].contains("no active location subscription"))
+    }
 
     @Test
     fun `composeSubscriptionExpired returns correct text`() {

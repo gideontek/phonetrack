@@ -124,7 +124,10 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun handleUnsubscribe(ctx: Context, sender: String) {
-        SmsSender.sendSubscriptionCancelled(ctx, sender)
-        SubscriptionManager.remove(ctx, sender)
+        if (SubscriptionManager.remove(ctx, sender)) {
+            SmsSender.sendSubscriptionCancelled(ctx, sender)
+        } else {
+            SmsSender.sendNoSubscription(ctx, sender)
+        }
     }
 }

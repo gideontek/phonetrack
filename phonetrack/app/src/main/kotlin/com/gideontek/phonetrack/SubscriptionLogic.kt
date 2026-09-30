@@ -20,6 +20,10 @@ object SubscriptionLogic {
         return distanceMeters >= threshold
     }
 
+    /** True if the service should fetch a fix and send updates this tick: the SMS listener
+     *  must be enabled and at least one subscriber must be due. */
+    fun shouldFetch(smsEnabled: Boolean, dueCount: Int): Boolean = smsEnabled && dueCount > 0
+
     /** Returns subs whose expiresAt <= now. */
     fun expiredSubs(subs: List<Subscription>, now: Long): List<Subscription> =
         subs.filter { it.expiresAt <= now }

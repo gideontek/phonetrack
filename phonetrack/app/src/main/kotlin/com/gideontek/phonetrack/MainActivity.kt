@@ -119,9 +119,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     )
     val keyword: StateFlow<String> = _keyword.asStateFlow()
 
-    private val _autoStartOnBoot = MutableStateFlow(prefs.getBoolean("auto_start_on_boot", false))
-    val autoStartOnBoot: StateFlow<Boolean> = _autoStartOnBoot.asStateFlow()
-
     private fun storedPin() = prefs.getString("settings_pin", "") ?: ""
 
     private val _pinSet = MutableStateFlow(storedPin().isNotEmpty())
@@ -151,8 +148,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "sms_enabled" -> _enabled.value = prefs.getBoolean("sms_enabled", false)
             "sms_keyword" -> _keyword.value =
                 prefs.getString("sms_keyword", "phonetrack") ?: "phonetrack"
-            "auto_start_on_boot" -> _autoStartOnBoot.value =
-                prefs.getBoolean("auto_start_on_boot", false)
             "settings_pin" -> _pinSet.value = storedPin().isNotEmpty()
             "approvals_list" -> _approvalsList.value = parseApprovalsList()
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
@@ -163,6 +158,11 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         prefs.registerOnSharedPreferenceChangeListener(prefListener)
+        // The "start on boot" setting was removed: the listener state is persisted and simply
+        // restored after a reboot. Drop the stale key left behind by older versions.
+        if (prefs.contains("auto_start_on_boot")) {
+            prefs.edit().remove("auto_start_on_boot").apply()
+        }
     }
 
     private fun parseApprovalsList(): List<Pair<String, ApprovalState>> {
@@ -190,11 +190,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun setKeyword(value: String) {
         _keyword.value = value
         prefs.edit().putString("sms_keyword", value).apply()
-    }
-
-    fun setAutoStartOnBoot(value: Boolean) {
-        _autoStartOnBoot.value = value
-        prefs.edit().putBoolean("auto_start_on_boot", value).apply()
     }
 
     /** Save a new PIN and leave the session unlocked. */
@@ -276,7 +271,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val enabled by vm.enabled.collectAsState()
     val keyword by vm.keyword.collectAsState()
-    val autoStartOnBoot by vm.autoStartOnBoot.collectAsState()
     val isLocked by vm.isLocked.collectAsState()
     val pinSet by vm.pinSet.collectAsState()
     val approvalsList by vm.approvalsList.collectAsState()
@@ -559,20 +553,6 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                 )
             }
 
-            // Start on boot toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("Start on Boot", style = MaterialTheme.typography.bodyLarge)
-                Switch(
-                    checked = autoStartOnBoot,
-                    onCheckedChange = { vm.setAutoStartOnBoot(it) },
-                    enabled = !isLocked
-                )
-            }
-
             // Keyword field
             OutlinedTextField(
                 value = keyword,
@@ -625,7 +605,6 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         style = MaterialTheme.typography.titleSmall
                     )
                     Text("Listening: ${if (enabled) "ON" else "OFF"}")
-                    Text("Start on boot: ${if (autoStartOnBoot) "ON" else "OFF"}")
                     Text("Keyword: \"$keyword\"")
                     Text(
                         "Location services: ${if (locationServicesEnabled) "ON" else "OFF"}",

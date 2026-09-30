@@ -117,6 +117,25 @@ class SubscriptionLogicTest {
     }
 
     // -------------------------------------------------------------------------
+    // shouldFetch
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `shouldFetch false when listener disabled even if subs are due`() {
+        assertFalse(SubscriptionLogic.shouldFetch(smsEnabled = false, dueCount = 3))
+    }
+
+    @Test
+    fun `shouldFetch false when enabled but nothing due`() {
+        assertFalse(SubscriptionLogic.shouldFetch(smsEnabled = true, dueCount = 0))
+    }
+
+    @Test
+    fun `shouldFetch true when enabled and a sub is due`() {
+        assertTrue(SubscriptionLogic.shouldFetch(smsEnabled = true, dueCount = 1))
+    }
+
+    // -------------------------------------------------------------------------
     // expiredSubs
     // -------------------------------------------------------------------------
 

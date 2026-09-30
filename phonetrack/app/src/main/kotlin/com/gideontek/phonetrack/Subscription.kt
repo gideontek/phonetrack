@@ -11,7 +11,7 @@ import org.json.JSONObject
 
 data class Subscription(
     val number: String,
-    val distMeters: Int,       // default 100 m
+    val distMeters: Int,       // default 200 m
     val freqMinutes: Int,      // default 15 min
     val durationHours: Int,    // default 4
     val subscribedAt: Long,
@@ -59,18 +59,23 @@ object SubscriptionManager {
         prefs.edit().putString(PREFS_KEY, array.toString()).apply()
     }
 
-    /** Removes the subscription for [number]; stops the service if the list becomes empty. */
-    fun remove(ctx: Context, number: String) {
+    /**
+     * Removes the subscription for [number]; stops the service if the list becomes empty.
+     * Returns true if a subscription was actually removed.
+     */
+    fun remove(ctx: Context, number: String): Boolean {
         val prefs = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
         val json = prefs.getString(PREFS_KEY, "[]") ?: "[]"
         val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
         val newArray = JSONArray()
+        var removed = false
         for (i in 0 until array.length()) {
             val obj = array.optJSONObject(i) ?: continue
-            if (obj.optString("number") != number) newArray.put(obj)
+            if (obj.optString("number") != number) newArray.put(obj) else removed = true
         }
         prefs.edit().putString(PREFS_KEY, newArray.toString()).apply()
         if (newArray.length() == 0) stopService(ctx)
+        return removed
     }
 
     fun updateTracking(ctx: Context, number: String, lat: Double, lon: Double, sentAt: Long) {
