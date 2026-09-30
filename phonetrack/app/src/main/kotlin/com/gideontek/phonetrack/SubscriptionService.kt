@@ -15,6 +15,7 @@ import android.location.LocationManager
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 
@@ -43,17 +44,27 @@ class SubscriptionService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // SubscriptionManager.ensureServiceRunning() — the sole caller that starts this
-        // service — must verify ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION is already
-        // granted before calling startForegroundService(). This service declares
-        // foregroundServiceType="location", and startForeground() must be called
-        // immediately once started this way (skipping it, or calling it without the
-        // permission already held, both crash the process on Android 14+ / targetSdk 35
-        // — one via SecurityException, the other via
-        // ForegroundServiceDidNotStartInTimeException) — so the check can't safely live
-        // here; it has to gate the startForegroundService() call itself. (Permission
-        // being revoked *after* a successful start is a separate case, already handled
-        // by fetchLocation()'s onFailure → retry path below.)
-        startForeground(NOTIFICATION_ID, buildNotification())
+        // service — must verify LocationPermission.canStartLocationService() before calling
+        // startForegroundService(). This service declares foregroundServiceType="location",
+        // and startForeground() must be called immediately once started this way (skipping it,
+        // or calling it without the permissions held, both crash the process on Android 14+ /
+        // targetSdk 35 — one via SecurityException, the other via
+        // ForegroundServiceDidNotStartInTimeException) — so the check can't safely live here;
+        // it has to gate the startForegroundService() call itself. (Permission being revoked
+        // *after* a successful start is a separate case, already handled by fetchLocation()'s
+        // onFailure → retry path below.)
+        //
+        // Backstop for anything that check misses, including the system's own sticky restart
+        // (a null intent, from the background): a SecurityException from startForeground()
+        // would otherwise kill the process and put it in a restart loop.
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (e: SecurityException) {
+            Log.w("SubscriptionService", "Cannot start as a location foreground service", e)
+            HostAlerts.locationPermissionNeeded(this, null)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         // Cancel any pending tick and run immediately so a new/replaced subscription
         // gets its first update without waiting for the previous tick delay.
         tickRunnable?.let { handler.removeCallbacks(it) }

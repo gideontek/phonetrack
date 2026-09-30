@@ -1,12 +1,9 @@
 package com.gideontek.phonetrack
 
-import android.Manifest
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.provider.Telephony
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 /**
@@ -64,6 +61,10 @@ class SmsReceiver : BroadcastReceiver() {
 
         prefs.edit().putLong("last_receive_at", System.currentTimeMillis()).apply()
 
+        // If the owner has since granted the missing location permission (e.g. from system
+        // settings), get stored subscriptions running again rather than waiting for a reboot.
+        SubscriptionManager.resumeIfPossible(context)
+
         when (val command = SmsCommandParser.parse(tokens.drop(1))) {
             SmsCommand.OneShot -> startLocationFetch(context, sender)
             is SmsCommand.Subscribe -> handleSubscribe(context, sender, keyword, command.params)
@@ -75,23 +76,30 @@ class SmsReceiver : BroadcastReceiver() {
         }
     }
 
-    private fun hasLocationPermission(ctx: Context) =
-        ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
-            PackageManager.PERMISSION_GRANTED
+    private fun hasLocationPermission(ctx: Context) = LocationPermission.hasFine(ctx)
 
     /**
      * Starts [SmsLocationService] for a one-shot location fetch, replying with a
-     * permission-error SMS instead if ACCESS_FINE_LOCATION isn't granted.
+     * permission-error SMS instead if ACCESS_FINE_LOCATION isn't granted or only
+     * foreground-only location is (the latter also notifies the phone's owner).
      *
-     * That service declares foregroundServiceType="location", and calling
-     * startForegroundService() when the permission isn't already held leads to a
-     * guaranteed crash inside the service (either a SecurityException from
-     * startForeground() itself, or a ForegroundServiceDidNotStartInTimeException if it's
-     * skipped) — so this must be checked here, before the service is ever started.
+     * That service declares foregroundServiceType="location", and starting it from this
+     * background broadcast without those permissions leads to a guaranteed crash inside the
+     * service (a SecurityException from startForeground() itself on Android 14+, or a
+     * ForegroundServiceDidNotStartInTimeException if it's skipped) — so this must be checked
+     * here, before the service is ever started.
      */
     private fun startLocationFetch(ctx: Context, sender: String) {
         if (!hasLocationPermission(ctx)) {
             SmsSender.sendPermissionError(ctx, sender)
+            HostAlerts.locationPermissionNeeded(ctx, sender)
+            return
+        }
+        if (!LocationPermission.canStartLocationService(ctx)) {
+            // The requester can't fix this (it's a setting on this phone), so they only get the
+            // generic error; the owner is told what to change via a notification.
+            SmsSender.sendPermissionError(ctx, sender)
+            HostAlerts.locationPermissionNeeded(ctx, sender)
             return
         }
         ContextCompat.startForegroundService(
@@ -129,6 +137,7 @@ class SmsReceiver : BroadcastReceiver() {
     private fun handleLast(ctx: Context, sender: String, keyword: String) {
         if (!hasLocationPermission(ctx)) {
             SmsSender.sendPermissionError(ctx, sender)
+            HostAlerts.locationPermissionNeeded(ctx, sender)
             return
         }
         val loc = LastKnownLocation.get(ctx)

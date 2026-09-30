@@ -1,10 +1,7 @@
 package com.gideontek.phonetrack
 
-import android.Manifest
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import org.json.JSONArray
 import org.json.JSONObject
@@ -107,23 +104,32 @@ object SubscriptionManager {
 
     /**
      * Starts [SubscriptionService] as a foreground service if not already running.
-     * No-ops if ACCESS_FINE_LOCATION isn't granted: that service declares
-     * foregroundServiceType="location", and calling startForegroundService() when the
-     * permission isn't already held leads to a guaranteed crash inside the service
-     * (either a SecurityException from startForeground() itself, or a
-     * ForegroundServiceDidNotStartInTimeException if it's skipped) — so this has to be
-     * checked here, before the service is ever started, not inside it. Safe to call
-     * speculatively (e.g. from BootReceiver): the service will be started for real the
-     * next time this is called after permission is granted.
+     * No-ops unless [LocationPermission.canStartLocationService]: that service declares
+     * foregroundServiceType="location", and starting it without precise location plus (from a
+     * background broadcast) background location makes startForeground() throw a
+     * SecurityException that kills the process (or, if skipped, a
+     * ForegroundServiceDidNotStartInTimeException) — so this has to be checked here, before the
+     * service is ever started, not inside it. Safe to call speculatively (e.g. from
+     * BootReceiver): the service will be started for real the next time this is called after
+     * permission is granted.
      */
     fun ensureServiceRunning(ctx: Context) {
-        if (ActivityCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) return
+        if (!LocationPermission.canStartLocationService(ctx)) return
         ContextCompat.startForegroundService(
             ctx,
             Intent(ctx, SubscriptionService::class.java)
         )
+    }
+
+    /**
+     * Starts the periodic service if there are stored subscriptions and the permissions allow
+     * it. A subscription can be accepted and stored while the phone isn't yet allowed to act on
+     * it (background location missing); this is what makes it start working once the owner
+     * resolves that — called when the app is resumed or returns from the permission flow, and
+     * on the next approved command. Idempotent and a no-op while permissions are still missing.
+     */
+    fun resumeIfPossible(ctx: Context) {
+        if (hasActive(ctx)) ensureServiceRunning(ctx)
     }
 
     /** Stops [SubscriptionService]. */
