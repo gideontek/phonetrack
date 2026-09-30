@@ -37,6 +37,27 @@ class PinDialogState internal constructor(
 ) {
     var showSet by showSetState
     var showUnlock by showUnlockState
+
+    /** Runs after a successful unlock. Not saved: lost on rotation, the user just taps again. */
+    internal var pendingAction: (() -> Unit)? = null
+
+    /**
+     * Runs [action] now if the session is unlocked (or has no PIN); otherwise asks for the PIN
+     * and runs it once that succeeds. Cancelling drops it.
+     */
+    fun guard(vm: HomeViewModel, action: () -> Unit) {
+        if (!vm.isLocked.value) {
+            action()
+        } else {
+            pendingAction = action
+            showUnlock = true
+        }
+    }
+
+    internal fun dismissUnlock() {
+        showUnlock = false
+        pendingAction = null
+    }
 }
 
 @Composable
@@ -48,7 +69,7 @@ fun rememberPinDialogState(): PinDialogState {
 
 /** Lock icon: no PIN -> set one, locked -> unlock, unlocked -> lock now. */
 @Composable
-fun LockButton(vm: HomeViewModel, dialogs: PinDialogState) {
+fun LockButton(vm: HomeViewModel, dialogs: PinDialogState, onLocked: () -> Unit = {}) {
     val context = LocalContext.current
     val isLocked by vm.isLocked.collectAsState()
     val pinSet by vm.pinSet.collectAsState()
@@ -59,6 +80,7 @@ fun LockButton(vm: HomeViewModel, dialogs: PinDialogState) {
             else -> {                             // unlocked: lock immediately
                 vm.lock()
                 Toast.makeText(context, "Settings Locked", Toast.LENGTH_SHORT).show()
+                onLocked()
             }
         }
     }) {
@@ -134,7 +156,7 @@ fun PinDialogs(vm: HomeViewModel, state: PinDialogState) {
             mutableStateOf(vm.pinLockRemainingMs().let { if (it > 0L) lockedOutMessage(it) else "" })
         }
         AlertDialog(
-            onDismissRequest = { state.showUnlock = false },
+            onDismissRequest = { state.dismissUnlock() },
             title = { Text("Enter PIN") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -158,6 +180,8 @@ fun PinDialogs(vm: HomeViewModel, state: PinDialogState) {
                         PinResult.Success -> {
                             state.showUnlock = false
                             Toast.makeText(context, "Settings Unlocked", Toast.LENGTH_SHORT).show()
+                            state.pendingAction?.invoke()
+                            state.pendingAction = null
                         }
                         is PinResult.Wrong -> {
                             error = "Incorrect PIN. ${result.attemptsLeft} " +
@@ -172,7 +196,7 @@ fun PinDialogs(vm: HomeViewModel, state: PinDialogState) {
                 }) { Text("Unlock") }
             },
             dismissButton = {
-                TextButton(onClick = { state.showUnlock = false }) { Text("Cancel") }
+                TextButton(onClick = { state.dismissUnlock() }) { Text("Cancel") }
             }
         )
     }

@@ -1,11 +1,11 @@
 package com.gideontek.phonetrack
 
 import android.content.Intent
+import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -15,12 +15,10 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,8 +35,9 @@ import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
 
 /**
- * Day-to-day screen. Interim layout from the scaffold split: the redesign (status card,
- * decision buttons, subscription list) replaces the body later.
+ * Day-to-day screen: status, numbers waiting for a decision, active subscriptions and the
+ * approved/blocked list. The PIN lock guards only approval changes, the Listening switch and
+ * Settings; sending a location or cancelling a subscription is always allowed.
  */
 @Composable
 fun MainScreen(
@@ -48,10 +47,7 @@ fun MainScreen(
     onOpenSettings: () -> Unit,
 ) {
     val enabled by vm.enabled.collectAsState()
-    val keyword by vm.keyword.collectAsState()
-    val isLocked by vm.isLocked.collectAsState()
-    val pinSet by vm.pinSet.collectAsState()
-    val approvalsList by vm.approvalsList.collectAsState()
+    val approvalEntries by vm.approvalEntries.collectAsState()
     val subscriptions by vm.subscriptions.collectAsState()
     val lastReceiveAt by vm.lastReceiveAt.collectAsState()
     val lastSendAt by vm.lastSendAt.collectAsState()
@@ -77,6 +73,39 @@ fun MainScreen(
     }
     val streamState = StreamActivityLogic.currentState(lastReceiveAt, lastSendAt, now, hasActiveSubscription)
 
+    // Slow clock for the "asked 12 min ago" / "2 h left" text and for hiding subscriptions
+    // that have just expired.
+    var clock by remember { mutableStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            clock = System.currentTimeMillis()
+        }
+    }
+    val clockNow = maxOf(clock, now)
+
+    val known = KnownNumbers.split(approvalEntries)
+    val liveSubscriptions = SubscriptionView.active(subscriptions, clockNow)
+    val summary = StatusSummary.from(
+        enabled = enabled,
+        smsGranted = permissions.smsGranted,
+        locationGranted = permissions.locationGranted,
+        bgLocationGranted = permissions.bgLocationGranted,
+        locationServicesEnabled = permissions.locationServicesEnabled
+    )
+    // Respect the system "remove animations" setting.
+    val animate = Settings.Global.getFloat(
+        context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f
+    ) != 0f
+
+    val sendLocation = { number: String ->
+        ContextCompat.startForegroundService(
+            context,
+            Intent(context, SmsLocationService::class.java).putExtra("sender", number)
+        )
+        Toast.makeText(context, "Location Shared", Toast.LENGTH_SHORT).show()
+    }
+
     // Debug-only: cycles debugSimulateStream() through all 4 states so the real
     // StreamActivityLogic window/decay can be previewed without a real SMS.
     var debugStateIndex by remember { mutableStateOf(0) }
@@ -88,15 +117,18 @@ fun MainScreen(
                 .systemBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Title row: [PhoneTrack SMS]----[debug][lock][settings]
+            // Title row: [PhoneTrack]----[debug][lock][settings]
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("PhoneTrack SMS", style = MaterialTheme.typography.headlineMedium)
-                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    "PhoneTrack",
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.weight(1f)
+                )
                 if (BuildConfig.DEBUG) {
                     IconButton(onClick = {
                         debugStateIndex = (debugStateIndex + 1) % StreamState.values().size
@@ -109,7 +141,7 @@ fun MainScreen(
                     }
                 }
                 LockButton(vm, pinDialogs)
-                IconButton(onClick = onOpenSettings) {
+                IconButton(onClick = { pinDialogs.guard(vm) { onOpenSettings() } }) {
                     Icon(
                         imageVector = Icons.Filled.Settings,
                         contentDescription = "Settings"
@@ -117,79 +149,70 @@ fun MainScreen(
                 }
             }
 
-            StreamStatusIndicator(
-                state = streamState,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = if (subscriptions.isNotEmpty()) subscriptions.size.toString() else "·",
-                        style = MaterialTheme.typography.headlineLarge
-                    )
-                    Text(
-                        text = streamState.name.uppercase(),
-                        style = MaterialTheme.typography.labelSmall
-                    )
+            StatusCard(
+                summary = summary,
+                streamState = streamState,
+                subscriptionCount = liveSubscriptions.size,
+                enabled = enabled,
+                onEnabledChange = { value -> pinDialogs.guard(vm) { vm.setEnabled(value) } },
+                locationServicesEnabled = permissions.locationServicesEnabled,
+                lastReceiveAt = lastReceiveAt,
+                now = clockNow,
+                animate = animate,
+                onFix = { fix ->
+                    when (fix) {
+                        StatusFix.RequestSms -> permissions.requestSms()
+                        StatusFix.RequestLocation -> permissions.requestLocation()
+                        StatusFix.RequestBgLocation -> permissions.requestBgLocation()
+                        StatusFix.OpenLocationSettings ->
+                            context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
+                    }
                 }
-            }
+            )
 
-            // Enable / disable toggle
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text("SMS Listening", style = MaterialTheme.typography.bodyLarge)
-                Switch(
-                    checked = enabled,
-                    onCheckedChange = { vm.setEnabled(it) },
-                    enabled = !isLocked
+            if (known.pending.isNotEmpty()) {
+                DecisionsSection(
+                    pending = known.pending,
+                    now = clockNow,
+                    onApprove = { number ->
+                        pinDialogs.guard(vm) { vm.setNumberState(number, ApprovalState.APPROVED) }
+                    },
+                    onBlock = { number ->
+                        pinDialogs.guard(vm) { vm.setNumberState(number, ApprovalState.BLOCKED) }
+                    }
                 )
             }
 
-            // Status card
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        if (pinSet) "Current Settings (${if (isLocked) "locked" else "unlocked"})"
-                        else "Current Settings",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    Text("Listening: ${if (enabled) "ON" else "OFF"}")
-                    Text("Keyword: \"$keyword\"")
-                    Text(
-                        "Location services: ${if (permissions.locationServicesEnabled) "ON" else "OFF"}",
-                        color = if (permissions.locationServicesEnabled)
-                            MaterialTheme.colorScheme.onSurface
-                        else
-                            MaterialTheme.colorScheme.error
-                    )
-                    Text(
-                        "Send \"$keyword\" as the first word of an SMS to trigger a location reply.",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-                }
+            if (liveSubscriptions.isNotEmpty()) {
+                SubscriptionsSection(
+                    subscriptions = liveSubscriptions,
+                    locationServicesEnabled = permissions.locationServicesEnabled,
+                    onSendNow = sendLocation,
+                    onCancel = { number -> vm.cancelSubscription(number) }
+                )
             }
 
-            // Approvals card
-            ApprovalsCard(
-                approvalsList = approvalsList,
-                subscriptions = subscriptions,
-                isLocked = isLocked,
-                locationServicesEnabled = permissions.locationServicesEnabled,
-                onNumberStateChange = { number, state -> vm.setNumberState(number, state) },
-                onSendLocation = { number ->
-                    ContextCompat.startForegroundService(
-                        context,
-                        Intent(context, SmsLocationService::class.java).putExtra("sender", number)
-                    )
-                    Toast.makeText(context, "Location Shared", Toast.LENGTH_SHORT).show()
-                },
-                onCancelSubscription = { number -> vm.cancelSubscription(number) }
-            )
+            if (known.approved.isNotEmpty() || known.blocked.isNotEmpty()) {
+                KnownNumbersSection(
+                    approved = known.approved,
+                    blocked = known.blocked,
+                    locationServicesEnabled = permissions.locationServicesEnabled,
+                    onApprove = { number ->
+                        pinDialogs.guard(vm) { vm.setNumberState(number, ApprovalState.APPROVED) }
+                    },
+                    onBlock = { number ->
+                        pinDialogs.guard(vm) { vm.setNumberState(number, ApprovalState.BLOCKED) }
+                    },
+                    onSendLocation = sendLocation
+                )
+            } else if (known.pending.isEmpty()) {
+                Text(
+                    "No requests yet. Anyone who texts your keyword shows up here.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
         }
     }
 }

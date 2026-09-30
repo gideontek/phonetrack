@@ -34,8 +34,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _replyOptions = MutableStateFlow(ReplyOptionsStore.read(app))
     val replyOptions: StateFlow<ReplyOptions> = _replyOptions.asStateFlow()
 
-    private val _approvalsList = MutableStateFlow(parseApprovalsList())
-    val approvalsList: StateFlow<List<Pair<String, ApprovalState>>> = _approvalsList.asStateFlow()
+    private val _approvalEntries = MutableStateFlow(ApprovalStore.getAll(app))
+    val approvalEntries: StateFlow<List<ApprovalEntry>> = _approvalEntries.asStateFlow()
 
     private val _subscriptions = MutableStateFlow(SubscriptionManager.getAll(app))
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
@@ -58,7 +58,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "sms_keyword" -> _keyword.value =
                 prefs.getString("sms_keyword", "phonetrack") ?: "phonetrack"
             "settings_pin_hash", "settings_pin" -> _pinSet.value = PinStore.isSet(app)
-            "approvals_list" -> _approvalsList.value = parseApprovalsList()
+            "approvals_list" -> _approvalEntries.value = ApprovalStore.getAll(app)
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
             "last_receive_at" -> _lastReceiveAt.value = prefs.getLong("last_receive_at", 0L)
             "last_send_at" -> _lastSendAt.value = prefs.getLong("last_send_at", 0L)
@@ -77,11 +77,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             prefs.edit().remove("auto_start_on_boot").apply()
         }
     }
-
-    private fun parseApprovalsList(): List<Pair<String, ApprovalState>> =
-        ApprovalStore.getAll(getApplication())
-            .map { it.number to it.state }
-            .sortedBy { (_, state) -> ApprovalLogic.sortKey(state) }
 
     fun setEnabled(value: Boolean) {
         _enabled.value = value
@@ -133,7 +128,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setNumberState(number: String, state: ApprovalState) {
         ApprovalStore.setState(getApplication(), number, state)
-        _approvalsList.value = parseApprovalsList()
+        _approvalEntries.value = ApprovalStore.getAll(getApplication())
     }
 
     /**
