@@ -92,8 +92,16 @@ class SubscriptionService : Service() {
         val now = System.currentTimeMillis()
         val dueSubs = SubscriptionLogic.dueSubs(subs, now)
 
-        if (dueSubs.isEmpty()) {
-            scheduleTick(SubscriptionLogic.nextTickDelay(subs, now))
+        // While the SMS listener is switched off, send nothing: skip the fetch and idle at the
+        // slowest tick. Expiry above still runs, and the service stays alive so re-enabling the
+        // listener resumes updates without a restart.
+        val smsEnabled = getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
+            .getBoolean("sms_enabled", false)
+        if (!SubscriptionLogic.shouldFetch(smsEnabled, dueSubs.size)) {
+            scheduleTick(
+                if (smsEnabled) SubscriptionLogic.nextTickDelay(subs, now)
+                else SubscriptionLogic.MAX_TICK_MS
+            )
             return
         }
 
