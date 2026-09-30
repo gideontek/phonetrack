@@ -38,6 +38,17 @@ object PinLockout {
         return PinLockState(failures = 0, lockedUntil = now + durationMs(level), level = level)
     }
 
+    /** The schedule in words for the Settings helper text, built from the real rules. */
+    fun scheduleText(): String {
+        val minutes = LOCK_MS.map { it / 60_000L }
+        fun unit(m: Long) = if (m == 1L) "minute" else "minutes"
+        val rest = minutes.drop(1)
+        val restText = if (rest.size > 1) rest.dropLast(1).joinToString(", ") + " and " + rest.last()
+                       else rest.joinToString()
+        return "$ATTEMPTS_PER_ROUND wrong PINs in a row lock unlocking for ${minutes.first()} " +
+            "${unit(minutes.first())}, then $restText minutes."
+    }
+
     /** State after the correct PIN. */
     fun onSuccess(): PinLockState = PinLockState()
 

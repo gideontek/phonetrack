@@ -37,6 +37,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _approvalEntries = MutableStateFlow(ApprovalStore.getAll(app))
     val approvalEntries: StateFlow<List<ApprovalEntry>> = _approvalEntries.asStateFlow()
 
+    private val _rateLimitPerHour = MutableStateFlow(readRateLimit())
+    val rateLimitPerHour: StateFlow<Int> = _rateLimitPerHour.asStateFlow()
+
+    private val _maxSubscriptions = MutableStateFlow(readMaxSubscriptions())
+    val maxSubscriptions: StateFlow<Int> = _maxSubscriptions.asStateFlow()
+
     private val _subscriptions = MutableStateFlow(SubscriptionManager.getAll(app))
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
 
@@ -59,6 +65,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
                 prefs.getString("sms_keyword", "phonetrack") ?: "phonetrack"
             "settings_pin_hash", "settings_pin" -> _pinSet.value = PinStore.isSet(app)
             "approvals_list" -> _approvalEntries.value = ApprovalStore.getAll(app)
+            "rate_limit_per_hour" -> _rateLimitPerHour.value = readRateLimit()
+            "max_subscriptions" -> _maxSubscriptions.value = readMaxSubscriptions()
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
             "last_receive_at" -> _lastReceiveAt.value = prefs.getLong("last_receive_at", 0L)
             "last_send_at" -> _lastSendAt.value = prefs.getLong("last_send_at", 0L)
@@ -76,6 +84,29 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         if (prefs.contains("auto_start_on_boot")) {
             prefs.edit().remove("auto_start_on_boot").apply()
         }
+    }
+
+    // What the receiver enforces, shown within the range the steppers can set.
+    private fun readRateLimit(): Int = LimitSteps.clampRate(
+        SmsLimits.coerceRateLimit(
+            prefs.getInt("rate_limit_per_hour", SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR)
+        )
+    )
+
+    private fun readMaxSubscriptions(): Int = SmsLimits.coerceMaxSubscriptions(
+        prefs.getInt("max_subscriptions", SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
+    )
+
+    fun setRateLimitPerHour(value: Int) {
+        val v = LimitSteps.clampRate(value)
+        _rateLimitPerHour.value = v
+        prefs.edit().putInt("rate_limit_per_hour", v).apply()
+    }
+
+    fun setMaxSubscriptions(value: Int) {
+        val v = LimitSteps.clampSubscriptions(value)
+        _maxSubscriptions.value = v
+        prefs.edit().putInt("max_subscriptions", v).apply()
     }
 
     fun setEnabled(value: Boolean) {
