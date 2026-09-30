@@ -72,7 +72,7 @@ class SmsLocationService : Service() {
         } catch (e: SecurityException) {
             Log.w("SmsLocationService", "Cannot start as a location foreground service", e)
             SmsSender.sendPermissionError(this, sender)
-            HostAlerts.backgroundLocationNeeded(this, sender)
+            HostAlerts.locationPermissionNeeded(this, sender)
             stopSelf()
             return START_NOT_STICKY
         }
@@ -87,6 +87,7 @@ class SmsLocationService : Service() {
             // Defense in depth only — callers are expected to have already checked this
             // before starting the service (see the note in onStartCommand above).
             SmsSender.sendPermissionError(this, sender)
+            HostAlerts.locationPermissionNeeded(this, sender)
             stopSelf()
             return
         }

@@ -99,13 +99,14 @@ class SmsReceiver : BroadcastReceiver() {
     private fun startLocationFetch(ctx: Context, sender: String) {
         if (!hasLocationPermission(ctx)) {
             SmsSender.sendPermissionError(ctx, sender)
+            HostAlerts.locationPermissionNeeded(ctx, sender)
             return
         }
         if (!LocationPermission.canStartLocationService(ctx)) {
             // The requester can't fix this (it's a setting on this phone), so they only get the
             // generic error; the owner is told what to change via a notification.
             SmsSender.sendPermissionError(ctx, sender)
-            HostAlerts.backgroundLocationNeeded(ctx, sender)
+            HostAlerts.locationPermissionNeeded(ctx, sender)
             return
         }
         ContextCompat.startForegroundService(
@@ -143,6 +144,7 @@ class SmsReceiver : BroadcastReceiver() {
     private fun handleLast(ctx: Context, sender: String, keyword: String) {
         if (!hasLocationPermission(ctx)) {
             SmsSender.sendPermissionError(ctx, sender)
+            HostAlerts.locationPermissionNeeded(ctx, sender)
             return
         }
         val loc = LastKnownLocation.get(ctx)

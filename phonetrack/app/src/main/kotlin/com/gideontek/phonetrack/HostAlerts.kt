@@ -21,11 +21,12 @@ object HostAlerts {
 
     /**
      * A location request (or a resumed subscription) couldn't be served because PhoneTrack
-     * only has foreground-only location. [requester] is the number that asked, or null when
+     * lacks a location permission it needs: precise location, or background location ("Allow
+     * all the time") so its location services can start from an incoming SMS. [requester] is the number that asked, or null when
      * there is no single requester (the periodic service, boot). Uses a fixed notification
      * id, so repeated requests replace the notification instead of stacking.
      */
-    fun backgroundLocationNeeded(ctx: Context, requester: String?) {
+    fun locationPermissionNeeded(ctx: Context, requester: String?) {
         // POST_NOTIFICATIONS is a runtime permission on Android 13+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ActivityCompat.checkSelfPermission(ctx, Manifest.permission.POST_NOTIFICATIONS)

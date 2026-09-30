@@ -61,7 +61,7 @@ class SubscriptionService : Service() {
             startForeground(NOTIFICATION_ID, buildNotification())
         } catch (e: SecurityException) {
             Log.w("SubscriptionService", "Cannot start as a location foreground service", e)
-            HostAlerts.backgroundLocationNeeded(this, null)
+            HostAlerts.locationPermissionNeeded(this, null)
             stopSelf()
             return START_NOT_STICKY
         }

@@ -22,7 +22,7 @@ class BootReceiver : BroadcastReceiver() {
                 SubscriptionManager.ensureServiceRunning(context)
             } else {
                 // Subscribers would silently stop getting updates; tell the owner why.
-                HostAlerts.backgroundLocationNeeded(context, null)
+                HostAlerts.locationPermissionNeeded(context, null)
             }
         }
     }
