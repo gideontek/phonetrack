@@ -71,7 +71,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import org.json.JSONArray
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -158,6 +157,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         prefs.registerOnSharedPreferenceChangeListener(prefListener)
+        // Registered first so the migration's writes refresh the flows above.
+        PrefsMigration.run(app)
         // The "start on boot" setting was removed: the listener state is persisted and simply
         // restored after a reboot. Drop the stale key left behind by older versions.
         if (prefs.contains("auto_start_on_boot")) {
@@ -165,22 +166,10 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    private fun parseApprovalsList(): List<Pair<String, ApprovalState>> {
-        val json = prefs.getString("approvals_list", "[]") ?: "[]"
-        val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
-        val result = mutableListOf<Pair<String, ApprovalState>>()
-        for (i in 0 until array.length()) {
-            val obj = array.optJSONObject(i) ?: continue
-            val number = obj.optString("number")
-            val state = when (obj.optString("state", "PENDING")) {
-                "APPROVED" -> ApprovalState.APPROVED
-                "BLOCKED" -> ApprovalState.BLOCKED
-                else -> ApprovalState.PENDING
-            }
-            if (number.isNotEmpty()) result.add(number to state)
-        }
-        return result.sortedBy { (_, state) -> ApprovalLogic.sortKey(state) }
-    }
+    private fun parseApprovalsList(): List<Pair<String, ApprovalState>> =
+        ApprovalStore.getAll(getApplication())
+            .map { it.number to it.state }
+            .sortedBy { (_, state) -> ApprovalLogic.sortKey(state) }
 
     fun setEnabled(value: Boolean) {
         _enabled.value = value
@@ -220,19 +209,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setNumberState(number: String, state: ApprovalState) {
-        val current = _approvalsList.value.find { it.first == number }?.second ?: ApprovalState.PENDING
-        if (!ApprovalLogic.canTransition(current, state)) return
-        val json = prefs.getString("approvals_list", "[]") ?: "[]"
-        val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
-        for (i in 0 until array.length()) {
-            val obj = array.optJSONObject(i) ?: continue
-            if (obj.optString("number") == number) {
-                obj.put("state", state.name)
-                array.put(i, obj)
-                break
-            }
-        }
-        prefs.edit().putString("approvals_list", array.toString()).apply()
+        ApprovalStore.setState(getApplication(), number, state)
         _approvalsList.value = parseApprovalsList()
     }
 

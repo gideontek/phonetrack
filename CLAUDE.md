@@ -39,6 +39,11 @@ phonetrack-android-2026/
             │   ├── SmsComposer.kt         # Pure reply-text builders
             │   ├── SmsSender.kt           # Outgoing SMS (multipart, crash-safe)
             │   ├── LastKnownLocation.kt   # Newest cached fix for the `last` command
+            │   ├── PhoneNumber.kt         # Pure number normalize / matches / isReplyable
+            │   ├── ApprovalLogic.kt       # Pure approval rules + ApprovalEntry
+            │   ├── ApprovalStore.kt       # Prefs/JSON store for the approvals list (synchronized)
+            │   ├── NumberMigration.kt     # Pure merge logic for the numbers migration
+            │   ├── PrefsMigration.kt      # One-time versioned upgrade of stored data
             │   ├── SmsLocationService.kt  # ForegroundService — one-shot location reply
             │   ├── Subscription.kt        # Subscription data class + SubscriptionManager
             │   ├── SubscriptionService.kt # ForegroundService — periodic location loop
@@ -58,8 +63,9 @@ phonetrack-android-2026/
   - `sms_enabled` (Boolean)
   - `sms_keyword` (String, default `"phonetrack"`)
   - `settings_pin` (String, plaintext; locks the settings UI)
-  - `approvals_list` (JSON array of `{number, state}` where state ∈ PENDING/APPROVED/BLOCKED)
-  - `subscriptions_list` (JSON array of Subscription objects)
+  - `approvals_list` (JSON array of `{number, state, firstSeen, lastSeen}` where state ∈ PENDING/APPROVED/BLOCKED; numbers stored normalized, timestamps epoch ms)
+  - `subscriptions_list` (JSON array of Subscription objects; numbers stored normalized)
+  - `prefs_schema_version` (Int; 1 = numbers normalized, see `PrefsMigration`)
   - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)
 - No third-party libraries; only standard AndroidX
 
