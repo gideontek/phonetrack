@@ -92,16 +92,15 @@ class SubscriptionService : Service() {
         val now = System.currentTimeMillis()
         val dueSubs = SubscriptionLogic.dueSubs(subs, now)
 
-        // While the SMS listener is switched off, send nothing: skip the fetch and idle at the
-        // slowest tick. Expiry above still runs, and the service stays alive so re-enabling the
-        // listener resumes updates without a restart.
+        // While the SMS listener is switched off, send nothing: skip the fetch. Expiry above
+        // still runs, and the service stays alive. Keep ticking at the normal pace rather than
+        // idling on a long delay: a skipped tick only reads a pref, and nothing wakes the
+        // service when the listener is switched back on, so a long idle tick would delay the
+        // resumed updates by up to MAX_TICK_MS (15 min) even for a 1-minute subscription.
         val smsEnabled = getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
             .getBoolean("sms_enabled", false)
         if (!SubscriptionLogic.shouldFetch(smsEnabled, dueSubs.size)) {
-            scheduleTick(
-                if (smsEnabled) SubscriptionLogic.nextTickDelay(subs, now)
-                else SubscriptionLogic.MAX_TICK_MS
-            )
+            scheduleTick(SubscriptionLogic.nextTickDelay(subs, now))
             return
         }
 
