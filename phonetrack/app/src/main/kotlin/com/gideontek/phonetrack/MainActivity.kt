@@ -105,6 +105,9 @@ class MainActivity : ComponentActivity() {
 // ViewModel
 // ---------------------------------------------------------------------------
 
+private fun lockedOutMessage(remainingMs: Long) =
+    "Too many incorrect attempts. Try again in ${PinLockout.formatRemaining(remainingMs)}."
+
 class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     private val prefs: SharedPreferences =
@@ -118,13 +121,11 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     )
     val keyword: StateFlow<String> = _keyword.asStateFlow()
 
-    private fun storedPin() = prefs.getString("settings_pin", "") ?: ""
-
-    private val _pinSet = MutableStateFlow(storedPin().isNotEmpty())
+    private val _pinSet = MutableStateFlow(PinStore.isSet(app))
     val pinSet: StateFlow<Boolean> = _pinSet.asStateFlow()
 
     // Starts locked whenever a PIN has been set; resets on every process start.
-    private val _isLocked = MutableStateFlow(storedPin().isNotEmpty())
+    private val _isLocked = MutableStateFlow(PinStore.isSet(app))
     val isLocked: StateFlow<Boolean> = _isLocked.asStateFlow()
 
     private val _approvalsList = MutableStateFlow(parseApprovalsList())
@@ -147,7 +148,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "sms_enabled" -> _enabled.value = prefs.getBoolean("sms_enabled", false)
             "sms_keyword" -> _keyword.value =
                 prefs.getString("sms_keyword", "phonetrack") ?: "phonetrack"
-            "settings_pin" -> _pinSet.value = storedPin().isNotEmpty()
+            "settings_pin_hash", "settings_pin" -> _pinSet.value = PinStore.isSet(app)
             "approvals_list" -> _approvalsList.value = parseApprovalsList()
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
             "last_receive_at" -> _lastReceiveAt.value = prefs.getLong("last_receive_at", 0L)
@@ -186,18 +187,23 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Save a new PIN and leave the session unlocked. */
     fun setPin(pin: String) {
-        prefs.edit().putString("settings_pin", pin).apply()
+        PinStore.set(getApplication(), pin)
         _pinSet.value = true
         _isLocked.value = false
     }
 
-    /** Returns true and unlocks if [entered] matches the stored PIN. */
-    fun unlock(entered: String): Boolean {
-        return if (entered == storedPin()) {
-            _isLocked.value = false
-            true
-        } else false
+    /**
+     * Unlocks if [entered] matches the stored PIN. Wrong guesses are counted and trigger
+     * escalating lockouts (see [PinLockout]); the result says which happened.
+     */
+    fun unlock(entered: String): PinResult {
+        val result = PinStore.verify(getApplication(), entered)
+        if (result is PinResult.Success) _isLocked.value = false
+        return result
     }
+
+    /** Milliseconds until a PIN guess is accepted again, or 0 if guessing is allowed now. */
+    fun pinLockRemainingMs(): Long = PinStore.lockRemainingMs(getApplication())
 
     fun lock() {
         _isLocked.value = true
@@ -205,7 +211,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     /** Clears the stored PIN, leaving settings permanently unlocked until a new PIN is set. */
     fun removePin() {
-        prefs.edit().remove("settings_pin").apply()
+        PinStore.remove(getApplication())
         _pinSet.value = false
         _isLocked.value = false
     }
@@ -417,7 +423,10 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     // Unlock dialog — shown when settings are locked and the lock button is tapped
     if (showUnlockDialog) {
         var pinInput by remember { mutableStateOf("") }
-        var error by remember { mutableStateOf("") }
+        // Already locked out when the dialog opens? Say so up front.
+        var error by remember {
+            mutableStateOf(vm.pinLockRemainingMs().let { if (it > 0L) lockedOutMessage(it) else "" })
+        }
         AlertDialog(
             onDismissRequest = { showUnlockDialog = false },
             title = { Text("Enter PIN") },
@@ -439,12 +448,20 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    if (vm.unlock(pinInput)) {
-                        showUnlockDialog = false
-                        Toast.makeText(context, "Settings Unlocked", Toast.LENGTH_SHORT).show()
-                    } else {
-                        error = "Incorrect PIN"
-                        pinInput = ""
+                    when (val result = vm.unlock(pinInput)) {
+                        PinResult.Success -> {
+                            showUnlockDialog = false
+                            Toast.makeText(context, "Settings Unlocked", Toast.LENGTH_SHORT).show()
+                        }
+                        is PinResult.Wrong -> {
+                            error = "Incorrect PIN. ${result.attemptsLeft} " +
+                                "${if (result.attemptsLeft == 1) "attempt" else "attempts"} left before a lockout."
+                            pinInput = ""
+                        }
+                        is PinResult.Locked -> {
+                            error = lockedOutMessage(result.remainingMs)
+                            pinInput = ""
+                        }
                     }
                 }) { Text("Unlock") }
             },

@@ -44,6 +44,10 @@ phonetrack-android-2026/
             │   ├── ApprovalStore.kt       # Prefs/JSON store for the approvals list (synchronized)
             │   ├── NumberMigration.kt     # Pure merge logic for the numbers migration
             │   ├── PrefsMigration.kt      # One-time versioned upgrade of stored data
+            │   ├── PinHasher.kt           # Pure PBKDF2 hashing for the settings PIN
+            │   ├── PinLockout.kt          # Pure failed-attempt lockout rules (1/5/15/60 min)
+            │   ├── PinMigration.kt        # Pure decision for hashing a legacy plaintext PIN
+            │   ├── PinStore.kt            # Prefs store for the PIN hash + lockout state
             │   ├── RateLimiter.kt         # Pure fixed-window rate limiter
             │   ├── RateStore.kt           # Prefs/JSON store for rate-limiter state (synchronized)
             │   ├── SmsLocationService.kt  # ForegroundService — one-shot location reply
@@ -64,10 +68,11 @@ phonetrack-android-2026/
 - SharedPreferences file: `"phonetrack_prefs"` — keys:
   - `sms_enabled` (Boolean)
   - `sms_keyword` (String, default `"phonetrack"`)
-  - `settings_pin` (String, plaintext; locks the settings UI)
+  - `settings_pin_hash` (String `v1:<iterations>:<saltB64>:<hashB64>`, PBKDF2; locks the settings UI). The legacy plaintext `settings_pin` is migrated away (`prefs_schema_version` 2)
+  - `pin_fail_count` / `pin_locked_until` / `pin_lock_level` (Int / Long epoch ms / Int; PIN lockout state, see `PinLockout`)
   - `approvals_list` (JSON array of `{number, state, firstSeen, lastSeen}` where state ∈ PENDING/APPROVED/BLOCKED; numbers stored normalized, timestamps epoch ms)
   - `subscriptions_list` (JSON array of Subscription objects; numbers stored normalized)
-  - `prefs_schema_version` (Int; 1 = numbers normalized, see `PrefsMigration`)
+  - `prefs_schema_version` (Int; 1 = numbers normalized, 2 = PIN hashed; see `PrefsMigration`)
   - `max_subscriptions` (Int, default 10, coerced to 1..20; concurrent non-expired subscriptions)
   - `rate_limit_per_hour` (Int, default 20, min 1; commands per approved sender per hour)
   - `rate_state` (JSON object of `key -> {start, count, noticed}`; see `RateLimiter`/`RateStore`)
