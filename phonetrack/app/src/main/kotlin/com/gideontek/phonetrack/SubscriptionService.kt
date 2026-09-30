@@ -119,6 +119,7 @@ class SubscriptionService : Service() {
         fetchLocation(
             onLocation = { loc ->
                 val sendTime = System.currentTimeMillis()
+                val battery = DeviceStatus.battery(this)
                 for (sub in dueSubs) {
                     val dist = FloatArray(1)
                     if (sub.lastLat != 0.0 || sub.lastLon != 0.0) {
@@ -131,7 +132,7 @@ class SubscriptionService : Service() {
                         sub.lastLat, sub.lastLon, dist[0], sub.distMeters
                     )
                     if (shouldSend) {
-                        SmsSender.sendSubscriptionLocation(this, sub.number, loc, sub.lastLat, sub.lastLon)
+                        SmsSender.sendSubscriptionLocation(this, sub.number, loc, sub.lastLat, sub.lastLon, battery)
                         SubscriptionManager.updateTracking(
                             this, sub.number, loc.latitude, loc.longitude, sendTime
                         )

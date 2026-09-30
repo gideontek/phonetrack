@@ -44,6 +44,11 @@ phonetrack-android-2026/
             │   ├── ApprovalStore.kt       # Prefs/JSON store for the approvals list (synchronized)
             │   ├── NumberMigration.kt     # Pure merge logic for the numbers migration
             │   ├── PrefsMigration.kt      # One-time versioned upgrade of stored data
+            │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: coordinates, accuracy, battery, map link)
+            │   ├── ReplyOptionsStore.kt   # Prefs store for the reply options
+            │   ├── ReplySettingsCard.kt   # Compose "Reply contents" card with live preview
+            │   ├── SmsLength.kt           # Pure: does text fit one SMS (GSM-7 160 / UCS-2 70)
+            │   ├── DeviceStatus.kt        # Battery percent + charging for replies
             │   ├── PinHasher.kt           # Pure PBKDF2 hashing for the settings PIN
             │   ├── PinLockout.kt          # Pure failed-attempt lockout rules (1/5/15/60 min)
             │   ├── PinMigration.kt        # Pure decision for hashing a legacy plaintext PIN
@@ -76,6 +81,7 @@ phonetrack-android-2026/
   - `max_subscriptions` (Int, default 10, coerced to 1..20; concurrent non-expired subscriptions)
   - `rate_limit_per_hour` (Int, default 20, min 1; commands per approved sender per hour)
   - `rate_state` (JSON object of `key -> {start, count, noticed}`; see `RateLimiter`/`RateStore`)
+  - `reply_coords` / `reply_accuracy` / `reply_battery` / `reply_time` / `reply_geo` / `reply_osm` (Boolean; what a location reply contains; absent = default, which has `reply_coords`, `reply_accuracy`, `reply_battery` and `reply_osm` on and `reply_time`, `reply_geo` off)
   - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)
 - No third-party libraries; only standard AndroidX
 

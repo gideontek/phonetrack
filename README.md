@@ -2,7 +2,7 @@
 
 **Location sharing over SMS — no internet required.**
 
-PhoneTrack SMS turns your Android phone into an SMS location beacon. Anyone who knows your keyword can send a text to request your location, and the phone replies automatically with coordinates, accuracy, battery level, and a map link — all over plain SMS, with no data connection needed.
+PhoneTrack SMS turns your Android phone into an SMS location beacon. Anyone who knows your keyword can send a text to request your location, and the phone replies automatically with coordinates, accuracy, battery level and a map link (configurable) — all over plain SMS, with no data connection needed.
 
 ---
 
@@ -88,21 +88,36 @@ Any other word after the keyword (for example `phonetrack hello`) gets the help 
 phonetrack
 ```
 
-The phone acquires a GPS fix and replies with three SMS messages:
+The phone acquires a GPS fix and replies with what you've chosen under **Reply contents** in the app. By default that is one SMS with the coordinates, accuracy, battery level and an OpenStreetMap link (which opens the location in any browser):
 
 ```
 [PhoneTrack] Lat: 51.5074, Lon: -0.1278
 Acc: 8m, Bat: 73%
-
-geo:51.5074,-0.1278
-
-https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=14/51.5074/-0.1278
+https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
-- **Acc** — GPS accuracy radius in metres
-- **Bat** — current battery percentage
-- The `geo:` URI opens directly in any maps app
-- The OpenStreetMap link works in any browser
+You can switch any of these parts on or off (at least one must stay on; the time of fix and the `geo:` link are off by default):
+
+| Part | Looks like |
+|------|------------|
+| Coordinates | `Lat: 51.5074, Lon: -0.1278` |
+| Accuracy | `Acc: 8m` (GPS accuracy radius in metres) |
+| Battery | `Bat: 73%`, with `(charging)` while charging |
+| Time of fix | `Time: 14:32Z` (UTC) |
+| `geo:` link | `geo:51.5074,-0.1278`, which opens in any maps app |
+| OpenStreetMap link | as above |
+
+With everything on, a reply looks like this (two SMS, because the text and the map link fit together in one):
+
+```
+[PhoneTrack] Lat: 51.5074, Lon: -0.1278
+Acc: 8m, Bat: 73%, Time: 14:32Z
+https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
+
+geo:51.5074,-0.1278
+```
+
+The text and the map link share one SMS whenever they fit (160 plain characters); otherwise the link goes in its own message. The `geo:` link is always its own message. The in-app preview shows exactly what will be sent. The settings are locked along with the rest when a PIN is set.
 
 If location services are turned off when the request arrives, the phone posts a high-priority notification with a 60-second countdown. If you re-enable location services within that window, the fix is sent automatically.
 
@@ -112,12 +127,13 @@ If location services are turned off when the request arrives, the phone posts a 
 phonetrack last
 ```
 
-Replies immediately with the newest location the phone already has cached, in the same three-message format as a one-shot request, headed with how old it is:
+Replies immediately with the newest location the phone already has cached, using the same Reply contents settings as a one-shot request (battery and time of fix are left out), headed with how old the fix is. By default:
 
 ```
 [PhoneTrack] Last known (12m ago)
 Lat: 51.5074, Lon: -0.1278
 Acc: 8m
+https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
 This does not turn the GPS on, so it works when a fresh fix can't be obtained (for example indoors), but the position may be stale. If nothing is cached the phone says so.
@@ -159,7 +175,7 @@ The confirmation looks like:
 [PhoneTrack] Subscribed: update every 15 min, only if moved 200m+, for 4h (ends Sep 30 18:32Z). Text "phonetrack unsubscribe" to stop.
 ```
 
-The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
+Periodic updates use the same Reply contents settings (battery is included if you switch it on) and add a direction arrow and how far you moved since the previous update, e.g. `⇗120m`. The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
 
 ### Unsubscribe
 

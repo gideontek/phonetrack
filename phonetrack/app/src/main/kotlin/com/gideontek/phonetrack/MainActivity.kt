@@ -128,6 +128,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _isLocked = MutableStateFlow(PinStore.isSet(app))
     val isLocked: StateFlow<Boolean> = _isLocked.asStateFlow()
 
+    private val _replyOptions = MutableStateFlow(ReplyOptionsStore.read(app))
+    val replyOptions: StateFlow<ReplyOptions> = _replyOptions.asStateFlow()
+
     private val _approvalsList = MutableStateFlow(parseApprovalsList())
     val approvalsList: StateFlow<List<Pair<String, ApprovalState>>> = _approvalsList.asStateFlow()
 
@@ -144,6 +147,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     val lastSendAt: StateFlow<Long> = _lastSendAt.asStateFlow()
 
     private val prefListener = SharedPreferences.OnSharedPreferenceChangeListener { _, key ->
+        if (key != null && key.startsWith(ReplyOptionsStore.KEY_PREFIX)) {
+            _replyOptions.value = ReplyOptionsStore.read(app)
+        }
         when (key) {
             "sms_enabled" -> _enabled.value = prefs.getBoolean("sms_enabled", false)
             "sms_keyword" -> _keyword.value =
@@ -183,6 +189,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         val clean = SmsLimits.sanitizeKeyword(value)
         _keyword.value = clean
         prefs.edit().putString("sms_keyword", clean).apply()
+    }
+
+    /** Saves what location replies contain (an all-off set becomes "just the map link"). */
+    fun setReplyOptions(options: ReplyOptions) {
+        ReplyOptionsStore.write(getApplication(), options)
+        _replyOptions.value = options.normalized()
     }
 
     /** Save a new PIN and leave the session unlocked. */
@@ -261,6 +273,7 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
     val pinSet by vm.pinSet.collectAsState()
     val approvalsList by vm.approvalsList.collectAsState()
     val subscriptions by vm.subscriptions.collectAsState()
+    val replyOptions by vm.replyOptions.collectAsState()
     val lastReceiveAt by vm.lastReceiveAt.collectAsState()
     val lastSendAt by vm.lastSendAt.collectAsState()
 
@@ -594,6 +607,13 @@ fun HomeScreen(vm: HomeViewModel = viewModel()) {
                         notificationsLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                     }
                 }
+            )
+
+            // Reply contents card
+            ReplySettingsCard(
+                options = replyOptions,
+                isLocked = isLocked,
+                onChange = { vm.setReplyOptions(it) }
             )
 
             // Status card

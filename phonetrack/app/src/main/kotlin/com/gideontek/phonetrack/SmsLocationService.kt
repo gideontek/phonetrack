@@ -14,7 +14,6 @@ import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
 import android.location.LocationManager
-import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -162,9 +161,7 @@ class SmsLocationService : Service() {
         locationListener = LocationListener { location ->
             handler.removeCallbacks(timeoutRunnable)
             locationManager?.removeUpdates(locationListener!!)
-            val battery = (getSystemService(Context.BATTERY_SERVICE) as BatteryManager)
-                .getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
-            SmsSender.sendOneShotLocation(this, sender, location, battery)
+            SmsSender.sendOneShotLocation(this, sender, location, DeviceStatus.battery(this))
             // Seed subscription tracking so the first periodic update has a meaningful delta.
             if (SubscriptionManager.getFor(this, sender) != null) {
                 SubscriptionManager.updateTracking(this, sender, location.latitude, location.longitude, System.currentTimeMillis())

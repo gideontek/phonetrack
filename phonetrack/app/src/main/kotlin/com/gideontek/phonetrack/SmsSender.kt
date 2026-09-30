@@ -13,19 +13,31 @@ import android.util.Log
  */
 object SmsSender {
 
-    fun sendOneShotLocation(ctx: Context, to: String, loc: Location, battery: Int) {
-        SmsComposer.composeOneShotLocation(loc.latitude, loc.longitude, loc.accuracy.toInt(), battery)
+    private fun fixOf(loc: Location, battery: DeviceStatus.Battery?) = LocationFix(
+        lat = loc.latitude,
+        lon = loc.longitude,
+        accuracyM = loc.accuracy.toInt(),
+        timeMs = loc.time,
+        batteryPct = battery?.percent ?: -1,
+        charging = battery?.charging ?: false
+    )
+
+    /** One-shot reply: the parts chosen in Reply contents (default: coordinates, accuracy, battery and the map link). */
+    fun sendOneShotLocation(ctx: Context, to: String, loc: Location, battery: DeviceStatus.Battery) {
+        SmsComposer.composeLocation(fixOf(loc, battery), ReplyOptionsStore.read(ctx))
             .forEach { sendRaw(ctx, to, it) }
     }
 
+    /** Periodic update: the same parts, plus the movement arrow and distance since the last one. */
     fun sendSubscriptionLocation(
         ctx: Context,
         to: String,
         loc: Location,
         prevLat: Double,
-        prevLon: Double
+        prevLon: Double,
+        battery: DeviceStatus.Battery
     ) {
-        SmsComposer.composeSubscriptionLocation(loc.latitude, loc.longitude, loc.accuracy.toInt(), prevLat, prevLon)
+        SmsComposer.composeLocation(fixOf(loc, battery), ReplyOptionsStore.read(ctx), prevLat, prevLon)
             .forEach { sendRaw(ctx, to, it) }
     }
 
@@ -54,7 +66,7 @@ object SmsSender {
     }
 
     fun sendLastKnown(ctx: Context, to: String, loc: Location, nowMs: Long) {
-        SmsComposer.composeLastKnown(loc.latitude, loc.longitude, loc.accuracy.toInt(), nowMs - loc.time)
+        SmsComposer.composeLastKnown(fixOf(loc, null), ReplyOptionsStore.read(ctx), nowMs - loc.time)
             .forEach { sendRaw(ctx, to, it) }
     }
 
