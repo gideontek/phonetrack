@@ -193,8 +193,12 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 
 | Setting | Description |
 |---------|-------------|
-| SMS Listening | Master on/off switch (also on the main screen) |
+| SMS listening | Master on/off switch (also on the main screen) |
 | Keyword | The trigger word the phone listens for (default: `phonetrack`). One word, no spaces, and it can't start with `[` |
+| Reply contents | What a location reply contains, with a live preview (see below) |
+| Limits | Commands per number per hour, and most active subscriptions at once |
+| Permissions | SMS, location, background location and notifications, each with a Grant button |
+| PIN | Set, change or remove the PIN that guards Settings and approval changes |
 
 ### The main screen
 
@@ -215,7 +219,7 @@ PhoneTrack protects itself, and your SMS bill, against floods:
 | Pending list | 50 numbers | The oldest pending number is dropped to make room (it simply texts again). Approved and blocked numbers are never dropped. |
 | Stale pending numbers | 30 days | Pending numbers that haven't contacted you for a month are removed. |
 
-The first two can be changed only through the `max_subscriptions` and `rate_limit_per_hour` preferences; there is no setting for them in the app yet.
+The first two are set in **Settings → Limits** (commands per number 1–100 per hour, active subscriptions 1–20). Lowering the subscription limit never cancels running subscriptions; it only refuses new ones.
 
 ### Security notes
 

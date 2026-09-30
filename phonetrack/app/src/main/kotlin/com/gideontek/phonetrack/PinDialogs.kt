@@ -102,9 +102,10 @@ fun PinDialogs(vm: HomeViewModel, state: PinDialogState) {
         var pinInput by remember { mutableStateOf("") }
         var pinConfirm by remember { mutableStateOf("") }
         var error by remember { mutableStateOf("") }
+        val changing = remember { vm.pinSet.value }
         AlertDialog(
             onDismissRequest = { state.showSet = false },
-            title = { Text("Set PIN") },
+            title = { Text(if (changing) "Change PIN" else "Set PIN") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (error.isNotEmpty()) {
@@ -137,10 +138,10 @@ fun PinDialogs(vm: HomeViewModel, state: PinDialogState) {
                         else -> {
                             vm.setPin(pinInput)
                             state.showSet = false
-                            Toast.makeText(context, "PIN Added", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, if (changing) "PIN Changed" else "PIN Added", Toast.LENGTH_SHORT).show()
                         }
                     }
-                }) { Text("Set PIN") }
+                }) { Text(if (changing) "Change PIN" else "Set PIN") }
             },
             dismissButton = {
                 TextButton(onClick = { state.showSet = false }) { Text("Cancel") }

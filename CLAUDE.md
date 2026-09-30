@@ -39,7 +39,9 @@ phonetrack-android-2026/
             │   ├── DecisionsSection.kt    # Pending numbers: tap-to-reveal Approve/Block (no swiping)
             │   ├── SubscriptionsSection.kt # Active subscriptions with Send now / Cancel
             │   ├── KnownNumbersSection.kt # Collapsed approved + blocked list
-            │   ├── SettingsScreen.kt      # Settings screen (switch, keyword, permissions, reply contents, About)
+            │   ├── SettingsScreen.kt      # Settings screen: General, Replies, Limits, Permissions, Security, About
+            │   ├── SettingsComponents.kt  # Section/row building blocks (ToggleRow, StepperRow, PermissionRow)
+            │   ├── SettingsLogic.kt       # Pure: limit-stepper rules (LimitSteps), reply summary, sample fix
             │   ├── HomeViewModel.kt       # Activity-scoped ViewModel shared by both screens
             │   ├── PermissionsState.kt    # rememberPermissionsState(): grant state, launchers, resume hook
             │   ├── PinDialogs.kt          # Set/unlock PIN dialogs, lock button, guard() for on-demand unlock
@@ -57,7 +59,7 @@ phonetrack-android-2026/
             │   ├── PrefsMigration.kt      # One-time versioned upgrade of stored data
             │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: coordinates, accuracy, battery, map link)
             │   ├── ReplyOptionsStore.kt   # Prefs store for the reply options
-            │   ├── ReplySettingsCard.kt   # Compose "Reply contents" card with live preview
+            │   ├── ReplySettingsCard.kt   # "Replies" section: expandable Reply contents with live preview
             │   ├── SmsLength.kt           # Pure: does text fit one SMS (GSM-7 160 / UCS-2 70)
             │   ├── DeviceStatus.kt        # Battery percent + charging for replies
             │   ├── PinHasher.kt           # Pure PBKDF2 hashing for the settings PIN
