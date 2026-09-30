@@ -60,9 +60,9 @@ PhoneTrack will be available on [F-Droid](https://f-droid.org/). Until then, see
 
 ## Setup
 
-1. Open PhoneTrack and tap **Grant permissions** to allow SMS and location access.
-2. Toggle **SMS responding** on.
-3. Optionally change the **keyword** (default: `phonetrack`) to something private.
+1. Open PhoneTrack, tap the gear (**Settings**) and grant the permissions to allow SMS and location access.
+2. Toggle **SMS Listening** on (on the main screen or in Settings).
+3. Optionally change the **keyword** in Settings (default: `phonetrack`) to something private.
 
 PhoneTrack remembers whether SMS responding is on or off, and picks up where it left off after the phone restarts. Active subscriptions resume automatically.
 
@@ -188,6 +188,8 @@ Cancels your active subscription. The phone replies to confirm cancellation, or 
 ---
 
 ## App settings
+
+Open **Settings** from the gear icon on the main screen; Back returns to the main screen.
 
 | Setting | Description |
 |---------|-------------|
