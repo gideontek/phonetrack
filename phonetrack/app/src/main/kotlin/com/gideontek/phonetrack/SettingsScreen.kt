@@ -77,7 +77,8 @@ fun SettingsScreen(
                         Text("Remove PIN", style = MaterialTheme.typography.bodySmall)
                     }
                 }
-                LockButton(vm, pinDialogs)
+                // Locking from here leaves Settings: its controls would just turn off.
+                LockButton(vm, pinDialogs, onLocked = onBack)
             }
 
             // Enable / disable toggle (same setting as the switch on Main)

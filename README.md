@@ -193,11 +193,15 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 
 | Setting | Description |
 |---------|-------------|
-| SMS responding | Master on/off switch |
+| SMS Listening | Master on/off switch (also on the main screen) |
 | Keyword | The trigger word the phone listens for (default: `phonetrack`). One word, no spaces, and it can't start with `[` |
-| Contacts list | Per-number approval state: PENDING / APPROVED / BLOCKED |
 
-Active subscriptions are shown in the main screen and can be cancelled by swiping them away.
+### The main screen
+
+- **Status:** whether the phone is listening, what it is doing (Idle / Sending / Receiving / Active), and a red **Fix** banner when something stops replies from working (for example background location is off).
+- **Needs your decision:** numbers that have texted your keyword and are waiting. Tap one to show **Approve** and **Block**; nothing is sent to them either way until you approve.
+- **Active subscriptions:** who is receiving periodic updates, how long is left, with **Send now** and **Cancel**.
+- **Approved and blocked numbers:** collapsed by default; change a number's state or send it your location.
 
 ### Limits
 
@@ -216,7 +220,7 @@ The first two can be changed only through the `max_subscriptions` and `rate_limi
 ### Security notes
 
 - **SMS is not private.** Messages travel in the clear and are stored by the carrier and in each phone's messages. Approval is by the sender's phone number, which a determined attacker can spoof, so treat an approved number as trusted, not authenticated.
-- **The PIN guards only the settings screen** (switch, keyword, approvals, cancelling subscriptions). It does not protect the SMS commands.
+- **The PIN guards Settings and approval changes** (opening Settings, the Listening switch, Approve and Block). Sending your location to an approved number and cancelling a subscription never need it. It does not protect the SMS commands. When locked, tapping a guarded control asks for the PIN and then carries on.
 - **The PIN is stored hashed** (PBKDF2-HMAC-SHA256 with a random salt), never in plain text. Five wrong PINs in a row lock unlocking for 1 minute, then 5, 15 and 60 minutes for each further round of five; a correct PIN resets it. The lockout counters survive closing the app. A lockout uses the phone's clock, so someone who can change the clock could skip one.
 - **A short PIN is still weak against someone who can copy the app's files.** A 4-digit PIN has only 10,000 possibilities, so a copied hash could be brute-forced offline in minutes. That is why the app also opts out of Android backups (below); choose a longer PIN if this matters to you.
 - **No backups.** PhoneTrack opts out of Android's cloud and adb backups, so the PIN hash, your approvals and who has contacted you never leave the phone that way. The trade-off: on a new phone you set up PhoneTrack again and re-approve your numbers.

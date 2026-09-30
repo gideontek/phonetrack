@@ -72,6 +72,7 @@ enum class StreamState {
  * @param strokeWidth Stroke thickness used for the circle and all waves.
  * @param waveCount Number of concurrent waves per direction (staggered in phase).
  * @param waveSpeed Wave cycles per second. 1f ≈ one wave every 2s. Higher = faster.
+ * @param animate False draws the active state as a still image (reduced-motion setting).
  * @param inactiveColor Circle color when inactive. Defaults to the theme's `secondary` color.
  * @param outboundColor Color for the sending-state circle and outward waves. Defaults to the
  *                       theme's `primary` color.
@@ -90,6 +91,7 @@ fun StreamStatusIndicator(
     strokeWidth: Dp = 3.dp,
     waveCount: Int = 1,
     waveSpeed: Float = 1f,
+    animate: Boolean = true,
     inactiveColor: Color = MaterialTheme.colorScheme.secondary,
     outboundColor: Color = MaterialTheme.colorScheme.primary,
     inboundColor: Color = if (state == StreamState.Both) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary,
@@ -100,9 +102,9 @@ fun StreamStatusIndicator(
 
     // Drive the animation only when active. When Inactive, the coroutine is cancelled
     // and the Canvas stops invalidating — zero per-frame cost.
-    LaunchedEffect(state.isActive, waveSpeed) {
-        if (!state.isActive) {
-            progress = 0f
+    LaunchedEffect(state.isActive, waveSpeed, animate) {
+        if (!state.isActive || !animate) {
+            progress = if (state.isActive) 0.4f else 0f
             return@LaunchedEffect
         }
         val periodMs = (2000f / waveSpeed).toLong().coerceAtLeast(100L)
