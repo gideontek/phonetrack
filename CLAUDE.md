@@ -36,7 +36,7 @@ phonetrack-android-2026/
             │   ├── SmsLocationService.kt  # ForegroundService — one-shot location reply
             │   ├── Subscription.kt        # Subscription data class + SubscriptionManager
             │   ├── SubscriptionService.kt # ForegroundService — periodic location loop
-            │   └── BootReceiver.kt        # BOOT_COMPLETED: auto-start + resume subscriptions
+            │   └── BootReceiver.kt        # BOOT_COMPLETED: resume subscriptions
             └── res/values/
                 ├── strings.xml
                 └── themes.xml
@@ -51,9 +51,10 @@ phonetrack-android-2026/
 - SharedPreferences file: `"phonetrack_prefs"` — keys:
   - `sms_enabled` (Boolean)
   - `sms_keyword` (String, default `"phonetrack"`)
-  - `auto_start_on_boot` (Boolean)
+  - `settings_pin` (String, plaintext; locks the settings UI)
   - `approvals_list` (JSON array of `{number, state}` where state ∈ PENDING/APPROVED/BLOCKED)
   - `subscriptions_list` (JSON array of Subscription objects)
+  - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)
 - No third-party libraries; only standard AndroidX
 
 ## Build Commands

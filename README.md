@@ -63,7 +63,8 @@ PhoneTrack will be available on [F-Droid](https://f-droid.org/). Until then, see
 1. Open PhoneTrack and tap **Grant permissions** to allow SMS and location access.
 2. Toggle **SMS responding** on.
 3. Optionally change the **keyword** (default: `phonetrack`) to something private.
-4. Enable **Auto-start on boot** if you want the app to resume automatically after a reboot.
+
+PhoneTrack remembers whether SMS responding is on or off, and picks up where it left off after the phone restarts. Active subscriptions resume automatically.
 
 ---
 
@@ -85,7 +86,7 @@ Acc: 8m, Bat: 73%
 
 geo:51.5074,-0.1278
 
-https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=10/51.5074/-0.1278
+https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=14/51.5074/-0.1278
 ```
 
 - **Acc** — GPS accuracy radius in metres
@@ -144,7 +145,6 @@ Cancels your active subscription. The phone replies to confirm cancellation.
 |---------|-------------|
 | SMS responding | Master on/off switch |
 | Keyword | The trigger word the phone listens for (default: `phonetrack`) |
-| Auto-start on boot | Resume responding automatically after the phone restarts |
 | Contacts list | Per-number approval state: PENDING / APPROVED / BLOCKED |
 
 Active subscriptions are shown in the main screen and can be cancelled by swiping them away.
