@@ -41,8 +41,25 @@ object SmsSender {
         SmsComposer.composeNoSubscription().forEach { sendRaw(ctx, to, it) }
     }
 
-    fun sendUsageHint(ctx: Context, to: String, keyword: String) {
-        SmsComposer.composeUsageHint(keyword).forEach { sendRaw(ctx, to, it) }
+    fun sendHelp(ctx: Context, to: String, keyword: String) {
+        SmsComposer.composeHelp(keyword).forEach { sendRaw(ctx, to, it) }
+    }
+
+    fun sendInvalidSubscribe(ctx: Context, to: String, message: String, keyword: String) {
+        SmsComposer.composeInvalidSubscribe(message, keyword).forEach { sendRaw(ctx, to, it) }
+    }
+
+    fun sendSubscribeAck(ctx: Context, to: String, keyword: String, params: SubscribeParams, expiresAtMs: Long) {
+        SmsComposer.composeSubscribeAck(keyword, params, expiresAtMs).forEach { sendRaw(ctx, to, it) }
+    }
+
+    fun sendLastKnown(ctx: Context, to: String, loc: Location, nowMs: Long) {
+        SmsComposer.composeLastKnown(loc.latitude, loc.longitude, loc.accuracy.toInt(), nowMs - loc.time)
+            .forEach { sendRaw(ctx, to, it) }
+    }
+
+    fun sendNoCachedLocation(ctx: Context, to: String, keyword: String) {
+        SmsComposer.composeNoCachedLocation(keyword).forEach { sendRaw(ctx, to, it) }
     }
 
     fun sendPermissionError(ctx: Context, to: String) {

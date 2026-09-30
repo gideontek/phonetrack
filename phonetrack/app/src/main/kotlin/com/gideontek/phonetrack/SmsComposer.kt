@@ -2,7 +2,10 @@ package com.gideontek.phonetrack
 
 import java.text.DecimalFormat
 import java.text.DecimalFormatSymbols
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
+import java.util.TimeZone
 import kotlin.math.*
 
 /**
@@ -60,8 +63,52 @@ object SmsComposer {
     fun composeNoSubscription(): List<String> =
         listOf("[PhoneTrack] You have no active location subscription.")
 
-    fun composeUsageHint(keyword: String): List<String> =
-        listOf("[PhoneTrack] Usage: $keyword subscribe [--dist N] [--freq N] [--time N]")
+    fun composeHelp(keyword: String): List<String> = listOf(
+        "[PhoneTrack] Commands: $keyword | $keyword last | " +
+            "$keyword subscribe [--dist M] [--freq MIN] [--time H] | " +
+            "$keyword unsubscribe | $keyword help"
+    )
+
+    fun composeInvalidSubscribe(message: String, keyword: String): List<String> = listOf(
+        "[PhoneTrack] $message. Usage: $keyword subscribe [--dist M] [--freq MIN] [--time H]"
+    )
+
+    /** Confirmation sent before the first fix of a new subscription. */
+    fun composeSubscribeAck(keyword: String, params: SubscribeParams, expiresAtMs: Long): List<String> {
+        val ends = SimpleDateFormat("MMM d HH:mm'Z'", Locale.US)
+            .apply { timeZone = TimeZone.getTimeZone("UTC") }
+            .format(Date(expiresAtMs))
+        val movement = if (params.dist == 0) ", regardless of movement" else ", only if moved ${params.dist}m+"
+        return listOf(
+            "[PhoneTrack] Subscribed: update every ${params.freq} min$movement, " +
+                "for ${params.hours}h (ends $ends). Text \"$keyword unsubscribe\" to stop."
+        )
+    }
+
+    /** Cached fix reply: same shape as a one-shot, headed with how old the fix is. */
+    fun composeLastKnown(lat: Double, lon: Double, accuracy: Int, ageMs: Long): List<String> {
+        val la = fmt(lat)
+        val lo = fmt(lon)
+        return listOf(
+            "[PhoneTrack] Last known (${formatAge(ageMs)} ago)\nLat: $la, Lon: $lo\nAcc: ${accuracy}m",
+            "geo:$la,$lo",
+            "https://www.openstreetmap.org/?mlat=$la&mlon=$lo#map=14/$la/$lo"
+        )
+    }
+
+    fun composeNoCachedLocation(keyword: String): List<String> =
+        listOf("[PhoneTrack] No recent location saved. Text \"$keyword\" to request a new fix.")
+
+    /** Compact age: 45s, 12m, 3h, 2d. Negative values (clock skew) are treated as 0. */
+    fun formatAge(ageMs: Long): String {
+        val seconds = (ageMs / 1000).coerceAtLeast(0)
+        if (seconds < 60) return "${seconds}s"
+        val minutes = seconds / 60
+        if (minutes < 60) return "${minutes}m"
+        val hours = minutes / 60
+        if (hours < 24) return "${hours}h"
+        return "${hours / 24}d"
+    }
 
     fun composePermissionError(): List<String> =
         listOf("[PhoneTrack] Location permission not granted")
