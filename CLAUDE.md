@@ -31,7 +31,13 @@ phonetrack-android-2026/
         └── src/main/
             ├── AndroidManifest.xml
             ├── kotlin/com/gideontek/phonetrack/
-            │   ├── MainActivity.kt        # Compose UI + ViewModel
+            │   ├── MainActivity.kt        # Activity + theme; hosts AppHost
+            │   ├── Navigation.kt          # Screen enum (Main/Settings), AppHost: shared state + Back handling
+            │   ├── MainScreen.kt          # Main screen (status, approvals)
+            │   ├── SettingsScreen.kt      # Settings screen (switch, keyword, permissions, reply contents, About)
+            │   ├── HomeViewModel.kt       # Activity-scoped ViewModel shared by both screens
+            │   ├── PermissionsState.kt    # rememberPermissionsState(): grant state, launchers, resume hook
+            │   ├── PinDialogs.kt          # Set/unlock PIN dialogs + the lock button
             │   ├── SmsReceiver.kt         # BroadcastReceiver (gate + dispatch on SmsCommand)
             │   ├── SmsCommand.kt          # Sealed parsed command (one-shot / subscribe / unsubscribe / last / help)
             │   ├── SmsCommandParser.kt    # Pure parser + subscribe flag validation
