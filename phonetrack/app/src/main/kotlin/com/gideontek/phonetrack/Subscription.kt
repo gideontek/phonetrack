@@ -23,6 +23,7 @@ data class Subscription(
 
 object SubscriptionManager {
     private const val PREFS_KEY = "subscriptions_list"
+    private val lock = Any()
 
     fun getAll(ctx: Context): List<Subscription> {
         val prefs = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
@@ -36,27 +37,34 @@ object SubscriptionManager {
         return result
     }
 
+    /** The subscription for [number], matched with [PhoneNumber.matches]. */
     fun getFor(ctx: Context, number: String): Subscription? =
-        getAll(ctx).find { it.number == number }
+        getAll(ctx).find { PhoneNumber.matches(it.number, number) }
 
     fun hasActive(ctx: Context): Boolean = getAll(ctx).isNotEmpty()
 
-    /** Adds or replaces the subscription for [sub.number]. */
-    fun add(ctx: Context, sub: Subscription) {
-        val prefs = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
-        val json = prefs.getString(PREFS_KEY, "[]") ?: "[]"
-        val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
-        var replaced = false
-        for (i in 0 until array.length()) {
-            val obj = array.optJSONObject(i) ?: continue
-            if (obj.optString("number") == sub.number) {
-                array.put(i, toJson(sub))
-                replaced = true
-                break
-            }
+    /**
+     * Atomically reads the list, applies [transform], and writes it back if it changed.
+     * The receiver, the service and the UI share one process, so a process-wide lock keeps
+     * concurrent read-modify-write cycles from losing each other's changes.
+     */
+    fun update(ctx: Context, transform: (List<Subscription>) -> List<Subscription>) {
+        synchronized(lock) {
+            val current = getAll(ctx)
+            val updated = transform(current)
+            if (updated != current) writeAll(ctx, updated)
         }
-        if (!replaced) array.put(toJson(sub))
-        prefs.edit().putString(PREFS_KEY, array.toString()).apply()
+    }
+
+    /**
+     * Adds the subscription, replacing any existing one for the same person (numbers are
+     * compared with [PhoneNumber.matches], so "+1555…" and "555…" are one subscriber).
+     */
+    fun add(ctx: Context, sub: Subscription) {
+        update(ctx) { list ->
+            val index = list.indexOfFirst { PhoneNumber.matches(it.number, sub.number) }
+            if (index >= 0) list.toMutableList().also { it[index] = sub } else list + sub
+        }
     }
 
     /**
@@ -64,35 +72,23 @@ object SubscriptionManager {
      * Returns true if a subscription was actually removed.
      */
     fun remove(ctx: Context, number: String): Boolean {
-        val prefs = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
-        val json = prefs.getString(PREFS_KEY, "[]") ?: "[]"
-        val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
-        val newArray = JSONArray()
         var removed = false
-        for (i in 0 until array.length()) {
-            val obj = array.optJSONObject(i) ?: continue
-            if (obj.optString("number") != number) newArray.put(obj) else removed = true
+        update(ctx) { list ->
+            val kept = list.filterNot { PhoneNumber.matches(it.number, number) }
+            removed = kept.size != list.size
+            kept
         }
-        prefs.edit().putString(PREFS_KEY, newArray.toString()).apply()
-        if (newArray.length() == 0) stopService(ctx)
+        if (getAll(ctx).isEmpty()) stopService(ctx)
         return removed
     }
 
     fun updateTracking(ctx: Context, number: String, lat: Double, lon: Double, sentAt: Long) {
-        val prefs = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
-        val json = prefs.getString(PREFS_KEY, "[]") ?: "[]"
-        val array = try { JSONArray(json) } catch (_: Exception) { JSONArray() }
-        for (i in 0 until array.length()) {
-            val obj = array.optJSONObject(i) ?: continue
-            if (obj.optString("number") == number) {
-                obj.put("lastLat", lat)
-                obj.put("lastLon", lon)
-                obj.put("lastSentAt", sentAt)
-                array.put(i, obj)
-                break
+        update(ctx) { list ->
+            val index = list.indexOfFirst { PhoneNumber.matches(it.number, number) }
+            if (index < 0) list else list.toMutableList().also {
+                it[index] = it[index].copy(lastLat = lat, lastLon = lon, lastSentAt = sentAt)
             }
         }
-        prefs.edit().putString(PREFS_KEY, array.toString()).apply()
     }
 
     /**
@@ -101,14 +97,10 @@ object SubscriptionManager {
      */
     fun pruneExpired(ctx: Context): List<Subscription> {
         val now = System.currentTimeMillis()
-        val all = getAll(ctx)
-        val expired = all.filter { it.expiresAt <= now }
-        if (expired.isNotEmpty()) {
-            val prefs = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
-            val active = all.filter { it.expiresAt > now }
-            val newArray = JSONArray()
-            active.forEach { newArray.put(toJson(it)) }
-            prefs.edit().putString(PREFS_KEY, newArray.toString()).apply()
+        var expired = emptyList<Subscription>()
+        update(ctx) { all ->
+            expired = all.filter { it.expiresAt <= now }
+            all.filter { it.expiresAt > now }
         }
         return expired
     }
@@ -137,6 +129,13 @@ object SubscriptionManager {
     /** Stops [SubscriptionService]. */
     fun stopService(ctx: Context) {
         ctx.stopService(Intent(ctx, SubscriptionService::class.java))
+    }
+
+    private fun writeAll(ctx: Context, subs: List<Subscription>) {
+        val array = JSONArray()
+        subs.forEach { array.put(toJson(it)) }
+        ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
+            .edit().putString(PREFS_KEY, array.toString()).apply()
     }
 
     private fun toJson(sub: Subscription): JSONObject = JSONObject().apply {

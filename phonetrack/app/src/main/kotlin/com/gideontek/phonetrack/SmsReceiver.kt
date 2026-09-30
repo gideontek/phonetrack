@@ -8,8 +8,6 @@ import android.content.pm.PackageManager
 import android.provider.Telephony
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import org.json.JSONArray
-import org.json.JSONObject
 
 /**
  * Listens for incoming SMS messages. If the app is enabled and the first word of the
@@ -26,6 +24,8 @@ class SmsReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
+
+        PrefsMigration.run(context)
 
         val prefs = context.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
         val enabled = prefs.getBoolean("sms_enabled", false)
@@ -47,26 +47,19 @@ class SmsReceiver : BroadcastReceiver() {
         if (firstWord != keyword) return
 
         // --- Approvals gate ---
-        val approvalsJson = prefs.getString("approvals_list", "[]") ?: "[]"
-        val approvalsArray = try { JSONArray(approvalsJson) } catch (_: Exception) { JSONArray() }
+        // We can't reply to alphanumeric sender IDs or short codes, so there is nothing useful
+        // to approve; ignore them rather than cluttering the pending list.
+        if (!PhoneNumber.isReplyable(sender)) return
 
-        var senderState = "NEW"
-        for (i in 0 until approvalsArray.length()) {
-            val obj = approvalsArray.optJSONObject(i) ?: continue
-            if (obj.optString("number") == sender) {
-                senderState = obj.optString("state", "PENDING")
-                break
+        when (ApprovalStore.stateFor(context, sender)) {
+            null, ApprovalState.PENDING -> {
+                // First contact (or another try while pending): record it, do not reply
+                ApprovalStore.upsertPending(context, sender, System.currentTimeMillis())
+                return
             }
+            ApprovalState.BLOCKED -> return
+            ApprovalState.APPROVED -> Unit
         }
-
-        if (senderState == "NEW") {
-            // First contact — log as PENDING, do not reply
-            approvalsArray.put(JSONObject().put("number", sender).put("state", "PENDING"))
-            prefs.edit().putString("approvals_list", approvalsArray.toString()).apply()
-            return
-        }
-
-        if (senderState != "APPROVED") return
         // --- End approvals gate ---
 
         prefs.edit().putLong("last_receive_at", System.currentTimeMillis()).apply()
@@ -115,7 +108,7 @@ class SmsReceiver : BroadcastReceiver() {
     ) {
         val now = System.currentTimeMillis()
         val sub = Subscription(
-            number = sender,
+            number = PhoneNumber.normalize(sender),
             distMeters = params.dist,
             freqMinutes = params.freq,
             durationHours = params.hours,
