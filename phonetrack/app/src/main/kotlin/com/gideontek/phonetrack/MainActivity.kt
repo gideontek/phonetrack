@@ -188,8 +188,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun setKeyword(value: String) {
-        _keyword.value = value
-        prefs.edit().putString("sms_keyword", value).apply()
+        val clean = SmsLimits.sanitizeKeyword(value)
+        _keyword.value = clean
+        prefs.edit().putString("sms_keyword", clean).apply()
     }
 
     /** Save a new PIN and leave the session unlocked. */
