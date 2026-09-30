@@ -226,20 +226,6 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `composeBackgroundLocationError explains how to fix the permission`() {
-        val msgs = SmsComposer.composeBackgroundLocationError()
-        assertEquals(1, msgs.size)
-        assertTrue(msgs[0].contains("Allow all the time"))
-    }
-
-    @Test
-    fun `composeBackgroundLocationError fits one plain-ASCII SMS`() {
-        val text = SmsComposer.composeBackgroundLocationError()[0]
-        assertTrue(text.length <= 160)
-        assertTrue(text.all { it.code < 128 })
-    }
-
-    @Test
     fun `composeServicesDisabledError returns correct text`() {
         val msgs = SmsComposer.composeServicesDisabledError()
         assertEquals(1, msgs.size)

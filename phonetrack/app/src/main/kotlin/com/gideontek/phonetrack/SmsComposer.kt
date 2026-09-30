@@ -113,11 +113,6 @@ object SmsComposer {
     fun composePermissionError(): List<String> =
         listOf("[PhoneTrack] Location permission not granted")
 
-    fun composeBackgroundLocationError(): List<String> = listOf(
-        "[PhoneTrack] Location is only allowed while the app is open. " +
-            "On the phone, set PhoneTrack's location permission to \"Allow all the time\"."
-    )
-
     fun composeServicesDisabledError(): List<String> =
         listOf("[PhoneTrack] Location unavailable (services disabled)")
 

@@ -18,7 +18,12 @@ class BootReceiver : BroadcastReceiver() {
 
         SubscriptionManager.pruneExpired(context) // silent — no SMS on boot
         if (SubscriptionManager.hasActive(context)) {
-            SubscriptionManager.ensureServiceRunning(context)
+            if (LocationPermission.canStartLocationService(context)) {
+                SubscriptionManager.ensureServiceRunning(context)
+            } else {
+                // Subscribers would silently stop getting updates; tell the owner why.
+                HostAlerts.backgroundLocationNeeded(context, null)
+            }
         }
     }
 }

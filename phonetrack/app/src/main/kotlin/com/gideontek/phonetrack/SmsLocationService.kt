@@ -71,7 +71,8 @@ class SmsLocationService : Service() {
             startForeground(NOTIFICATION_ID, buildForegroundNotification())
         } catch (e: SecurityException) {
             Log.w("SmsLocationService", "Cannot start as a location foreground service", e)
-            SmsSender.sendBackgroundLocationError(this, sender)
+            SmsSender.sendPermissionError(this, sender)
+            HostAlerts.backgroundLocationNeeded(this, sender)
             stopSelf()
             return START_NOT_STICKY
         }

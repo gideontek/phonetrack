@@ -83,8 +83,8 @@ class SmsReceiver : BroadcastReceiver() {
 
     /**
      * Starts [SmsLocationService] for a one-shot location fetch, replying with a
-     * permission-error SMS instead if ACCESS_FINE_LOCATION isn't granted, or a
-     * background-location error if only foreground-only location is.
+     * permission-error SMS instead if ACCESS_FINE_LOCATION isn't granted or only
+     * foreground-only location is (the latter also notifies the phone's owner).
      *
      * That service declares foregroundServiceType="location", and starting it from this
      * background broadcast without those permissions leads to a guaranteed crash inside the
@@ -98,7 +98,10 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
         if (!LocationPermission.canStartLocationService(ctx)) {
-            SmsSender.sendBackgroundLocationError(ctx, sender)
+            // The requester can't fix this (it's a setting on this phone), so they only get the
+            // generic error; the owner is told what to change via a notification.
+            SmsSender.sendPermissionError(ctx, sender)
+            HostAlerts.backgroundLocationNeeded(ctx, sender)
             return
         }
         ContextCompat.startForegroundService(
