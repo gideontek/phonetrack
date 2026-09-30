@@ -66,6 +66,10 @@ object SmsSender {
         SmsComposer.composePermissionError().forEach { sendRaw(ctx, to, it) }
     }
 
+    fun sendBackgroundLocationError(ctx: Context, to: String) {
+        SmsComposer.composeBackgroundLocationError().forEach { sendRaw(ctx, to, it) }
+    }
+
     fun sendServicesDisabledError(ctx: Context, to: String) {
         SmsComposer.composeServicesDisabledError().forEach { sendRaw(ctx, to, it) }
     }

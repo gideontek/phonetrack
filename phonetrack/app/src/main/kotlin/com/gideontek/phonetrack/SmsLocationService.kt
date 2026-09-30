@@ -19,6 +19,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 
@@ -55,15 +56,25 @@ class SmsLocationService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
-        // Callers (SmsReceiver) must verify ACCESS_FINE_LOCATION/ACCESS_COARSE_LOCATION
-        // is already granted *before* calling startForegroundService() for this class.
-        // This service declares foregroundServiceType="location", and startForeground()
-        // must be called immediately once started this way (skipping it, or calling it
-        // without the permission already held, both crash the process on Android 14+ /
-        // targetSdk 35 — one via SecurityException, the other via
-        // ForegroundServiceDidNotStartInTimeException) — so the check can't safely live
-        // here; it has to gate the startForegroundService() call itself.
-        startForeground(NOTIFICATION_ID, buildForegroundNotification())
+        // Callers (SmsReceiver) must verify LocationPermission.canStartLocationService()
+        // *before* calling startForegroundService() for this class. This service declares
+        // foregroundServiceType="location", and startForeground() must be called immediately
+        // once started this way (skipping it, or calling it without the permissions held, both
+        // crash the process on Android 14+ / targetSdk 35 — one via SecurityException, the
+        // other via ForegroundServiceDidNotStartInTimeException) — so the check can't safely
+        // live here; it has to gate the startForegroundService() call itself.
+        //
+        // Backstop for anything that check misses (permission revoked between the check and
+        // here, other ineligible-state rules): a SecurityException from startForeground()
+        // would otherwise kill the process, and with it every later incoming command.
+        try {
+            startForeground(NOTIFICATION_ID, buildForegroundNotification())
+        } catch (e: SecurityException) {
+            Log.w("SmsLocationService", "Cannot start as a location foreground service", e)
+            SmsSender.sendBackgroundLocationError(this, sender)
+            stopSelf()
+            return START_NOT_STICKY
+        }
         fetchAndSend(sender)
         return START_NOT_STICKY
     }
