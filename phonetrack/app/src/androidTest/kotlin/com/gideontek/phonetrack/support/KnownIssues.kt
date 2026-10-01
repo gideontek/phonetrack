@@ -19,4 +19,15 @@ object KnownIssues {
             "KNOWN ISSUE: outbound SMS fails on API 26 without READ_PHONE_STATE",
             Build.VERSION.SDK_INT == Build.VERSION_CODES.O
         )
+
+    /**
+     * Not skippable (it kills the instrumentation process), so tests avoid it and this documents
+     * it. When a stored subscription exists but `SubscriptionService` is not running, an approved
+     * subscriber's `unsubscribe` makes `SmsReceiver` call `resumeIfPossible` (startForegroundService)
+     * and then `SubscriptionManager.remove` -> `stopService` before the service reaches
+     * `startForeground()`, which throws `ForegroundServiceDidNotStartInTimeException` and crashes
+     * the app. Repro: seed one subscription for an approved number, do not start the service, deliver
+     * "phonetrack unsubscribe". Tests start the service first (`TestState.startSubscriptionService`).
+     */
+    const val UNSUBSCRIBE_RACE = "unsubscribe while the subscription service is not running"
 }

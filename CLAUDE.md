@@ -104,7 +104,7 @@ phonetrack-android-2026/
 Four layers, all runnable on the dedicated test emulator (never the one used for manual review):
 
 1. **JVM unit tests** (`app/src/test`): pure logic. `./gradlew testDebugUnitTest`
-2. **Instrumented integration tests** (`app/src/androidTest/.../smoke`, more under `protocol/` later): the real `SmsReceiver` driven with synthetic SMS PDUs (`support/SyntheticSms`), replies read back from the emulator's own-number loopback (`support/Loopback`), state seeded and reset with `support/TestState`.
+2. **Instrumented integration tests** (`app/src/androidTest/.../smoke` and `protocol/`): the real `SmsReceiver` driven with synthetic SMS PDUs (`support/SyntheticSms`, multipart for long bodies), replies read back from the emulator's own-number loopback (`support/Loopback`), state seeded and reset with `support/TestState`. `protocol/` is the SMS protocol suite: `CommandMatrixTest`, `SubscribeTest`, `ApprovalGateTest`, `LimitsTest`, `ReplyContentTest`, `LastWithoutFixTest`, `MigrationTest`. A test reads as `Scenario().ready().ask("phonetrack help")` (`support/Scenario`: own number as the sender, `replies(expect)`, `assertSilent()`); `Scenario.rules(mockLocation = true)` grants permissions, resets state and (optionally) fixes the GPS at 37.7749, -122.4194 +-5 m with `support/MockLocationRule` (a test provider; `reportFixes = false` empties every cached fix for the "nothing saved" case).
 3. **Compose UI tests** (same source set): the real `MainActivity` with state reset before launch (`ResetStateRule`).
 4. **Host scenarios** (`scripts/e2e/*.sh`): bash + adb for what an in-app test cannot do (real `adb emu sms send`, process kill, reboot, permission revokes). `slow-*.sh` scenarios are skipped by `--fast`.
 
@@ -115,7 +115,11 @@ scripts/run-e2e.sh --serial emulator-5556 --no-boot   # unit + instrumented + ho
 scripts/test-avd.sh stop 5556
 ```
 
-Notes: debug builds (only) declare `READ_SMS` in `app/src/debug/AndroidManifest.xml` so tests can read the reply loopback in-process (the shell user cannot on API 26-28); the release manifest is unchanged. Every reply to the own number lands twice in the SMS provider (sent copy, then the looped-back copy), so `Loopback.lastId()` waits for the inbox to go quiet before a test takes its baseline. The own number is port-based on API 26 (`+15555215556` on port 5556) and fixed (`+15551234567`) on newer images; `Loopback.ownNumber` asks the device.
+Notes: debug builds (only) declare `READ_SMS` in `app/src/debug/AndroidManifest.xml` so tests can read the reply loopback in-process (the shell user cannot on API 26-28); the release manifest is unchanged. Every reply to the own number lands twice in the SMS provider (a sent row, type 2, then a looped-back inbox row, garbled on some images), so `Loopback` reads only the sent rows and `Loopback.lastId()` waits for the inbox to go quiet before a test takes its baseline. The own number is port-based on API 26 (`+15555215556` on port 5556) and fixed (`+15551234567`) on newer images; `Loopback.ownNumber` asks the device.
+
+Silence is checked two ways: nothing newer in the loopback inbox, and `last_send_at` unchanged (the app stamps it synchronously on every send, so it also covers numbers the loopback cannot see). Time-based rules (rate windows, 30-day prune) are tested by seeding timestamps.
+
+Known issue found by T-2 (not fixed, see `KnownIssues.UNSUBSCRIBE_RACE`): an approved subscriber's `unsubscribe` while a subscription is stored but `SubscriptionService` is not running crashes the app (`startForegroundService` then `stopService` before `startForeground`). Tests start the service first (`TestState.startSubscriptionService`).
 
 Known issue (skipped, not hidden): on the API 26 AOSP image outbound SMS throws `SecurityException ... READ_PHONE_STATE` and `SmsSender` swallows it, so no reply is sent; see `support/KnownIssues.kt`.
 
