@@ -73,8 +73,10 @@ class Scenario {
         )
 
         /** Permissions, then a clean state, then (optionally) a mocked GPS fix. */
-        fun rules(mockLocation: Boolean = false, reportFixes: Boolean = true): RuleChain {
-            var chain = RuleChain.outerRule(permissions()).around(ResetStateRule())
+        fun rules(mockLocation: Boolean = false, reportFixes: Boolean = true, grant: Boolean = true): RuleChain {
+            // grant = false: the host script has already set the permissions up (phase tests).
+            var chain = if (grant) RuleChain.outerRule(permissions()).around(ResetStateRule())
+                        else RuleChain.outerRule(ResetStateRule())
             if (mockLocation) chain = chain.around(MockLocationRule(reportFixes = reportFixes))
             return chain
         }
