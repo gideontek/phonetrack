@@ -119,8 +119,6 @@ Notes: debug builds (only) declare `READ_SMS` in `app/src/debug/AndroidManifest.
 
 Silence is checked two ways: nothing newer in the loopback inbox, and `last_send_at` unchanged (the app stamps it synchronously on every send, so it also covers numbers the loopback cannot see). Time-based rules (rate windows, 30-day prune) are tested by seeding timestamps.
 
-Known issue found by T-2 (not fixed, see `KnownIssues.UNSUBSCRIBE_RACE`): an approved subscriber's `unsubscribe` while a subscription is stored but `SubscriptionService` is not running crashes the app (`startForegroundService` then `stopService` before `startForeground`). Tests start the service first (`TestState.startSubscriptionService`).
-
 Known issue (skipped, not hidden): on the API 26 AOSP image outbound SMS throws `SecurityException ... READ_PHONE_STATE` and `SmsSender` swallows it, so no reply is sent; see `support/KnownIssues.kt`.
 
 Replies can only be observed for the emulator's own number (`+15551234567`); tests that need "no reply" use a foreign number. Revoking a runtime permission kills the app process, so permission phases are separate runs. `UiAutomation.executeShellCommand` does not interpret quotes: use `support/Shell`, which feeds a real `sh`.

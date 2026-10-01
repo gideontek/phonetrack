@@ -59,7 +59,6 @@ class CommandMatrixTest {
     fun unsubscribeCancelsTheStoredSubscription() {
         val s = Scenario().ready()
         TestState.seedSubscriptions(TestState.subscription(s.me))
-        TestState.startSubscriptionService()
         val reply = assertOneReply(s.ask("phonetrack unsubscribe"))
         assertEquals("[PhoneTrack] Your location subscription has been cancelled.", reply)
         assertTrue(TestState.subscriptions().isEmpty())
