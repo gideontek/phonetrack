@@ -9,7 +9,7 @@ PhoneTrack is an open source Android app that focuses on location sharing over S
 These rules must not be violated when making changes:
 
 - **No internet.** The `INTERNET` permission must never be added. All communication is SMS-only.
-- **No third-party libraries.** Only standard AndroidX. Do not add external dependencies to `build.gradle.kts`.
+- **No third-party libraries.** Only standard AndroidX. Do not add external dependencies to `build.gradle.kts`. The only additions allowed beyond the runtime libraries are test-only AndroidX ones (`androidTestImplementation` and `debugImplementation` of `ui-test-manifest`); they must never reach the release build, which F-Droid builds (see "Testing").
 - **No databases or files.** SharedPreferences (`"phonetrack_prefs"`) is the only persistent storage. Do not add Room, SQLite, or file I/O.
 - **No WorkManager for location.** The periodic location loop uses a Handler-based `ForegroundService` (`SubscriptionService`) — not WorkManager — to avoid Doze-mode deferrals. Keep it that way.
 - **No XML layouts.** Jetpack Compose only.
@@ -20,6 +20,7 @@ These rules must not be violated when making changes:
 phonetrack-android-2026/
 ├── CLAUDE.md                   # this file
 └── phonetrack/                 # Android Studio project
+    ├── scripts/                # test-avd.sh, run-e2e.sh, e2e/*.sh (host-driven scenarios)
     ├── build.gradle.kts        # root Gradle file (plugin declarations)
     ├── settings.gradle.kts     # module includes + repo config
     ├── gradle.properties
@@ -97,6 +98,30 @@ phonetrack-android-2026/
   - `reply_coords` / `reply_accuracy` / `reply_battery` / `reply_time` / `reply_geo` / `reply_osm` (Boolean; what a location reply contains; absent = default, which has `reply_coords`, `reply_accuracy`, `reply_battery` and `reply_osm` on and `reply_time`, `reply_geo` off)
   - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)
 - No third-party libraries; only standard AndroidX
+
+## Testing
+
+Four layers, all runnable on the dedicated test emulator (never the one used for manual review):
+
+1. **JVM unit tests** (`app/src/test`): pure logic. `./gradlew testDebugUnitTest`
+2. **Instrumented integration tests** (`app/src/androidTest/.../smoke`, more under `protocol/` later): the real `SmsReceiver` driven with synthetic SMS PDUs (`support/SyntheticSms`), replies read back from the emulator's own-number loopback (`support/Loopback`), state seeded and reset with `support/TestState`.
+3. **Compose UI tests** (same source set): the real `MainActivity` with state reset before launch (`ResetStateRule`).
+4. **Host scenarios** (`scripts/e2e/*.sh`): bash + adb for what an in-app test cannot do (real `adb emu sms send`, process kill, reboot, permission revokes). `slow-*.sh` scenarios are skipped by `--fast`.
+
+```bash
+cd phonetrack
+scripts/test-avd.sh start 35 5556      # create + boot the dedicated headless test AVD (API 26/29/33/35 images installed)
+scripts/run-e2e.sh --serial emulator-5556 --no-boot   # unit + instrumented + host scenarios, one summary table
+scripts/test-avd.sh stop 5556
+```
+
+Notes: debug builds (only) declare `READ_SMS` in `app/src/debug/AndroidManifest.xml` so tests can read the reply loopback in-process (the shell user cannot on API 26-28); the release manifest is unchanged. Every reply to the own number lands twice in the SMS provider (sent copy, then the looped-back copy), so `Loopback.lastId()` waits for the inbox to go quiet before a test takes its baseline. The own number is port-based on API 26 (`+15555215556` on port 5556) and fixed (`+15551234567`) on newer images; `Loopback.ownNumber` asks the device.
+
+Known issue (skipped, not hidden): on the API 26 AOSP image outbound SMS throws `SecurityException ... READ_PHONE_STATE` and `SmsSender` swallows it, so no reply is sent; see `support/KnownIssues.kt`.
+
+Replies can only be observed for the emulator's own number (`+15551234567`); tests that need "no reply" use a foreign number. Revoking a runtime permission kills the app process, so permission phases are separate runs. `UiAutomation.executeShellCommand` does not interpret quotes: use `support/Shell`, which feeds a real `sh`.
+
+**F-Droid guard.** F-Droid builds the release variant from Google/Maven Central only. After touching `app/build.gradle.kts`, confirm the release build is unchanged: the output of `./gradlew :app:dependencies --configuration releaseRuntimeClasspath` (and `releaseCompileClasspath`) must be identical to before, and the release APK must contain no test classes and still no `INTERNET` permission.
 
 ## Build Commands
 

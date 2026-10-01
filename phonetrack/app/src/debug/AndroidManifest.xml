@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Debug builds only: lets instrumented tests read the reply loopback in the SMS provider
+     (the shell user cannot on API 26-28). Never part of the release manifest. -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+</manifest>
