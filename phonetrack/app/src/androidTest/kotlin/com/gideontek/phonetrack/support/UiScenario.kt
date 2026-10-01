@@ -19,11 +19,11 @@ import org.junit.runners.model.Statement
  * exactly that state. Display settings a test changes through [Shell] (dark mode, font scale,
  * location mode) are put back afterwards.
  */
-class UiScenario(mockLocation: Boolean = false) : TestRule {
+class UiScenario(mockLocation: Boolean = false, grant: Boolean = true) : TestRule {
     val compose: ComposeTestRule = createEmptyComposeRule()
     private var scenario: ActivityScenario<MainActivity>? = null
 
-    private val chain: RuleChain = Scenario.rules(mockLocation).around(compose).around(Cleanup())
+    private val chain: RuleChain = Scenario.rules(mockLocation, grant = grant).around(compose).around(Cleanup())
 
     override fun apply(base: Statement, description: Description): Statement = chain.apply(base, description)
 
