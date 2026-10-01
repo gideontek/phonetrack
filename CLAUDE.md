@@ -105,7 +105,7 @@ Four layers, all runnable on the dedicated test emulator (never the one used for
 
 1. **JVM unit tests** (`app/src/test`): pure logic. `./gradlew testDebugUnitTest`
 2. **Instrumented integration tests** (`app/src/androidTest/.../smoke` and `protocol/`): the real `SmsReceiver` driven with synthetic SMS PDUs (`support/SyntheticSms`, multipart for long bodies), replies read back from the emulator's own-number loopback (`support/Loopback`), state seeded and reset with `support/TestState`. `protocol/` is the SMS protocol suite: `CommandMatrixTest`, `SubscribeTest`, `ApprovalGateTest`, `LimitsTest`, `ReplyContentTest`, `LastWithoutFixTest`, `MigrationTest`. A test reads as `Scenario().ready().ask("phonetrack help")` (`support/Scenario`: own number as the sender, `replies(expect)`, `assertSilent()`); `Scenario.rules(mockLocation = true)` grants permissions, resets state and (optionally) fixes the GPS at 37.7749, -122.4194 +-5 m with `support/MockLocationRule` (a test provider; `reportFixes = false` empties every cached fix for the "nothing saved" case).
-3. **Compose UI tests** (same source set): the real `MainActivity` with state reset before launch (`ResetStateRule`).
+3. **Compose UI tests** (`app/src/androidTest/.../ui`): the real `MainActivity` under `UiScenario` (`support/UiScenario`: permissions granted, state reset, then `launch { seed }` so the activity starts from exactly that state; dark mode, font scale and location mode are restored afterwards). `RichData` seeds a full screen. Classes: `MainStatusTest`, `DecisionsTest`, `SubscriptionsTest`, `KnownNumbersTest`, `LockTest`, `SettingsTest`, `NavigationTest`, `AccessibilityTest` (labels, 48 dp touch areas in light, dark and 1.3x text) and `ScreenshotTour` (no assertions: writes PNGs to `/sdcard/phonetrack-screens`, which `run-e2e.sh` pulls to `build/e2e-report/screens/` for a person to look through). There are no `testTag`s: nodes are found by text, content description, role and state, as a screen reader would. Seed state before launch (`ResetStateRule` clears prefs first); check results in the stored prefs, not toasts.
 4. **Host scenarios** (`scripts/e2e/*.sh`): bash + adb for what an in-app test cannot do (real `adb emu sms send`, process kill, reboot, permission revokes). `slow-*.sh` scenarios are skipped by `--fast`.
 
 ```bash
@@ -120,6 +120,8 @@ Notes: debug builds (only) declare `READ_SMS` in `app/src/debug/AndroidManifest.
 Silence is checked two ways: nothing newer in the loopback inbox, and `last_send_at` unchanged (the app stamps it synchronously on every send, so it also covers numbers the loopback cannot see). Time-based rules (rate windows, 30-day prune) are tested by seeding timestamps.
 
 Known issue (skipped, not hidden): on the API 26 AOSP image outbound SMS throws `SecurityException ... READ_PHONE_STATE` and `SmsSender` swallows it, so no reply is sent; see `support/KnownIssues.kt`.
+
+Not automated, so on the release checklist: whether focus really moves to Block when a pending row is expanded (Compose focus cannot be observed on the headless emulator), and real TalkBack use.
 
 Replies can only be observed for the emulator's own number (`+15551234567`); tests that need "no reply" use a foreign number. Revoking a runtime permission kills the app process, so permission phases are separate runs. `UiAutomation.executeShellCommand` does not interpret quotes: use `support/Shell`, which feeds a real `sh`.
 
