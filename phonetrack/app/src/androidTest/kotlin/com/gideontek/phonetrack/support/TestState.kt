@@ -63,17 +63,6 @@ object TestState {
     fun subscription(number: String, expiresInMs: Long = 3_600_000L, now: Long = System.currentTimeMillis()) =
         Subscription(number, 200, 15, 4, now, now + expiresInMs, 0.0, 0.0, now)
 
-    /**
-     * Starts the periodic service for seeded subscriptions and waits until it is running in the
-     * foreground. Needed before an `unsubscribe` removes the last one: without it the receiver's
-     * startForegroundService is followed at once by stopService and the process crashes (see
-     * KnownIssues.UNSUBSCRIBE_RACE).
-     */
-    fun startSubscriptionService() {
-        SubscriptionManager.ensureServiceRunning(context)
-        android.os.SystemClock.sleep(2_000)
-    }
-
     fun subscriptions(): List<Subscription> = SubscriptionManager.getAll(context)
 
     fun approvals(): List<ApprovalEntry> = ApprovalStore.getAll(context)

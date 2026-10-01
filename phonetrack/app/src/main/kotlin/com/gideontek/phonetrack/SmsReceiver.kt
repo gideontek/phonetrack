@@ -80,10 +80,6 @@ class SmsReceiver : BroadcastReceiver() {
 
         prefs.edit().putLong("last_receive_at", System.currentTimeMillis()).apply()
 
-        // If the owner has since granted the missing location permission (e.g. from system
-        // settings), get stored subscriptions running again rather than waiting for a reboot.
-        SubscriptionManager.resumeIfPossible(context)
-
         when (val command = SmsCommandParser.parse(tokens.drop(1))) {
             SmsCommand.OneShot -> startLocationFetch(context, sender)
             is SmsCommand.Subscribe -> handleSubscribe(context, sender, keyword, command.params)
@@ -93,6 +89,13 @@ class SmsReceiver : BroadcastReceiver() {
             SmsCommand.Last -> handleLast(context, sender, keyword)
             SmsCommand.Help -> SmsSender.sendHelp(context, sender, keyword)
         }
+
+        // If the owner has since granted the missing location permission (e.g. from system
+        // settings), get stored subscriptions running again rather than waiting for a reboot.
+        // This must come after the command: an `unsubscribe` that removes the last subscription
+        // stops the service, and stopping it right after startForegroundService() but before it
+        // reaches startForeground() crashes the app.
+        SubscriptionManager.resumeIfPossible(context)
     }
 
     private fun hasLocationPermission(ctx: Context) = LocationPermission.hasFine(ctx)
