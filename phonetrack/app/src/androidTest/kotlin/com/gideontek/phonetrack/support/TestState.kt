@@ -5,6 +5,8 @@ import android.content.Context
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.gideontek.phonetrack.ApprovalEntry
+import com.gideontek.phonetrack.ApprovalState
+import com.gideontek.phonetrack.PinStore
 import com.gideontek.phonetrack.ApprovalStore
 import com.gideontek.phonetrack.SmsLocationService
 import com.gideontek.phonetrack.Subscription
@@ -60,8 +62,14 @@ object TestState {
     }
 
     /** A subscription of [number] with the given ends-in time, for seeding. */
-    fun subscription(number: String, expiresInMs: Long = 3_600_000L, now: Long = System.currentTimeMillis()) =
-        Subscription(number, 200, 15, 4, now, now + expiresInMs, 0.0, 0.0, now)
+    fun subscription(
+        number: String,
+        expiresInMs: Long = 3_600_000L,
+        dist: Int = 200,
+        freq: Int = 15,
+        hours: Int = 4,
+        now: Long = System.currentTimeMillis()
+    ) = Subscription(number, dist, freq, hours, now, now + expiresInMs, 0.0, 0.0, now)
 
     fun subscriptions(): List<Subscription> = SubscriptionManager.getAll(context)
 
@@ -77,6 +85,17 @@ object TestState {
 
     /** Last time anything was texted (0 = nothing sent), readable for numbers the loopback cannot see. */
     fun lastSendAt(): Long = prefs.getLong("last_send_at", 0L)
+
+    /** Seeds a PIN (hashed, as the app stores it). The next launch starts locked. */
+    fun seedPin(pin: String) = PinStore.set(context, pin)
+
+    /** Pending numbers that asked [askedMinutesAgo] minutes ago (plus 20 s, so the "N min ago" text is stable for a while). */
+    fun seedPending(vararg numbers: String, askedMinutesAgo: Long = 12) {
+        val at = System.currentTimeMillis() - askedMinutesAgo * 60_000L - 20_000L
+        seedApprovals(*numbers.map { Triple(it, "PENDING", at) }.toTypedArray())
+    }
+
+    fun approvalState(number: String): ApprovalState? = approvals().firstOrNull { it.number == number }?.state
 
     fun approvalsJson(): String = prefs.getString("approvals_list", "[]") ?: "[]"
 }

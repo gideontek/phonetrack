@@ -33,6 +33,9 @@ run() { # run "<name>" <command...>
 
 run "JVM unit tests"            ./gradlew testDebugUnitTest -q
 run "Instrumented (all granted)" ./gradlew connectedDebugAndroidTest -q
+# The UI suite's screenshot tour leaves its pictures on the device for a person to look through.
+mkdir -p build/e2e-report/screens
+adb -s "$SERIAL" pull /sdcard/phonetrack-screens/. build/e2e-report/screens >/dev/null 2>&1 || true
 for s in scripts/e2e/*.sh; do
   [ "$(basename "$s")" = lib.sh ] && continue
   case "$(basename "$s")" in slow-*) [ "$FAST" = 1 ] && continue ;; esac
