@@ -8,3 +8,6 @@ captures/
 .cxx/
 *.apk
 *.aab
+
+# Kotlin compiler session data and error logs
+.kotlin/

@@ -4,7 +4,11 @@ import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
+import com.gideontek.phonetrack.ApprovalEntry
+import com.gideontek.phonetrack.ApprovalStore
 import com.gideontek.phonetrack.SmsLocationService
+import com.gideontek.phonetrack.Subscription
+import com.gideontek.phonetrack.SubscriptionManager
 import com.gideontek.phonetrack.SubscriptionService
 import org.json.JSONArray
 import org.json.JSONObject
@@ -15,7 +19,7 @@ import org.junit.runners.model.Statement
 /** Known starting state for a test, and helpers to seed stored data with explicit timestamps. */
 object TestState {
     private val context: Context get() = ApplicationProvider.getApplicationContext()
-    private val prefs get() = context.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
+    val prefs get() = context.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
 
     /** Stops the services, clears every stored preference and cancels notifications. */
     fun reset() {
@@ -40,6 +44,50 @@ object TestState {
         }
         prefs.edit().putString("approvals_list", array.toString()).commit()
     }
+
+    /** Seeds stored subscriptions (numbers normalized as the receiver stores them). */
+    fun seedSubscriptions(vararg subs: Subscription) {
+        val array = JSONArray()
+        for (s in subs) {
+            array.put(
+                JSONObject().put("number", s.number).put("distMeters", s.distMeters)
+                    .put("freqMinutes", s.freqMinutes).put("durationHours", s.durationHours)
+                    .put("subscribedAt", s.subscribedAt).put("expiresAt", s.expiresAt)
+                    .put("lastLat", s.lastLat).put("lastLon", s.lastLon).put("lastSentAt", s.lastSentAt)
+            )
+        }
+        prefs.edit().putString("subscriptions_list", array.toString()).commit()
+    }
+
+    /** A subscription of [number] with the given ends-in time, for seeding. */
+    fun subscription(number: String, expiresInMs: Long = 3_600_000L, now: Long = System.currentTimeMillis()) =
+        Subscription(number, 200, 15, 4, now, now + expiresInMs, 0.0, 0.0, now)
+
+    /**
+     * Starts the periodic service for seeded subscriptions and waits until it is running in the
+     * foreground. Needed before an `unsubscribe` removes the last one: without it the receiver's
+     * startForegroundService is followed at once by stopService and the process crashes (see
+     * KnownIssues.UNSUBSCRIBE_RACE).
+     */
+    fun startSubscriptionService() {
+        SubscriptionManager.ensureServiceRunning(context)
+        android.os.SystemClock.sleep(2_000)
+    }
+
+    fun subscriptions(): List<Subscription> = SubscriptionManager.getAll(context)
+
+    fun approvals(): List<ApprovalEntry> = ApprovalStore.getAll(context)
+
+    /** Overwrites `rate_state`: key -> (window start, count). */
+    fun seedRate(key: String, start: Long, count: Int) {
+        prefs.edit().putString(
+            "rate_state",
+            JSONObject().put(key, JSONObject().put("start", start).put("count", count).put("noticed", false)).toString()
+        ).commit()
+    }
+
+    /** Last time anything was texted (0 = nothing sent), readable for numbers the loopback cannot see. */
+    fun lastSendAt(): Long = prefs.getLong("last_send_at", 0L)
 
     fun approvalsJson(): String = prefs.getString("approvals_list", "[]") ?: "[]"
 }

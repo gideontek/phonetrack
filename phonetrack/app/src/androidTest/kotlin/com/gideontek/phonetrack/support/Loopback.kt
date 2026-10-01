@@ -6,9 +6,9 @@ import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 
 /**
- * Reads back what the app texted. The emulator loops messages sent to its own number into the
- * SMS provider, so replies to [ownNumber] can be observed; replies to any other number cannot.
- * Reads in-process (not via `content query`) because the shell user lacks READ_SMS on API 26-28.
+ * Reads back what the app texted: sent messages are recorded in the SMS provider, and the emulator
+ * also loops those sent to its own number back into the inbox (which is why [ownNumber] is the
+ * sender in tests). Reads in-process (not via `content query`) because the shell user lacks READ_SMS on API 26-28.
  */
 object Loopback {
 
@@ -51,11 +51,19 @@ object Loopback {
         return last
     }
 
-    /** Bodies of rows newer than [afterId], oldest first. Needs READ_SMS (debug builds declare it). */
+    /**
+     * Bodies of the messages the app sent (provider type 2) newer than [afterId], oldest first.
+     * Only the sent rows are used: the looped-back inbox copy of each reply is not reliable (it is
+     * garbled on some images), while the sent row is exact and appears once per message. Needs
+     * READ_SMS (debug builds declare it).
+     */
     fun bodies(afterId: Long): List<String> =
-        resolver.query(smsUri, arrayOf("_id", "body"), "_id>?", arrayOf(afterId.toString()), "_id ASC")?.use { c ->
+        resolver.query(smsUri, arrayOf("_id", "body"), "_id>? AND type=2", arrayOf(afterId.toString()), "_id ASC")?.use { c ->
             buildList { while (c.moveToNext()) add(c.getString(1) ?: "") }
         } ?: emptyList()
+
+    /** The replies the app sent after [afterId], in order (one entry per message, repeats kept). */
+    fun replies(afterId: Long): List<String> = bodies(afterId)
 
     /** Waits up to [timeoutMs] for a reply (newer than [afterId]) that matches [predicate]. */
     fun await(afterId: Long, timeoutMs: Long = 15_000, predicate: (String) -> Boolean = { true }): String? {

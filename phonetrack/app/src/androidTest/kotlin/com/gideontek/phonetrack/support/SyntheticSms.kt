@@ -14,9 +14,15 @@ import java.io.ByteArrayOutputStream
  */
 object SyntheticSms {
 
+    /**
+     * Delivers [body] from [from]. A body longer than one SMS is split into several PDUs in one
+     * intent, which is how the radio hands a multipart message to the receiver.
+     */
     fun deliver(context: Context, from: String, body: String) {
+        val gsm = body.all { isGsmBasic(it) }
+        val pdus = body.chunked(if (gsm) 150 else 60).ifEmpty { listOf("") }.map { pdu(from, it) }
         val intent = Intent(Telephony.Sms.Intents.SMS_RECEIVED_ACTION)
-            .putExtra("pdus", arrayOf<Any>(pdu(from, body)))
+            .putExtra("pdus", pdus.toTypedArray<Any>())
             .putExtra("format", "3gpp")
         SmsReceiver().onReceive(context, intent)
     }
