@@ -11,6 +11,19 @@ fail() { echo "  FAIL  $*"; SCENARIO_FAILED=1; }
 assert_contains() { if grep -qF -- "$2" <<<"$1"; then pass "$3"; else fail "$3 (missing: $2)"; fi; }
 assert_not_contains() { if grep -qF -- "$2" <<<"$1"; then fail "$3 (unexpected: $2)"; else pass "$3"; fi; }
 
+# assert_ui "<needle>" "<description>" [timeout_s]: the screen shows the text, waiting for it to appear (screens settle after a launch)
+assert_ui() {
+  local end=$((SECONDS + ${3:-20})) ui=""
+  while [ $SECONDS -lt $end ]; do
+    ui="$(ui_text)"
+    grep -qF -- "$1" <<<"$ui" && { pass "$2"; return 0; }
+    sleep 1
+  done
+  fail "$2 (missing: $1)"
+  # What was on screen instead, to diagnose a scenario that failed in a long run.
+  echo "        focus: $(focused_window)"; echo "$ui" | head -8 | sed 's/^/        ui: /'
+}
+
 # prefs_xml: the app's shared preferences (debug build, via run-as)
 prefs_xml() { "${ADB[@]}" shell run-as "$PKG" cat shared_prefs/phonetrack_prefs.xml 2>/dev/null; }
 
@@ -37,7 +50,32 @@ clean_start() {
   done
 }
 
-launch() { "${ADB[@]}" shell am start -n "$PKG/.MainActivity" >/dev/null; sleep 3; }
+# wake: screen on, keyguard gone, stays on while plugged in (a long run must not leave the device asleep)
+wake() {
+  "${ADB[@]}" shell svc power stayon true >/dev/null 2>&1
+  # A "System UI isn't responding" dialog (seen after a reboot on a headless emulator) would cover the app.
+  "${ADB[@]}" shell settings put global hide_error_dialogs 1 >/dev/null 2>&1
+  "${ADB[@]}" shell input keyevent KEYCODE_WAKEUP
+  "${ADB[@]}" shell wm dismiss-keyguard >/dev/null 2>&1 || true
+}
+
+# launch: start the app and wait until it is the window in front and its screen is up. A cold start
+# can take well over 3 s, and a start can be lost if the device is asleep, so wake it and retry.
+# The screen is "up" when it shows the title PhoneTrack; LAUNCH_READY="" launch (an older release with a
+# different screen) only waits for the app window.
+launch() {
+  local attempt ready="${LAUNCH_READY-PhoneTrack}"
+  for attempt in 1 2 3; do
+    wake
+    "${ADB[@]}" shell am start -n "$PKG/.MainActivity" >/dev/null
+    if wait_for 25 bash -c "source '${BASH_SOURCE[0]}'; focused_window | grep -q '$PKG' && { [ -z '$ready' ] || ui_text | grep -qx '$ready'; }"; then
+      sleep 1; return 0
+    fi
+    echo "  (launch attempt $attempt: app not in front; focus: $(focused_window))"
+    "${ADB[@]}" shell input keyevent KEYCODE_HOME; sleep 2
+  done
+  return 1
+}
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 API_LEVEL() { "${ADB[@]}" shell getprop ro.build.version.sdk | tr -d '\r'; }

@@ -24,8 +24,8 @@ BASE=$(sms_max_id)
 "${ADB[@]}" emu sms send "$ME" "phonetrack" >/dev/null
 wait_for 15 bash -c "source '$(dirname "$0")/lib.sh'; prefs_xml | grep -q PENDING"
 UI="$(ui_text)"
-assert_contains "$UI" "Needs your decision" "the request shows under Needs your decision"
-assert_contains "$UI" "asked" "with how long ago it asked"
+assert_ui "Needs your decision" "the request shows under Needs your decision"
+assert_ui "asked" "with how long ago it asked"
 tap_text "Approve"; sleep 2
 assert_contains "$(prefs_xml)" "APPROVED" "tapping Approve stores the decision"
 

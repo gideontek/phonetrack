@@ -20,7 +20,7 @@ revoke ACCESS_BACKGROUND_LOCATION
 seed_prefs "sms_enabled=b:true" "subscriptions_list=s:$SUB" "prefs_schema_version=i:2"
 launch
 assert_not_contains "$(running_services)" "SubscriptionService" "no periodic service while the permission is missing"
-assert_contains "$(ui_text)" "Background location is off, so replies can't start." "Main shows the problem"
+assert_ui "Background location is off, so replies can't start." "Main shows the problem"
 grant ACCESS_BACKGROUND_LOCATION
 "${ADB[@]}" shell input keyevent KEYCODE_HOME; sleep 1; launch
 if wait_for 15 bash -c "source '$(dirname "$0")/lib.sh'; running_services | grep -q SubscriptionService"; then
