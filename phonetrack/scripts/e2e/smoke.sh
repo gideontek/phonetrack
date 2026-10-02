@@ -7,7 +7,7 @@ echo "smoke: install, launch, receive a real SMS"
 "${ADB[@]}" install -r "$(dirname "$0")/../../app/build/outputs/apk/debug/app-debug.apk" >/dev/null || { fail "install"; exit 1; }
 clean_start
 launch
-assert_contains "$(ui_text)" "PhoneTrack" "Main screen is showing"
+assert_ui "PhoneTrack" "Main screen is showing"
 
 # Turn listening on through the stored state (process is idle), then relaunch.
 "${ADB[@]}" shell am force-stop "$PKG"
@@ -18,6 +18,6 @@ adb ${SERIAL:+-s "$SERIAL"} emu sms send +15550001111 "phonetrack" >/dev/null
 wait_for 15 bash -c "source '$(dirname "$0")/lib.sh'; prefs_xml | grep -q 15550001111"
 assert_contains "$(prefs_xml)" "15550001111" "number recorded"
 assert_contains "$(prefs_xml)" "PENDING" "recorded as PENDING"
-assert_contains "$(ui_text)" "+15550001111" "shown under Needs your decision"
+assert_ui "+15550001111" "shown under Needs your decision"
 
 exit $SCENARIO_FAILED

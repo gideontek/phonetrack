@@ -254,6 +254,10 @@ Run lint before submitting changes:
 ./gradlew lint   # must report zero errors
 ```
 
+### Testing and releasing
+
+Unit tests run with `./gradlew testDebugUnitTest`. The full test suite (instrumented, UI and host scenarios on an emulator) is described in [CLAUDE.md](CLAUDE.md#testing); `phonetrack/scripts/release-gate.sh` runs all of it and prints one verdict, and [RELEASE_CHECKLIST.md](RELEASE_CHECKLIST.md) lists the manual checks and the release steps.
+
 ---
 
 ## Contributing

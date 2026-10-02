@@ -1,0 +1,12 @@
+package: com.gideontek.phonetrack
+permission: com.gideontek.phonetrack.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+uses-permission: name='android.permission.ACCESS_BACKGROUND_LOCATION'
+uses-permission: name='android.permission.ACCESS_COARSE_LOCATION'
+uses-permission: name='android.permission.ACCESS_FINE_LOCATION'
+uses-permission: name='android.permission.FOREGROUND_SERVICE'
+uses-permission: name='android.permission.FOREGROUND_SERVICE_LOCATION'
+uses-permission: name='android.permission.POST_NOTIFICATIONS'
+uses-permission: name='android.permission.RECEIVE_BOOT_COMPLETED'
+uses-permission: name='android.permission.RECEIVE_SMS'
+uses-permission: name='android.permission.SEND_SMS'
+uses-permission: name='com.gideontek.phonetrack.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION'

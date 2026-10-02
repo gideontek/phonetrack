@@ -11,3 +11,6 @@ captures/
 
 # Kotlin compiler session data and error logs
 .kotlin/
+
+# Python bytecode from scripts/
+__pycache__/

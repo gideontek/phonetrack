@@ -34,6 +34,7 @@ start() {
   for s in window_animation_scale transition_animation_scale animator_duration_scale; do
     "$ADB" -s "$serial" shell settings put global "$s" 0
   done
+  "$ADB" -s "$serial" shell settings put global hide_error_dialogs 1   # no "System UI isn't responding" over the app
   "$ADB" -s "$serial" shell svc power stayon true
   "$ADB" -s "$serial" shell input keyevent KEYCODE_WAKEUP
   "$ADB" -s "$serial" shell wm dismiss-keyguard >/dev/null 2>&1 || true
