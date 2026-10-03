@@ -5,7 +5,6 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Loopback
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.UiScenario
@@ -84,7 +83,6 @@ class SubscriptionsTest {
 
     @Test
     fun cancelTextsTheSubscriberThatItWasCancelled() {
-        KnownIssues.assumeOutboundSmsWorks()
         val me = Loopback.ownNumber
         ui.launch { TestState.seedSubscriptions(TestState.subscription(me)) }
         val before = Loopback.lastId()
@@ -95,7 +93,6 @@ class SubscriptionsTest {
 
     @Test
     fun sendNowTextsTheCurrentLocation() {
-        KnownIssues.assumeOutboundSmsWorks()
         val me = Loopback.ownNumber
         ui.launch { TestState.seedSubscriptions(TestState.subscription(me)) }
         val before = Loopback.lastId()

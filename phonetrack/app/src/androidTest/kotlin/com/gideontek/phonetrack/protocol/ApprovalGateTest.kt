@@ -1,7 +1,6 @@
 package com.gideontek.phonetrack.protocol
 
 import com.gideontek.phonetrack.ApprovalState
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Scenario
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.assertOneReply
@@ -73,14 +72,12 @@ class ApprovalGateTest {
 
     @Test
     fun anApprovedNumberIsAnswered() {
-        KnownIssues.assumeOutboundSmsWorks()
         val reply = assertOneReply(Scenario().ready("APPROVED").ask("phonetrack help"))
         assertTrue(reply, reply.startsWith("[PhoneTrack] Commands:"))
     }
 
     @Test
     fun approvingTakesEffectOnTheNextMessage() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario().ready("PENDING")
         s.send("phonetrack help")
         s.assertSilent()
@@ -90,7 +87,6 @@ class ApprovalGateTest {
 
     @Test
     fun blockingTakesEffectOnTheNextMessage() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario().ready("APPROVED")
         assertOneReply(s.ask("phonetrack help"))
         TestState.seedApprovals(Triple(s.me, "BLOCKED", now))
@@ -111,7 +107,6 @@ class ApprovalGateTest {
 
     @Test
     fun aBlockCannotBeDodgedWithAnotherSpellingWhenBothAreStored() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario()
         TestState.enableListening()
         val own = s.me

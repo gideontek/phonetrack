@@ -2,7 +2,6 @@ package com.gideontek.phonetrack.phase
 
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Notifications
 import com.gideontek.phonetrack.support.Phase
 import com.gideontek.phonetrack.support.Scenario
@@ -21,7 +20,6 @@ class NoLocationPhaseTest {
     @Before
     fun phase() {
         Phase.require("no-location")
-        KnownIssues.assumeOutboundSmsWorks()
     }
 
     @get:Rule

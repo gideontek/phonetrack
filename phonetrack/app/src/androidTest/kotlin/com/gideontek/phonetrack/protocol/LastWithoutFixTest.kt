@@ -1,7 +1,6 @@
 package com.gideontek.phonetrack.protocol
 
 import com.gideontek.phonetrack.LastKnownLocation
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Scenario
 import com.gideontek.phonetrack.support.assertOneReply
 import org.junit.Assert.assertEquals
@@ -16,7 +15,6 @@ class LastWithoutFixTest {
 
     @Test
     fun saysNoRecentLocationIsSaved() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario().ready()
         assertNull("the rule should have left no cached fix", LastKnownLocation.get(s.context))
         val reply = assertOneReply(s.ask("phonetrack last"))

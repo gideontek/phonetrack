@@ -81,7 +81,7 @@ phonetrack-android-2026/
 ## Key Facts
 
 - Package: `com.gideontek.phonetrack`
-- Min SDK: 26 | Target SDK: 35 | Compile SDK: 35
+- Min SDK: 27 | Target SDK: 35 | Compile SDK: 35
 - Kotlin 2.1.10 + AGP 8.8.0 + Gradle 8.12.1
 - Jetpack Compose (no XML layouts)
 - SharedPreferences file: `"phonetrack_prefs"` — keys:
@@ -112,22 +112,22 @@ Four layers, all runnable on the dedicated test emulator (never the one used for
 
 ```bash
 cd phonetrack
-scripts/test-avd.sh start 35 5556      # create + boot the dedicated headless test AVD (API 26/29/33/35 images installed)
+scripts/test-avd.sh start 35 5556      # create + boot the dedicated headless test AVD (API 27/29/33/35 images installed)
 scripts/run-e2e.sh --serial emulator-5556 --no-boot   # unit + instrumented + host scenarios, one summary table
 scripts/test-avd.sh stop 5556
 ```
 
-Notes: debug builds (only) declare `READ_SMS` in `app/src/debug/AndroidManifest.xml` so tests can read the reply loopback in-process (the shell user cannot on API 26-28); the release manifest is unchanged. Every reply to the own number lands twice in the SMS provider (a sent row, type 2, then a looped-back inbox row, garbled on some images), so `Loopback` reads only the sent rows and `Loopback.lastId()` waits for the inbox to go quiet before a test takes its baseline. The own number is port-based on API 26 (`+15555215556` on port 5556) and fixed (`+15551234567`) on newer images; `Loopback.ownNumber` asks the device.
+Notes: debug builds (only) declare `READ_SMS` in `app/src/debug/AndroidManifest.xml` so tests can read the reply loopback in-process (the shell user cannot on API 26-28); the release manifest is unchanged. Every reply to the own number lands twice in the SMS provider (a sent row, type 2, then a looped-back inbox row, garbled on some images), so `Loopback` reads only the sent rows and `Loopback.lastId()` waits for the inbox to go quiet before a test takes its baseline. The own number is port-based on API 27 and older (`+15555215556` on port 5556) and fixed (`+15551234567`) on newer images; `Loopback.ownNumber` asks the device.
 
 Silence is checked two ways: nothing newer in the loopback inbox, and `last_send_at` unchanged (the app stamps it synchronously on every send, so it also covers numbers the loopback cannot see). Time-based rules (rate windows, 30-day prune) are tested by seeding timestamps.
 
-Known issue (skipped, not hidden): on the API 26 AOSP image outbound SMS throws `SecurityException ... READ_PHONE_STATE` and `SmsSender` swallows it, so no reply is sent; see `support/KnownIssues.kt`.
+`minSdk` is 27 because on Android 8.0.0 (API 26) every outgoing SMS throws `SecurityException ... READ_PHONE_STATE` (a framework bug fixed in 8.1) and `SmsSender` swallows it, so the app could never reply there.
 
 Not automated, so on the release checklist: whether focus really moves to Block when a pending row is expanded (Compose focus cannot be observed on the headless emulator), and real TalkBack use.
 
 Replies can only be observed for the emulator's own number (`+15551234567`); tests that need "no reply" use a foreign number. Revoking a runtime permission kills the app process, so permission phases are separate runs. `UiAutomation.executeShellCommand` does not interpret quotes: use `support/Shell`, which feeds a real `sh`.
 
-**Release gate.** `scripts/release-gate.sh` (full, about 1 h 45 min) or `--quick` (API 35 only, about 25 min) runs lint, the unit tests, the F-Droid guard, then `run-e2e.sh` on API 35 (everything) and 33, 29 and 26 (fast scenarios), and writes `build/release-gate/<version>-<sha>/report.md`. A skipped test fails the gate unless it is a phase test or is listed in `scripts/gate-baseline/skips-api<N>.txt`. The manual items and the release steps are in `RELEASE_CHECKLIST.md`.
+**Release gate.** `scripts/release-gate.sh` (full, about 1 h 45 min) or `--quick` (API 35 only, about 25 min) runs lint, the unit tests, the F-Droid guard, then `run-e2e.sh` on API 35 (everything) and 33, 29 and 27 (fast scenarios), and writes `build/release-gate/<version>-<sha>/report.md`. A skipped test fails the gate unless it is a phase test or is listed in `scripts/gate-baseline/skips-api<N>.txt`. The manual items and the release steps are in `RELEASE_CHECKLIST.md`.
 
 **F-Droid guard.** F-Droid builds the release variant from Google/Maven Central only. `scripts/fdroid-guard.sh` checks the real release APK against committed baselines (`scripts/fdroid-baseline/`: release runtime/compile classpaths, permissions, APK file list) and enforces that there is no `INTERNET` permission and no test class in the dex. Run it after touching `app/build.gradle.kts` or the manifest; a deliberate change is committed with `--update`.
 

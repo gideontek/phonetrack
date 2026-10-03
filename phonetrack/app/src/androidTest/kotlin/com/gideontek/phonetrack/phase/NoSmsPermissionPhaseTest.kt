@@ -7,7 +7,6 @@ import com.gideontek.phonetrack.support.Scenario
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.UiScenario
 import org.junit.Assert.assertEquals
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 

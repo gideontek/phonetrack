@@ -1,6 +1,5 @@
 package com.gideontek.phonetrack.phase
 
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Notifications
 import com.gideontek.phonetrack.support.Phase
 import com.gideontek.phonetrack.support.Scenario
@@ -15,7 +14,6 @@ class NoNotificationsPhaseTest {
     @Before
     fun phase() {
         Phase.require("no-notifications")
-        KnownIssues.assumeOutboundSmsWorks()
     }
 
     @Test

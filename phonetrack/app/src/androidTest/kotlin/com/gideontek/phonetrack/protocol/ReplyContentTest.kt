@@ -1,12 +1,10 @@
 package com.gideontek.phonetrack.protocol
 
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Scenario
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.assertOneReply
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -14,9 +12,6 @@ import org.junit.Test
 class ReplyContentTest {
     @get:Rule
     val rules = Scenario.rules(mockLocation = true)
-
-    @Before
-    fun requireOutboundSms() = KnownIssues.assumeOutboundSmsWorks()
 
     private val link = "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194"
 
