@@ -1,14 +1,14 @@
 # PhoneTrack SMS
 
-**Location sharing over SMS — no internet required.**
+**Location sharing over SMS — no internet, no account, no data. GPS phone tracking with plain text messages.**
 
-PhoneTrack SMS turns your Android phone into an SMS location beacon. Anyone who knows your keyword can send a text to request your location, and the phone replies automatically with coordinates, accuracy, battery level and a map link (configurable) — all over plain SMS, with no data connection needed.
+PhoneTrack SMS turns an Android phone into an SMS location beacon. A contact you have approved texts your keyword and the phone replies with its coordinates, accuracy, battery level and a map link (all configurable). It works wherever the phone can send and receive a text.
 
 ---
 
 ## Why Phone Track?
 
-Most location-sharing apps require both parties to have internet, accounts, and the same app installed. PhoneTrack has no such dependencies. Track any phone even without a data connection. It works anywhere your phone can send and receive a text message.
+Most location-sharing apps require both parties to have internet, accounts, and the same app installed. PhoneTrack has no such dependencies. Locate a phone even without a data connection. The phone being tracked simply needs to approve the contact number once.
 
 **Common use cases:**
 
@@ -17,54 +17,47 @@ Most location-sharing apps require both parties to have internet, accounts, and 
 - Hikers or travellers sending a "where am I?" update to someone at home
 - Roadside assistance — share your exact location without fumbling with maps
 - Off-grid check-ins where data is expensive or unavailable
+- Parents setting up a child's phone (see [Locking the app with a PIN](#locking-the-app-with-a-pin))
 
 ---
 
-## How it works
+## Quick start
 
-1. Install PhoneTrack on the phone you want to track.
-2. Enable the app and grant the required permissions.
-3. From any other phone, send an SMS with the keyword (default: `phonetrack`).
-4. PhoneTrack replies automatically with your location — no user interaction needed.
+On the phone to be tracked:
 
-The tracked phone never pushes location unsolicited. It only responds to inbound requests, and every sender goes through an approval gate that you control.
+1. Install PhoneTrack, tap the gear (**Settings**) and grant the permissions.
+2. Turn **SMS listening** on (on the main screen or in Settings). Optionally change the keyword (default `phonetrack`) to something private.
+3. Optionally set a PIN (see [Locking the app with a PIN](#locking-the-app-with-a-pin)).
+
+From any other phone:
+
+4. Text the keyword. The first time, the number appears under **Needs your decision** on the tracked phone, and nothing is sent back until its owner taps **Approve**. After that, every text gets a reply automatically.
+
+PhoneTrack remembers whether SMS responding is on or off and picks up where it left off after the phone restarts. Active subscriptions resume automatically.
 
 ---
 
 ## Privacy and consent
 
-PhoneTrack is **pull-based**: the tracked phone decides who gets a response. Though within the app a user can one-shot **push** their current location to an approved contact.
+PhoneTrack is **pull-based**: the tracked phone decides who gets a response, and it never sends its location unprompted. (From the app you can also send your current location to an approved contact yourself.)
 
-- New senders are logged as **PENDING** and silently ignored until you explicitly approve them.
-- You can mark any number as **APPROVED** (always responds) or **BLOCKED** (always ignored) from within the app.
+- A number that texts your keyword for the first time **waits for your decision** (under **Needs your decision** in the app) and gets no reply until you approve it.
+- **Approved** numbers always get a reply; **blocked** numbers are always ignored. You can change either from within the app.
 - The app only responds when you have it enabled. You can disable it instantly from the main screen.
 
 ---
 
 ## Requirements
 
-- Android 8.0 (API 26) or later
-- A SIM card with SMS capability
-- Location permission set to **Allow all the time** (background location). Without it Android won't let PhoneTrack start its location service when a text arrives, so it can't send a fix: the requester just gets a "Location permission not granted" reply, and the phone shows a notification that opens PhoneTrack so you can change it. A subscription that was accepted in the meantime is kept and starts sending as soon as you do
-- **RCS chats turned off** between PhoneTrack's phone and anyone sending it commands (see below)
-
-RCS messages are invisible to PhoneTrack — and to every other third-party app. Android only delivers RCS content to the device's default messaging app (almost always Google Messages); there's no broadcast or API for other apps to observe it, by design. If RCS is active for a conversation, commands sent from that number will silently never arrive. To fix it, turn off RCS chats for the relevant conversation (or globally): in Google Messages, go to **Settings → RCS chats** and turn off **Turn on RCS chats**. This forces that conversation back to plain SMS, which PhoneTrack can see.
+- Android 8.0 (API 26) or later, and a SIM that can send and receive SMS.
+- Location permission set to **Allow all the time**, so a text can start a reply while the app is closed. Without it the requester gets "Location permission not granted" and you get a notification to fix it. A subscription accepted in the meantime is kept and starts once you do.
+- **RCS chats turned off** for the tracked phone's conversations with anyone who sends it commands. Android delivers RCS only to the default messaging app, so PhoneTrack never sees those texts and the request silently never arrives. In Google Messages, go to **Settings → RCS chats** and turn off **Turn on RCS chats** (or turn RCS off for that one conversation) to fall back to plain SMS.
 
 ---
 
 ## Installation
 
-PhoneTrack will be available on [F-Droid](https://f-droid.org/). Until then, see [Building from source](#building-from-source) below.
-
----
-
-## Setup
-
-1. Open PhoneTrack, tap the gear (**Settings**) and grant the permissions to allow SMS and location access.
-2. Toggle **SMS Listening** on (on the main screen or in Settings).
-3. Optionally change the **keyword** in Settings (default: `phonetrack`) to something private.
-
-PhoneTrack remembers whether SMS responding is on or off, and picks up where it left off after the phone restarts. Active subscriptions resume automatically.
+PhoneTrack SMS is available on [F-Droid](https://f-droid.org/en/packages/com.gideontek.phonetrack/). You can also build it yourself: see [Building from source](#building-from-source) below.
 
 ---
 
@@ -198,7 +191,7 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 | Reply contents | What a location reply contains, with a live preview (see below) |
 | Limits | Commands per number per hour, and most active subscriptions at once |
 | Permissions | SMS, location, background location and notifications, each with a Grant button |
-| PIN | Set, change or remove the PIN that guards Settings and approval changes |
+| PIN | Set, change or remove the PIN that guards Settings and approval changes (see below) |
 
 ### The main screen
 
@@ -206,6 +199,15 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 - **Needs your decision:** numbers that have texted your keyword and are waiting. Tap one to show **Approve** and **Block**; nothing is sent to them either way until you approve.
 - **Active subscriptions:** who is receiving periodic updates, how long is left, with **Send now** and **Cancel**.
 - **Approved and blocked numbers:** collapsed by default; change a number's state or send it your location.
+
+### Locking the app with a PIN
+
+An optional PIN guards the app's settings and approvals: opening Settings, the SMS listening switch, and Approve and Block. It does two jobs:
+
+- **Everyday security.** Anyone else who picks up the phone can't switch PhoneTrack off, change the keyword, or approve their own number.
+- **Setting up a child's phone.** Approve your own number, set a PIN and keep it. The app keeps answering you, and your child can't turn it off or change who can locate the phone. Tell them it is there: PhoneTrack replies only to numbers you approved, and it is meant for consent, not secret monitoring.
+
+When locked, tapping a guarded control asks for the PIN and then carries on with what you tapped. The app starts locked each time it is opened from scratch; tap the lock icon to lock it again after you have used it. Sending your location to an approved number and cancelling a subscription never need the PIN, and the PIN does not affect SMS commands. It does not stop someone from uninstalling the app or revoking its permissions in Android's own settings.
 
 ### Limits
 
@@ -223,12 +225,10 @@ The first two are set in **Settings → Limits** (commands per number 1–100 pe
 
 ### Security notes
 
-- **SMS is not private.** Messages travel in the clear and are stored by the carrier and in each phone's messages. Approval is by the sender's phone number, which a determined attacker can spoof, so treat an approved number as trusted, not authenticated.
-- **The PIN guards Settings and approval changes** (opening Settings, the Listening switch, Approve and Block). Sending your location to an approved number and cancelling a subscription never need it. It does not protect the SMS commands. When locked, tapping a guarded control asks for the PIN and then carries on.
-- **The PIN is stored hashed** (PBKDF2-HMAC-SHA256 with a random salt), never in plain text. Five wrong PINs in a row lock unlocking for 1 minute, then 5, 15 and 60 minutes for each further round of five; a correct PIN resets it. The lockout counters survive closing the app. A lockout uses the phone's clock, so someone who can change the clock could skip one.
-- **A short PIN is still weak against someone who can copy the app's files.** A 4-digit PIN has only 10,000 possibilities, so a copied hash could be brute-forced offline in minutes. That is why the app also opts out of Android backups (below); choose a longer PIN if this matters to you.
-- **No backups.** PhoneTrack opts out of Android's cloud and adb backups, so the PIN hash, your approvals and who has contacted you never leave the phone that way. The trade-off: on a new phone you set up PhoneTrack again and re-approve your numbers.
-- If you forget the PIN there is no reset; clearing the app's data (which also clears approvals and subscriptions) removes it.
+- **SMS is not private, and a sender's number can be faked.** Messages travel unencrypted and are stored by the carrier and on each phone. PhoneTrack decides who to answer by the sender's phone number alone, and a determined attacker can send a text that appears to come from an approved number. Approve only people you trust, and don't treat a request from an approved number as proof of who sent it.
+- **PIN protection.** The PIN is stored hashed (PBKDF2-HMAC-SHA256 with a random salt). Five wrong PINs in a row lock unlocking for 1 minute, then 5, 15 and 60 for each further round; a correct PIN resets it. A 4-digit PIN is weak against someone who can copy the app's files, so choose a longer one if that matters.
+- **No backups.** PhoneTrack opts out of Android's cloud and adb backups, so the PIN hash and your approvals never leave the phone that way. On a new phone you set up and re-approve again.
+- There is no PIN reset. Clearing the app's data removes it, along with approvals and subscriptions.
 
 ---
 
