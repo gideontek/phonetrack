@@ -1,13 +1,22 @@
-Location sharing that respects your privacy and your data plan. This phone track app (PhoneTrack SMS) responds to text message requests with your GPS coordinates — no internet required, no account needed, no data used.
+PhoneTrack SMS lets people you trust locate your phone with a text message. No internet, no account, no cloud and no data plan. This phone tracker works wherever you can receive a text.
 
-It focuses on one thing and keeps it simple. A trusted contact texts your keyword and the phone texts back a location and an OpenStreetMap link. Need regular check-ins? Subscribe for periodic updates that include how far and which direction you've moved. The sender doesn't even need the app installed.
+HOW IT WORKS
+An approved contact texts your keyword. Your phone texts back its GPS coordinates and an OpenStreetMap link. They don't need the app and there is nothing to sign up for. For regular check-ins they can subscribe to updates every few minutes, each showing how far and in which direction the phone has moved.
 
-New requests are held in a PENDING state until you decide: APPROVED numbers always get a reply, BLOCKED numbers are quietly ignored. You don't have to think about it until you want to.
+YOU STAY IN CONTROL
+* A new number that texts your keyword waits for your approval. Nothing is sent until you tap Approve; blocked numbers are ignored.
+* An optional PIN locks the app's settings and approvals, so nobody else using the phone can switch it off or approve themselves. Parents can set up a child's phone, approve their own number and keep the PIN.
+* No internet permission, no account, no tracking, no ads.
 
-Features:
-* One-shot location request: reply with GPS fix + OpenStreetMap link
-* Subscriptions: periodic updates with heading and distance delta (e.g. ⇐314m)
-* Approval gate: PENDING → APPROVED / BLOCKED
-* Zero internet permission — SMS only, always
-* No account, no cloud, no tracking
-* Android 8.0 (API 26) and later
+FEATURES
+* Location on request, or the last known location without waking the GPS
+* Periodic updates with distance and direction moved
+* Choose what each reply contains: coordinates, accuracy, battery, time, map links
+* Limits that protect your SMS bill from floods
+* Simple-to-use Phone Track app
+* Free software (GPL-3.0)
+
+GOOD TO KNOW
+* Set location to "Allow all the time" so a text can start a reply while the app is closed.
+* Turn off RCS chats for these conversations: Android hides RCS from apps, so those texts never arrive.
+* Needs Android 8.0 or later and a SIM that can send SMS.
