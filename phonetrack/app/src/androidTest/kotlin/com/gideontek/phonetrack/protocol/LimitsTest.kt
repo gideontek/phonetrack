@@ -3,7 +3,6 @@ package com.gideontek.phonetrack.protocol
 import com.gideontek.phonetrack.ApprovalState
 import com.gideontek.phonetrack.PhoneNumber
 import com.gideontek.phonetrack.SmsLimits
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Scenario
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.assertOneReply
@@ -27,7 +26,6 @@ class LimitsTest {
 
     @Test
     fun afterTheCapOneNoticeIsSentThenSilence() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario().ready()
         setRateLimit(3)
         repeat(5) { s.send("phonetrack help") }
@@ -40,7 +38,6 @@ class LimitsTest {
 
     @Test
     fun helpAndUnknownWordsCountTowardsTheCapToo() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario().ready()
         setRateLimit(3)
         for (body in listOf("phonetrack help", "phonetrack banana", "phonetrack unsubscribe")) s.send(body)
@@ -50,7 +47,6 @@ class LimitsTest {
 
     @Test
     fun theLimitIsReadFromThePreferencesEachTime() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario().ready()
         setRateLimit(5)
         assertOneReply(s.ask("phonetrack help"))
@@ -60,7 +56,6 @@ class LimitsTest {
 
     @Test
     fun aNewHourOpensANewWindow() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario().ready()
         setRateLimit(3)
         TestState.seedRate("in:" + PhoneNumber.rateKey(s.me), start = now - hour - 60_000, count = 3)
@@ -69,7 +64,6 @@ class LimitsTest {
 
     @Test
     fun aWindowThirtyMinutesOldIsStillFull() {
-        KnownIssues.assumeOutboundSmsWorks()
         val s = Scenario().ready()
         setRateLimit(3)
         TestState.seedRate("in:" + PhoneNumber.rateKey(s.me), start = now - 30 * 60_000L, count = 3)

@@ -9,7 +9,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.gideontek.phonetrack.ApprovalState
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Loopback
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.UiScenario
@@ -152,7 +151,6 @@ class LockTest {
 
     @Test
     fun sendNowAndCancelNeverAskForThePin() {
-        KnownIssues.assumeOutboundSmsWorks()
         val me = Loopback.ownNumber
         ui.launch {
             TestState.seedSubscriptions(TestState.subscription(me))
@@ -169,7 +167,6 @@ class LockTest {
 
     @Test
     fun sendLocationNeverAsksForThePin() {
-        KnownIssues.assumeOutboundSmsWorks()
         val me = Loopback.ownNumber
         ui.launch {
             TestState.seedApprovals(Triple(me, "APPROVED", now))

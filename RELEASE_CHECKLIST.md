@@ -24,7 +24,7 @@ The full gate must run on `master`, on a clean tree, with a `versionName` that h
 | JVM unit tests | pure logic is green |
 | `scripts/fdroid-guard.sh` | the release APK is what F-Droid expects: release dependency lists equal the committed baselines (`scripts/fdroid-baseline/`), no `INTERNET` permission, no test classes in the dex, the APK file list is unchanged |
 | API 35, full | every instrumented test (protocol, UI, accessibility) and every scenario, including the real reboot, the 60 s location timeout and the 14-minute cadence run |
-| API 33, 29, 26, fast | the same instrumented tests and every non-slow scenario (permissions, onboarding, real radio SMS, location services, process death, upgrade from the previous release) |
+| API 33, 29, 27, fast | the same instrumented tests and every non-slow scenario (permissions, onboarding, real radio SMS, location services, process death, upgrade from the previous release) |
 
 **Skips are checked, not ignored.** A skipped test fails the gate unless it is a phase test (skipped by
 design) or is listed in `scripts/gate-baseline/skips-api<N>.txt` as a known limit of that API level.
@@ -66,11 +66,10 @@ Do these on real hardware where noted. Tick each one and write what you saw.
 
 State each one in the release notes. Remove it from here when it is fixed.
 
-- **Outbound SMS on Android 8.0 (API 26) AOSP emulator:** `SmsManager.sendMultipartTextMessage` throws
-  `SecurityException` for `READ_PHONE_STATE`, which `SmsSender` logs and swallows, so no reply is sent.
-  Not confirmed on a real Android 8.0 device; API 27 and 28 images have not been tried. Decide per
-  release: fix it, or ship with it documented. The gate skips the affected tests on API 26
-  (`scripts/gate-baseline/skips-api26.txt`).
+- **Android 8.0 is no longer supported.** On Android 8.0.0 (API 26) every outgoing SMS fails with a
+  `SecurityException` for `READ_PHONE_STATE` (a framework bug fixed in 8.1; reproduced on the API 26
+  emulator, sending works on API 27). `minSdk` is 27 so the app is not installable where it cannot reply;
+  say so in the release notes under "Changes to know about".
 - **Expanded pending rows on Main** collapse again after a visit to Settings (they survive rotation and a
   process kill). Cosmetic.
 

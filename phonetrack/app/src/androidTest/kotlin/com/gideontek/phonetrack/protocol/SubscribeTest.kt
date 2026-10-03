@@ -1,13 +1,11 @@
 package com.gideontek.phonetrack.protocol
 
 import com.gideontek.phonetrack.PhoneNumber
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Scenario
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.assertOneReply
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
-import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
@@ -15,9 +13,6 @@ import org.junit.Test
 class SubscribeTest {
     @get:Rule
     val rules = Scenario.rules(mockLocation = true)
-
-    @Before
-    fun requireOutboundSms() = KnownIssues.assumeOutboundSmsWorks()
 
     private val usage = "Usage: phonetrack subscribe [--dist M] [--freq MIN] [--time H]"
 

@@ -41,6 +41,18 @@ run "Instrumented (all granted)" ./gradlew connectedDebugAndroidTest -q
 rm -rf "$OUT/instrumented" "$OUT/screens"; mkdir -p "$OUT/instrumented" "$OUT/screens"
 cp app/build/outputs/androidTest-results/connected/debug/*.xml "$OUT/instrumented/" 2>/dev/null || true
 adb -s "$SERIAL" pull /sdcard/phonetrack-screens/. "$OUT/screens" >/dev/null 2>&1 || true
+# Android 8.1 asks "PhoneTrack is sending a large number of SMS messages" after the instrumented suite's burst
+# of replies; the dialog covers the app and fails every UI check in the scenarios. The counter lives in memory,
+# so a reboot clears it.
+if [ "$(adb -s "$SERIAL" shell getprop ro.build.version.sdk | tr -d '\r')" -le 27 ]; then
+  echo; echo "=== Rebooting API 27 to reset the system's outgoing-SMS counter"
+  adb -s "$SERIAL" reboot
+  adb -s "$SERIAL" wait-for-device
+  until [ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do sleep 2; done
+  sleep 10
+  adb -s "$SERIAL" shell input keyevent KEYCODE_WAKEUP
+  adb -s "$SERIAL" shell wm dismiss-keyguard >/dev/null 2>&1 || true
+fi
 for s in scripts/e2e/*.sh; do
   [ "$(basename "$s")" = lib.sh ] && continue
   case "$(basename "$s")" in slow-*) [ "$FAST" = 1 ] && continue ;; esac

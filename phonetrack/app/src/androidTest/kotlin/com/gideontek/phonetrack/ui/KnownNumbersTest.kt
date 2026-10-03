@@ -7,7 +7,6 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.gideontek.phonetrack.ApprovalState
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Loopback
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.UiScenario
@@ -92,7 +91,6 @@ class KnownNumbersTest {
 
     @Test
     fun sendLocationTextsTheCurrentLocationToThatNumber() {
-        KnownIssues.assumeOutboundSmsWorks()
         val me = Loopback.ownNumber
         ui.launch { TestState.seedApprovals(Triple(me, "APPROVED", now)) }
         expand()

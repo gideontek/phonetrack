@@ -3,7 +3,6 @@ package com.gideontek.phonetrack.phase
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithText
 import com.gideontek.phonetrack.SubscriptionService
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Notifications
 import com.gideontek.phonetrack.support.Phase
 import com.gideontek.phonetrack.support.Scenario
@@ -27,7 +26,6 @@ class NoBackgroundLocationPhaseTest {
     @Before
     fun phase() {
         Phase.require("no-bg-location")
-        KnownIssues.assumeOutboundSmsWorks()
     }
 
     @get:Rule

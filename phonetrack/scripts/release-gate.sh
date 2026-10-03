@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One command, one verdict: can this commit be released?
 #   scripts/release-gate.sh            full gate: lint, unit tests, F-Droid guard, then every scenario
-#                                      (slow ones too) on API 35 and the fast ones on API 33, 29 and 26
+#                                      (slow ones too) on API 35 and the fast ones on API 33, 29 and 27
 #   scripts/release-gate.sh --quick    API 35 only, no slow scenarios (about 25 minutes): a pre-merge check
 #   scripts/release-gate.sh --update-skips   also record the expected skips per API level (review the diff)
 #   scripts/release-gate.sh --allow-dirty    downgrade the git preflight to warnings (for testing the gate itself)
@@ -44,7 +44,7 @@ timed "Lint (zero errors)"   ./gradlew lint -q
 timed "JVM unit tests"       ./gradlew testDebugUnitTest -q
 timed "F-Droid guard"        scripts/fdroid-guard.sh
 
-if [ $QUICK = 1 ]; then APIS=(35); else APIS=(35 33 29 26); fi
+if [ $QUICK = 1 ]; then APIS=(35); else APIS=(35 33 29 27); fi
 for api in "${APIS[@]}"; do
   scripts/test-avd.sh stop $PORT >/dev/null 2>&1; sleep 3
   SERIAL="$(scripts/test-avd.sh start "$api" $PORT | tail -1)"

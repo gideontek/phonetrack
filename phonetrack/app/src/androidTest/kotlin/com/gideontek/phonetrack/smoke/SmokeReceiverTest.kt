@@ -3,7 +3,6 @@ package com.gideontek.phonetrack.smoke
 import android.Manifest
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.rule.GrantPermissionRule
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Loopback
 import com.gideontek.phonetrack.support.ResetStateRule
 import com.gideontek.phonetrack.support.SyntheticSms
@@ -28,7 +27,6 @@ class SmokeReceiverTest {
 
     @Test
     fun approvedNumberGetsAHelpReply() {
-        KnownIssues.assumeOutboundSmsWorks()
         TestState.enableListening()
         TestState.seedApprovals(Triple(Loopback.ownNumber, "APPROVED", System.currentTimeMillis()))
         val before = Loopback.lastId()

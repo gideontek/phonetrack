@@ -49,7 +49,7 @@ PhoneTrack is **pull-based**: the tracked phone decides who gets a response, and
 
 ## Requirements
 
-- Android 8.0 (API 26) or later, and a SIM that can send and receive SMS.
+- Android 8.1 (API 27) or later, and a SIM that can send and receive SMS.
 - Location permission set to **Allow all the time**, so a text can start a reply while the app is closed. Without it the requester gets "Location permission not granted" and you get a notification to fix it. A subscription accepted in the meantime is kept and starts once you do.
 - **RCS chats turned off** for the tracked phone's conversations with anyone who sends it commands. Android delivers RCS only to the default messaging app, so PhoneTrack never sees those texts and the request silently never arrives. In Google Messages, go to **Settings → RCS chats** and turn off **Turn on RCS chats** (or turn RCS off for that one conversation) to fall back to plain SMS.
 
