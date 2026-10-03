@@ -56,6 +56,7 @@ for api in apis:
     other = sorted(s for s in skipped if ".phase." not in s)
     base_file = os.path.join(baseline_dir, f"skips-api{api}.txt")
     if update:
+        os.makedirs(baseline_dir, exist_ok=True)
         if other:
             open(base_file, "w").write("\n".join(other) + "\n")
         elif os.path.exists(base_file):
