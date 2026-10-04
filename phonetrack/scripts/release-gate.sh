@@ -47,7 +47,9 @@ timed "F-Droid guard"        scripts/fdroid-guard.sh
 if [ $QUICK = 1 ]; then APIS=(35); else APIS=(35 33 29 27); fi
 for api in "${APIS[@]}"; do
   scripts/test-avd.sh stop $PORT >/dev/null 2>&1; sleep 3
-  SERIAL="$(scripts/test-avd.sh start "$api" $PORT | tail -1)"
+  if ! SERIAL="$(scripts/test-avd.sh start "$api" $PORT | tail -1)"; then
+    echo "=== API $api: the emulator did not boot"; step_row FAIL 0 "Boot API $api emulator"; continue
+  fi
   FAST=""; { [ $QUICK = 1 ] || [ "$api" != 35 ]; } && FAST="--fast"
   echo; echo "=== API $api on $SERIAL ${FAST:+(fast scenarios only)}"
   mkdir -p "$OUT/api-$api"
