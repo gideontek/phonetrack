@@ -1,11 +1,12 @@
 package com.gideontek.phonetrack.protocol
 
+import android.os.Build
 import com.gideontek.phonetrack.LastKnownLocation
-import com.gideontek.phonetrack.support.KnownIssues
 import com.gideontek.phonetrack.support.Scenario
 import com.gideontek.phonetrack.support.assertOneReply
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assume.assumeTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -16,7 +17,9 @@ class LastWithoutFixTest {
 
     @Test
     fun saysNoRecentLocationIsSaved() {
-        KnownIssues.assumeOutboundSmsWorks()
+        // Before API 29 the system keeps the GPS cache of an earlier test (mock providers, location off/on and
+        // disabled providers do not clear it), so "nothing saved" cannot be arranged after other tests have run.
+        assumeTrue("cannot empty the system's cached GPS fix before API 29", Build.VERSION.SDK_INT >= 29)
         val s = Scenario().ready()
         assertNull("the rule should have left no cached fix", LastKnownLocation.get(s.context))
         val reply = assertOneReply(s.ask("phonetrack last"))

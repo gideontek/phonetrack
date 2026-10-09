@@ -1,0 +1,4 @@
+com.gideontek.phonetrack.protocol.LastWithoutFixTest.saysNoRecentLocationIsSaved
+com.gideontek.phonetrack.ui.MainStatusTest.locationServicesOffShowsTheBannerAndFixLeavesForSystemSettings
+com.gideontek.phonetrack.ui.MainStatusTest.theBannerFollowsLocationServicesWhileTheScreenIsOpen
+com.gideontek.phonetrack.ui.SubscriptionsTest.sendNowIsDisabledWhileLocationServicesAreOff
