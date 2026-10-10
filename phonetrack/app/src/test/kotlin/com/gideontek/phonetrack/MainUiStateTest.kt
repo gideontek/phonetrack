@@ -80,12 +80,12 @@ class MainUiStateTest {
 
     @Test fun cadenceWithDistance() {
         val v = SubscriptionView.of(sub(expiresAt = 10 * 3_600_000L), now = 0L)
-        assertEquals("every 15 min · moves of 200 m+", v.cadence)
+        assertEquals("every 15min · moves of 200m+", v.cadence)
     }
 
     @Test fun cadenceAnyMovementWhenDistanceZero() {
         val v = SubscriptionView.of(sub(dist = 0, freq = 5, expiresAt = 10 * 3_600_000L), now = 0L)
-        assertEquals("every 5 min · any movement", v.cadence)
+        assertEquals("every 5min · any movement", v.cadence)
     }
 
     @Test fun fractionAndTexts() {

@@ -104,10 +104,10 @@ data class SubscriptionView(
             val remaining = (sub.expiresAt - now).coerceAtLeast(0L)
             val fraction = if (totalMs <= 0L) 0f
                 else (remaining.toFloat() / totalMs.toFloat()).coerceIn(0f, 1f)
-            val movement = if (sub.distMeters <= 0) "any movement" else "moves of ${sub.distMeters} m+"
+            val movement = if (sub.distMeters <= 0) "any movement" else "moves of ${sub.distMeters}m+"
             return SubscriptionView(
                 number = sub.number,
-                cadence = "every ${sub.freqMinutes} min · $movement",
+                cadence = "every ${sub.freqMinutes}min · $movement",
                 fraction = fraction,
                 leftText = RelativeTime.left(remaining),
                 totalText = "of ${sub.durationHours} h"
