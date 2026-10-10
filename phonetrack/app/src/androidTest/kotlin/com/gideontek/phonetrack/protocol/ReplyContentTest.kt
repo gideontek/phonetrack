@@ -34,6 +34,38 @@ class ReplyContentTest {
         assertTrue(reply, !reply.contains("Time:"))
     }
 
+    private val coordsLine = "Lat: 37.7749, Lon: -122.4194"
+
+    @Test
+    fun coordinatesOnAddTheLatLonLineToTheDefaultReply() {
+        parts("coords", "accuracy", "battery", "osm")
+        val reply = assertOneReply(oneShot())
+        assertTrue(reply, reply.startsWith("[PhoneTrack] $coordsLine\nAcc: 5m, Bat: "))
+        assertTrue(reply, reply.endsWith("\n$link"))
+    }
+
+    @Test
+    fun coordinatesOnAreInTheLastKnownReply() {
+        parts("coords", "accuracy", "battery", "osm")
+        // Text and link do not fit one SMS together with the coordinates, so the link may arrive separately.
+        val all = Scenario().ready().ask("phonetrack last", expect = 2).joinToString("\n")
+        assertTrue(all, Regex("""\[PhoneTrack] Last known \(\d+[smhd] ago\)\n""" + Regex.escape(coordsLine) + "\n").containsMatchIn(all))
+    }
+
+    @Test
+    fun coordinatesOnAreInTheImmediateFixOfASubscription() {
+        parts("coords", "accuracy", "battery", "osm")
+        val replies = Scenario().ready().ask("phonetrack subscribe", expect = 2)
+        assertTrue(replies.toString(), replies.drop(1).joinToString("\n").contains(coordsLine))
+    }
+
+    @Test
+    fun coordinatesAreLeftOutOfEveryReplyByDefault() {
+        val s = Scenario().ready()
+        val replies = s.ask("phonetrack") + s.ask("phonetrack last") + s.ask("phonetrack subscribe", expect = 2)
+        assertTrue(replies.toString(), replies.none { it.contains("Lat:") || it.contains("Lon:") })
+    }
+
     @Test
     fun coordinatesOnly() {
         parts("coords")

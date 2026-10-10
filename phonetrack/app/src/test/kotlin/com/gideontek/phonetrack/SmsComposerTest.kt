@@ -43,6 +43,47 @@ class SmsComposerTest {
         assertEquals(listOf("[PhoneTrack] $url"), SmsComposer.composeLocation(fix(), only("osm")))
     }
 
+    private val coordsLine = "Lat: 37.7749, Lon: -122.4194"
+    private val arrows = listOf("⇑", "⇗", "⇒", "⇘", "⇓", "⇙", "⇐", "⇖")
+
+    @Test
+    fun `coordinates on add the Lat Lon line to the default reply`() {
+        assertEquals(
+            listOf("[PhoneTrack] $coordsLine\nAcc: 5m, Bat: 85%\n$url"),
+            SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT.copy(coords = true))
+        )
+    }
+
+    @Test
+    fun `coordinates on are in a one-shot, a subscription update and a last-known reply`() {
+        val on = ReplyOptions.DEFAULT.copy(coords = true)
+        val oneShot = SmsComposer.composeLocation(fix(), on)
+        assertTrue(oneShot.toString(), oneShot.any { it.contains(coordsLine) })
+
+        val update = SmsComposer.composeLocation(fix(), on, prevLat = 37.7649, prevLon = -122.4194)
+        assertTrue(update.toString(), update.any { it.contains(coordsLine) })
+        assertTrue("the update still has its movement arrow: $update", arrows.any { a -> update.any { it.contains(a) } })
+
+        val last = SmsComposer.composeLastKnown(fix(), on, 12 * 60_000L)
+        assertTrue(last.toString(), last[0].startsWith("[PhoneTrack] Last known (12m ago)\n$coordsLine\n"))
+    }
+
+    @Test
+    fun `coordinates off leave the Lat Lon line out of every kind of reply`() {
+        val off = ReplyOptions.DEFAULT
+        assertFalse(off.coords)
+        val replies = SmsComposer.composeLocation(fix(), off) +
+            SmsComposer.composeLocation(fix(), off, prevLat = 37.7649, prevLon = -122.4194) +
+            SmsComposer.composeLastKnown(fix(), off, 12 * 60_000L)
+        assertTrue(replies.toString(), replies.none { it.contains("Lat:") || it.contains("Lon:") })
+    }
+
+    @Test
+    fun `coordinates stay with the other parts when everything is on`() {
+        val msgs = SmsComposer.composeLocation(fix(), all)
+        assertTrue(msgs.toString(), msgs[0].contains("$coordsLine\nAcc: 5m, Bat: 85%, Time: "))
+    }
+
     @Test
     fun `a detail part alone gets the map link, because a reply must say where the phone is`() {
         assertEquals(listOf("[PhoneTrack] Acc: 5m\n$url"), SmsComposer.composeLocation(fix(), only("accuracy")))
