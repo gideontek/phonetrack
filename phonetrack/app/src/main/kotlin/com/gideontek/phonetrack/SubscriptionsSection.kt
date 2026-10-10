@@ -28,15 +28,11 @@ fun SubscriptionsSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("Active subscriptions", style = MaterialTheme.typography.titleMedium)
-            Text(
-                subscriptions.size.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            CountLabel(subscriptions.size.toString())
         }
         for (sub in subscriptions) {
             Card(modifier = Modifier.fillMaxWidth()) {

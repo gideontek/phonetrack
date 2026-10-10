@@ -75,15 +75,11 @@ fun DecisionsSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("Needs your decision", style = MaterialTheme.typography.titleMedium)
-            Text(
-                "${pending.size} waiting",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            CountLabel("${pending.size} waiting")
         }
         Text(
             "Tap a number to approve or block it.",
