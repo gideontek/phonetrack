@@ -58,27 +58,27 @@ object RelativeTime {
     private const val HOUR = 60 * MINUTE
     private const val DAY = 24 * HOUR
 
-    /** "just now", "12 min ago", "2 h ago", "3 d ago". */
+    /** "just now", "12min ago", "2h ago", "3d ago". */
     fun ago(now: Long, then: Long): String {
         val diff = (now - then).coerceAtLeast(0L)
         return when {
             diff < MINUTE -> "just now"
-            diff < HOUR -> "${diff / MINUTE} min ago"
-            diff < DAY -> "${diff / HOUR} h ago"
-            else -> "${diff / DAY} d ago"
+            diff < HOUR -> "${diff / MINUTE}min ago"
+            diff < DAY -> "${diff / HOUR}h ago"
+            else -> "${diff / DAY}d ago"
         }
     }
 
-    /** "2 h 10 min left", "14 min left", "less than a minute left". */
+    /** "2h 10min left", "14min left", "less than a minute left". */
     fun left(remainingMs: Long): String {
         val ms = remainingMs.coerceAtLeast(0L)
         return when {
             ms < MINUTE -> "less than a minute left"
-            ms < HOUR -> "${ms / MINUTE} min left"
+            ms < HOUR -> "${ms / MINUTE}min left"
             else -> {
                 val hours = ms / HOUR
                 val minutes = (ms % HOUR) / MINUTE
-                if (minutes == 0L) "$hours h left" else "$hours h $minutes min left"
+                if (minutes == 0L) "${hours}h left" else "${hours}h ${minutes}min left"
             }
         }
     }
@@ -90,7 +90,9 @@ data class SubscriptionView(
     val cadence: String,
     val fraction: Float,
     val leftText: String,
-    val totalText: String
+    val totalText: String,
+    /** "15min ago" once an update has gone out; null until then (a new subscription has sent none yet). */
+    val sentAgo: String?
 ) {
     companion object {
         /** Live (not yet expired) subscriptions, soonest to end first. */
@@ -110,7 +112,9 @@ data class SubscriptionView(
                 cadence = "every ${sub.freqMinutes}min · $movement",
                 fraction = fraction,
                 leftText = RelativeTime.left(remaining),
-                totalText = "of ${sub.durationHours} h"
+                totalText = "of ${sub.durationHours}h",
+                sentAgo = if (sub.lastLat == 0.0 && sub.lastLon == 0.0) null
+                    else RelativeTime.ago(now, sub.lastSentAt)
             )
         }
     }

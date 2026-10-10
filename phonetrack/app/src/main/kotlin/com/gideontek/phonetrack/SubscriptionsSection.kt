@@ -60,11 +60,18 @@ fun SubscriptionsSection(
                             .fillMaxWidth()
                             .semantics { contentDescription = "Time left: ${sub.leftText}" }
                     )
-                    Text(
-                        "${sub.leftText} ${sub.totalText}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            "${sub.leftText} ${sub.totalText}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (sub.sentAgo != null) InfoChip("Sent ${sub.sentAgo}")
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End

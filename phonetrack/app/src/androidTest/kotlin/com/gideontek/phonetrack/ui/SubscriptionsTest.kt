@@ -36,15 +36,15 @@ class SubscriptionsTest {
         compose.onNodeWithText("Active subscriptions").assertIsDisplayed()
         compose.onNodeWithText(other).assertIsDisplayed()
         compose.onNodeWithText("every 15min · moves of 200m+").assertIsDisplayed()
-        compose.onNodeWithText("2 h 10 min left of 4 h").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Time left: 2 h 10 min left").assertExists()
+        compose.onNodeWithText("2h 10min left of 4h").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Time left: 2h 10min left").assertExists()
     }
 
     @Test
     fun noMovementThresholdReadsAnyMovement() {
         ui.launch { TestState.seedSubscriptions(TestState.subscription(other, dist = 0, freq = 5, hours = 1, expiresInMs = 14 * 60_000L + 30_000L)) }
         compose.onNodeWithText("every 5min · any movement").assertIsDisplayed()
-        compose.onNodeWithText("14 min left of 1 h").assertIsDisplayed()
+        compose.onNodeWithText("14min left of 1h").assertIsDisplayed()
     }
 
     @Test

@@ -127,7 +127,7 @@ fun StatusCard(
 }
 
 @Composable
-private fun InfoChip(text: String) {
+fun InfoChip(text: String) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         contentColor = MaterialTheme.colorScheme.onSurfaceVariant,

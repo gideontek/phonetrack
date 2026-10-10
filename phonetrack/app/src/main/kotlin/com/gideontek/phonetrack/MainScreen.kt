@@ -73,7 +73,7 @@ fun MainScreen(
     }
     val streamState = StreamActivityLogic.currentState(lastReceiveAt, lastSendAt, now, hasActiveSubscription)
 
-    // Slow clock for the "asked 12 min ago" / "2 h left" text and for hiding subscriptions
+    // Slow clock for the "asked 12min ago" / "2h left" text and for hiding subscriptions
     // that have just expired.
     var clock by remember { mutableStateOf(System.currentTimeMillis()) }
     LaunchedEffect(Unit) {
