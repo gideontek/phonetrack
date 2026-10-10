@@ -50,7 +50,7 @@ class SettingsLogicTest {
     }
 
     @Test fun summaryForDefault() =
-        assertEquals("Coordinates · Accuracy · Battery · Map link · 1\u00A0SMS", ReplySummary.text(ReplyOptions.DEFAULT))
+        assertEquals("Accuracy · Battery · Map link · 1\u00A0SMS", ReplySummary.text(ReplyOptions.DEFAULT))
 
     @Test fun summaryForLinkOnly() =
         assertEquals("Map link · 1\u00A0SMS", ReplySummary.text(ReplyOptions.LINK_ONLY))

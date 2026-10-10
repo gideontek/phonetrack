@@ -25,9 +25,10 @@ class ReplyContentTest {
     private fun oneShot(): List<String> = Scenario().ready().ask("phonetrack")
 
     @Test
-    fun theDefaultIsCoordinatesAccuracyBatteryAndTheMapLink() {
+    fun theDefaultIsAccuracyBatteryAndTheMapLink() {
         val reply = assertOneReply(oneShot())
-        assertTrue(reply, reply.startsWith("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: "))
+        assertTrue(reply, reply.startsWith("[PhoneTrack] Acc: 5m, Bat: "))
+        assertTrue(reply, !reply.contains("Lat:"))
         assertTrue(reply, Regex("""Bat: \d+%""").containsMatchIn(reply))
         assertTrue(reply, reply.endsWith("\n$link"))
         assertTrue(reply, !reply.contains("Time:"))
@@ -40,23 +41,23 @@ class ReplyContentTest {
     }
 
     @Test
-    fun accuracyOnly() {
+    fun accuracyAloneGetsTheMapLinkBecauseAReplyMustSayWhereThePhoneIs() {
         parts("accuracy")
-        assertEquals("[PhoneTrack] Acc: 5m", assertOneReply(oneShot()))
+        assertEquals("[PhoneTrack] Acc: 5m\n$link", assertOneReply(oneShot()))
     }
 
     @Test
-    fun batteryOnly() {
+    fun batteryAloneGetsTheMapLink() {
         parts("battery")
         val reply = assertOneReply(oneShot())
-        assertTrue(reply, Regex("""\[PhoneTrack] Bat: \d+%( \(charging\))?""").matches(reply))
+        assertTrue(reply, Regex("""\[PhoneTrack] Bat: \d+%( \(charging\))?\n""" + Regex.escape(link)).matches(reply))
     }
 
     @Test
     fun timeOfFixIsShownAsUtc() {
-        parts("time")
+        parts("time", "osm")
         val reply = assertOneReply(oneShot())
-        assertTrue(reply, Regex("""\[PhoneTrack] Time: \d\d:\d\dZ""").matches(reply))
+        assertTrue(reply, Regex("""\[PhoneTrack] Time: \d\d:\d\dZ\n""" + Regex.escape(link)).matches(reply))
     }
 
     @Test
@@ -91,18 +92,17 @@ class ReplyContentTest {
     }
 
     @Test
-    fun lastKnownHasAnAgeHeaderAndNeverShowsBattery() {
-        parts("coords", "accuracy", "battery", "osm")
+    fun lastKnownHasAnAgeHeaderAndShowsBattery() {
+        parts("accuracy", "battery", "osm")
         val reply = assertOneReply(Scenario().ready().ask("phonetrack last"))
-        assertTrue(reply, Regex("""\[PhoneTrack] Last known \(\d+[smhd] ago\)\nLat: 37\.7749, Lon: -122\.4194\nAcc: 5m\n""").containsMatchIn(reply))
+        assertTrue(reply, Regex("""\[PhoneTrack] Last known \(\d+[smhd] ago\)\nAcc: 5m, Bat: \d+%( \(charging\))?\n""").containsMatchIn(reply))
         assertTrue(reply, reply.endsWith(link))
-        assertTrue(reply, !reply.contains("Bat:"))
     }
 
     @Test
-    fun lastKnownWithOnlyBatteryChosenFallsBackToTheLink() {
+    fun lastKnownWithOnlyBatteryChosenGivesTheAgeTheBatteryAndTheLink() {
         parts("battery")
         val reply = assertOneReply(Scenario().ready().ask("phonetrack last"))
-        assertTrue(reply, reply.contains("Last known (") && reply.endsWith(link))
+        assertTrue(reply, Regex("""\[PhoneTrack] Last known \(\d+[smhd] ago\)\nBat: \d+%( \(charging\))?\n""" + Regex.escape(link)).matches(reply))
     }
 }

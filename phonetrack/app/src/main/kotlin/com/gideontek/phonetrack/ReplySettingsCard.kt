@@ -42,15 +42,16 @@ fun ReplySettingsCard(
     onChange: (ReplyOptions) -> Unit
 ) {
     var expanded by rememberSaveable { mutableStateOf(false) }
-    val onCount = options.count
+    val locationCount = options.locationCount
 
     @Composable
-    fun Part(label: String, checked: Boolean, update: (Boolean) -> ReplyOptions) {
+    fun Part(label: String, checked: Boolean, isLocation: Boolean, update: (Boolean) -> ReplyOptions) {
         ToggleRow(
             label = label,
             supporting = null,
             checked = checked,
-            enabled = !isLocked && (!checked || onCount > 1),
+            // The last of Coordinates / geo: link / OpenStreetMap link must stay on.
+            enabled = !isLocked && (!checked || !isLocation || locationCount > 1),
             onCheckedChange = { onChange(update(it)) }
         )
     }
@@ -87,12 +88,12 @@ fun ReplySettingsCard(
 
         if (expanded) {
             RowDivider()
-            Part("Coordinates", options.coords) { options.copy(coords = it) }
-            Part("Accuracy", options.accuracy) { options.copy(accuracy = it) }
-            Part("Battery", options.battery) { options.copy(battery = it) }
-            Part("Time of fix (UTC)", options.time) { options.copy(time = it) }
-            Part("geo: link", options.geo) { options.copy(geo = it) }
-            Part("OpenStreetMap link", options.osm) { options.copy(osm = it) }
+            Part("Coordinates", options.coords, isLocation = true) { options.copy(coords = it) }
+            Part("Accuracy", options.accuracy, isLocation = false) { options.copy(accuracy = it) }
+            Part("Battery", options.battery, isLocation = false) { options.copy(battery = it) }
+            Part("Time of fix (UTC)", options.time, isLocation = false) { options.copy(time = it) }
+            Part("geo: link", options.geo, isLocation = true) { options.copy(geo = it) }
+            Part("OpenStreetMap link", options.osm, isLocation = true) { options.copy(osm = it) }
             RowDivider()
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -117,7 +118,7 @@ fun ReplySettingsCard(
                     }
                 }
                 Text(
-                    "At least one part must stay on. Periodic updates also show how far you moved " +
+                    "At least one of Coordinates, geo: link and OpenStreetMap link must stay on. Subscription updates also show how far you moved " +
                         "since the last one, and \"last\" shows how old its fix is.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant

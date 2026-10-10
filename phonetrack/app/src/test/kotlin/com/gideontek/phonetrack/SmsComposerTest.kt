@@ -24,9 +24,9 @@ class SmsComposerTest {
     )
 
     @Test
-    fun `the default reply is one SMS with coordinates, accuracy, battery and the map link`() {
+    fun `the default reply is one SMS with accuracy, battery and the map link`() {
         assertEquals(
-            listOf("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85%\n$url"),
+            listOf("[PhoneTrack] Acc: 5m, Bat: 85%\n$url"),
             SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT)
         )
     }
@@ -37,20 +37,24 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `each part alone produces just that part`() {
+    fun `each location part alone produces just that part`() {
         assertEquals(listOf("[PhoneTrack] Lat: 37.7749, Lon: -122.4194"), SmsComposer.composeLocation(fix(), only("coords")))
-        assertEquals(listOf("[PhoneTrack] Acc: 5m"), SmsComposer.composeLocation(fix(), only("accuracy")))
-        assertEquals(listOf("[PhoneTrack] Bat: 85%"), SmsComposer.composeLocation(fix(), only("battery")))
-        assertEquals(listOf("[PhoneTrack] Time: 18:32Z"), SmsComposer.composeLocation(fix(), only("time")))
         assertEquals(listOf("geo:37.7749,-122.4194"), SmsComposer.composeLocation(fix(), only("geo")))
         assertEquals(listOf("[PhoneTrack] $url"), SmsComposer.composeLocation(fix(), only("osm")))
     }
 
     @Test
+    fun `a detail part alone gets the map link, because a reply must say where the phone is`() {
+        assertEquals(listOf("[PhoneTrack] Acc: 5m\n$url"), SmsComposer.composeLocation(fix(), only("accuracy")))
+        assertEquals(listOf("[PhoneTrack] Bat: 85%\n$url"), SmsComposer.composeLocation(fix(), only("battery")))
+        assertEquals(listOf("[PhoneTrack] Time: 18:32Z\n$url"), SmsComposer.composeLocation(fix(), only("time")))
+    }
+
+    @Test
     fun `detail parts share one line in a fixed order`() {
-        val opts = ReplyOptions(accuracy = true, battery = true, time = true, osm = false)
+        val opts = ReplyOptions(accuracy = true, battery = true, time = true, osm = true)
         assertEquals(
-            listOf("[PhoneTrack] Acc: 5m, Bat: 85%, Time: 18:32Z"),
+            listOf("[PhoneTrack] Acc: 5m, Bat: 85%, Time: 18:32Z\n$url"),
             SmsComposer.composeLocation(fix(), opts)
         )
     }
@@ -58,7 +62,7 @@ class SmsComposerTest {
     @Test
     fun `battery notes when it is charging`() {
         assertEquals(
-            listOf("[PhoneTrack] Bat: 85% (charging)"),
+            listOf("[PhoneTrack] Bat: 85% (charging)\n$url"),
             SmsComposer.composeLocation(fix(charging = true), only("battery"))
         )
     }
@@ -196,7 +200,7 @@ class SmsComposerTest {
         val original = java.util.TimeZone.getDefault()
         try {
             java.util.TimeZone.setDefault(java.util.TimeZone.getTimeZone("Asia/Tokyo"))
-            assertEquals(listOf("[PhoneTrack] Time: 18:32Z"), SmsComposer.composeLocation(fix(), only("time")))
+            assertEquals(listOf("[PhoneTrack] Time: 18:32Z\n$url"), SmsComposer.composeLocation(fix(), only("time")))
         } finally {
             java.util.TimeZone.setDefault(original)
         }
@@ -281,10 +285,10 @@ class SmsComposerTest {
     // -------------------------------------------------------------------------
 
     @Test
-    fun `last known with the default options is one message headed with the fix age, without battery`() {
+    fun `last known with the default options is one message headed with the fix age, with battery`() {
         val msgs = SmsComposer.composeLastKnown(fix(), ReplyOptions.DEFAULT, 12 * 60_000L)
         assertEquals(
-            listOf("[PhoneTrack] Last known (12m ago)\nLat: 37.7749, Lon: -122.4194\nAcc: 5m\n$url"),
+            listOf("[PhoneTrack] Last known (12m ago)\nAcc: 5m, Bat: 85%\n$url"),
             msgs
         )
     }
@@ -309,15 +313,22 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `last known leaves out battery and time even when they are on`() {
+    fun `last known keeps battery but replaces the time of fix with the age`() {
         val msgs = SmsComposer.composeLastKnown(fix(), all, 90_000L)
-        assertFalse(msgs.any { it.contains("Bat:") || it.contains("Time:") })
+        assertTrue(msgs.any { it.contains("Bat: 85%") })
+        assertFalse(msgs.any { it.contains("Time:") })
         assertTrue(msgs[0].startsWith("[PhoneTrack] Last known (1m ago)"))
     }
 
     @Test
-    fun `last known with only battery on still gives the age and the link`() {
+    fun `last known with only battery on gives the age, the battery and the link`() {
         val msgs = SmsComposer.composeLastKnown(fix(), only("battery"), 5_000L)
+        assertEquals(listOf("[PhoneTrack] Last known (5s ago)\nBat: 85%\n$url"), msgs)
+    }
+
+    @Test
+    fun `last known with only battery on but no battery reading gives the age and the link`() {
+        val msgs = SmsComposer.composeLastKnown(fix(battery = -1), only("battery"), 5_000L)
         assertEquals(listOf("[PhoneTrack] Last known (5s ago)\n$url"), msgs)
     }
 

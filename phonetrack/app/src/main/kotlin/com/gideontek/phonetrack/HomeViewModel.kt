@@ -120,7 +120,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putString("sms_keyword", clean).apply()
     }
 
-    /** Saves what location replies contain (an all-off set becomes "just the map link"). */
+    /** Saves what location replies contain (a set with no location part gets the map link added). */
     fun setReplyOptions(options: ReplyOptions) {
         ReplyOptionsStore.write(getApplication(), options)
         _replyOptions.value = options.normalized()

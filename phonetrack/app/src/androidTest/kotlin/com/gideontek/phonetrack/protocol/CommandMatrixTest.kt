@@ -18,7 +18,8 @@ class CommandMatrixTest {
     @Test
     fun bareKeywordRepliesWithTheCurrentLocation() {
         val reply = assertOneReply(Scenario().ready().ask("phonetrack"))
-        assertTrue(reply, reply.startsWith("[PhoneTrack] Lat: 37.7749, Lon: -122.4194"))
+        assertTrue(reply, reply.startsWith("[PhoneTrack] Acc: 5m"))
+        assertTrue(reply, !reply.contains("Lat:"))
         assertTrue(reply, reply.contains("Acc: 5m"))
         assertTrue(reply, reply.contains("https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194"))
     }
@@ -27,8 +28,8 @@ class CommandMatrixTest {
     fun lastRepliesFromTheCachedFixWithItsAge() {
         val reply = assertOneReply(Scenario().ready().ask("phonetrack last"))
         assertTrue(reply, Regex("""\[PhoneTrack] Last known \(\d+[smhd] ago\)""").containsMatchIn(reply))
-        assertTrue(reply, reply.contains("Lat: 37.7749, Lon: -122.4194"))
-        assertTrue("battery is not part of a cached fix: $reply", !reply.contains("Bat:"))
+        assertTrue(reply, reply.contains("mlat=37.7749&mlon=-122.4194"))
+        assertTrue("the battery is the phone's charge now: $reply", Regex("""Bat: \d+%""").containsMatchIn(reply))
     }
 
     @Test

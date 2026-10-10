@@ -65,11 +65,11 @@ object SmsComposer {
 
     /**
      * Cached fix reply: the same parts as [composeLocation], headed with how old the fix is. The
-     * age replaces the time-of-fix option, and battery is left out (it isn't about the fix).
+     * age replaces the time-of-fix option. Battery, if selected, is the phone's charge now, not at the fix.
      */
     fun composeLastKnown(fix: LocationFix, options: ReplyOptions, ageMs: Long): List<String> {
-        // Dropping battery/time can leave nothing locating the fix (battery-only, say): normalize again.
-        val opts = options.normalized().copy(battery = false, time = false).normalized()
+        // normalized() guarantees a location part, so dropping time never leaves the reply without one.
+        val opts = options.normalized().copy(time = false)
         val header = "Last known (${formatAge(ageMs)} ago)"
         return assemble(textLines(fix, opts, header = header, movement = null), fix, opts)
     }

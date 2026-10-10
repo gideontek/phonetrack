@@ -90,7 +90,7 @@ class SettingsTest {
     @Test
     fun replyContentsSummarisesTheDefault() {
         openSettings()
-        compose.onNodeWithText("Coordinates · Accuracy · Battery · Map link · 1\u00A0SMS").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Accuracy · Battery · Map link · 1\u00A0SMS").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -108,11 +108,11 @@ class SettingsTest {
         openSettings()
         compose.onNodeWithText("Reply contents").clickVisible()
         compose.onNode(hasText("Coordinates") and isToggleable()).performScrollTo().performClick()
-        ui.waitUntil { !TestState.prefs.getBoolean("reply_coords", true) }
-        compose.onNodeWithText("Accuracy · Battery · Map link · 1\u00A0SMS").assertExists()
+        ui.waitUntil { TestState.prefs.getBoolean("reply_coords", false) }
+        compose.onNodeWithText("Coordinates · Accuracy · Battery · Map link · 1\u00A0SMS").assertExists()
         compose.onNode(hasText("Time of fix (UTC)") and isToggleable()).performScrollTo().performClick()
         ui.waitUntil { TestState.prefs.getBoolean("reply_time", false) }
-        compose.onNodeWithText("Accuracy · Battery · Time of fix · Map link · 1\u00A0SMS").assertExists()
+        compose.onNodeWithText("Coordinates · Accuracy · Battery · Time of fix · Map link · 1\u00A0SMS").assertExists()
     }
 
     @Test
@@ -125,6 +125,32 @@ class SettingsTest {
         compose.onNodeWithText("Reply contents").clickVisible()
         compose.onNode(hasText("OpenStreetMap link") and isToggleable()).performScrollTo().assertIsOn().assertIsNotEnabled()
         compose.onNode(hasText("Coordinates") and isToggleable()).assertIsEnabled()
+    }
+
+    @Test
+    fun theLastLocationPartStaysOnWhileDetailPartsCanAllBeSwitchedOff() {
+        openSettings {
+            val e = TestState.prefs.edit()
+            for (k in listOf("coords", "accuracy", "battery", "time", "geo", "osm")) e.putBoolean("reply_$k", k in listOf("osm", "accuracy", "battery"))
+            e.commit()
+        }
+        compose.onNodeWithText("Reply contents").clickVisible()
+        compose.onNode(hasText("OpenStreetMap link") and isToggleable()).performScrollTo().assertIsOn().assertIsNotEnabled()
+        compose.onNode(hasText("Accuracy") and isToggleable()).performScrollTo().assertIsEnabled().performClick()
+        compose.onNode(hasText("Battery") and isToggleable()).performScrollTo().assertIsEnabled().performClick()
+        ui.waitUntil { !TestState.prefs.getBoolean("reply_accuracy", true) && !TestState.prefs.getBoolean("reply_battery", true) }
+        compose.onNodeWithText("Map link \u00B7 1\u00A0SMS").assertExists()
+        compose.onNode(hasText("OpenStreetMap link") and isToggleable()).assertIsOn().assertIsNotEnabled()
+    }
+
+    @Test
+    fun anOlderDetailsOnlySetShowsWithTheMapLinkAdded() {
+        openSettings {
+            val e = TestState.prefs.edit()
+            for (k in listOf("coords", "accuracy", "battery", "time", "geo", "osm")) e.putBoolean("reply_$k", k == "battery")
+            e.commit()
+        }
+        compose.onNodeWithText("Battery \u00B7 Map link \u00B7 1\u00A0SMS").performScrollTo().assertIsDisplayed()
     }
 
     @Test
