@@ -52,6 +52,11 @@ class MainUiStateTest {
         assertEquals("1min ago", RelativeTime.ago(160_000, 100_000))
         assertEquals("59min ago", RelativeTime.ago(100_000 + 59 * 60_000L + 59_000L, 100_000))
         assertEquals("1h ago", RelativeTime.ago(100_000 + 3_600_000L, 100_000))
+        assertEquals("1h ago", RelativeTime.ago(100_000 + 3_600_000L + 59_999L, 100_000))
+        assertEquals("1h 1min ago", RelativeTime.ago(100_000 + 3_600_000L + 60_000L, 100_000))
+        assertEquals("1h 30min ago", RelativeTime.ago(100_000 + 90 * 60_000L, 100_000))
+        assertEquals("1h 59min ago", RelativeTime.ago(100_000 + 119 * 60_000L + 59_000L, 100_000))
+        assertEquals("2h ago", RelativeTime.ago(100_000 + 120 * 60_000L, 100_000))
         assertEquals("23h ago", RelativeTime.ago(100_000 + 23 * 3_600_000L + 1L, 100_000))
         assertEquals("1d ago", RelativeTime.ago(100_000 + 86_400_000L, 100_000))
         assertEquals("3d ago", RelativeTime.ago(100_000 + 3 * 86_400_000L + 5L, 100_000))
@@ -96,7 +101,7 @@ class MainUiStateTest {
     @Test fun sentAgoShowsTheLastUpdate() {
         val tracked = sub(expiresAt = 10 * 3_600_000L).copy(lastLat = 37.77, lastLon = -122.42, lastSentAt = 1_000_000L)
         assertEquals("15min ago", SubscriptionView.of(tracked, now = 1_000_000L + 15 * 60_000L).sentAgo)
-        assertEquals("1h ago", SubscriptionView.of(tracked, now = 1_000_000L + 90 * 60_000L).sentAgo)
+        assertEquals("1h 30min ago", SubscriptionView.of(tracked, now = 1_000_000L + 90 * 60_000L).sentAgo)
     }
 
     @Test fun fractionAndTexts() {

@@ -58,13 +58,17 @@ object RelativeTime {
     private const val HOUR = 60 * MINUTE
     private const val DAY = 24 * HOUR
 
-    /** "just now", "12min ago", "2h ago", "3d ago". */
+    /** "just now", "12min ago", "2h ago", "1h 30min ago", "3d ago". */
     fun ago(now: Long, then: Long): String {
         val diff = (now - then).coerceAtLeast(0L)
         return when {
             diff < MINUTE -> "just now"
             diff < HOUR -> "${diff / MINUTE}min ago"
-            diff < DAY -> "${diff / HOUR}h ago"
+            diff < DAY -> {
+                val hours = diff / HOUR
+                val minutes = (diff % HOUR) / MINUTE
+                if (minutes == 0L) "${hours}h ago" else "${hours}h ${minutes}min ago"
+            }
             else -> "${diff / DAY}d ago"
         }
     }
