@@ -75,7 +75,7 @@ class MainStatusTest {
             TestState.enableListening()
             TestState.prefs.edit().putLong("last_receive_at", System.currentTimeMillis() - 5 * 60_000L - 20_000L).commit()
         }
-        compose.onNodeWithText("Last request 5 min ago").assertIsDisplayed()
+        compose.onNodeWithText("Last request 5min ago").assertIsDisplayed()
     }
 
     @Test

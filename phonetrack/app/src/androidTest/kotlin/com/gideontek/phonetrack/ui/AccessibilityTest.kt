@@ -86,7 +86,7 @@ class AccessibilityTest {
         ui.launch { RichData.seed() }
         compose.onNodeWithText("Listening").assertIsDisplayed()
         compose.onNodeWithText("Needs your decision").assertIsDisplayed()
-        compose.onNodeWithText("14 min left of 1 h").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("14min left of 1h").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Approved and blocked numbers").performScrollTo().assertIsDisplayed()
     }
 

@@ -28,15 +28,11 @@ fun SubscriptionsSection(
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Row(
             modifier = Modifier.padding(horizontal = 4.dp),
-            verticalAlignment = Alignment.Bottom,
+            verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text("Active subscriptions", style = MaterialTheme.typography.titleMedium)
-            Text(
-                subscriptions.size.toString(),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            CountLabel(subscriptions.size.toString())
         }
         for (sub in subscriptions) {
             Card(modifier = Modifier.fillMaxWidth()) {
@@ -64,11 +60,18 @@ fun SubscriptionsSection(
                             .fillMaxWidth()
                             .semantics { contentDescription = "Time left: ${sub.leftText}" }
                     )
-                    Text(
-                        "${sub.leftText} ${sub.totalText}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Text(
+                            "${sub.leftText} ${sub.totalText}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (sub.sentAgo != null) InfoChip("Sent ${sub.sentAgo}")
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End

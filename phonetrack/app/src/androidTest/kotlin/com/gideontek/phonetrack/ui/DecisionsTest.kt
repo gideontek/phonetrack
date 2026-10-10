@@ -53,7 +53,7 @@ class DecisionsTest {
         compose.onNodeWithText("2 waiting").assertIsDisplayed()
         compose.onNodeWithText("Tap a number to approve or block it.").assertIsDisplayed()
         row(a).assertIsDisplayed()
-        assertEquals(2, compose.countWithText("asked 12 min ago"))
+        assertEquals(2, compose.countWithText("asked 12min ago"))
     }
 
     @Test
