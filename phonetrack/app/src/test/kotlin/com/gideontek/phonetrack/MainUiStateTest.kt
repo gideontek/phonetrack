@@ -88,6 +88,11 @@ class MainUiStateTest {
         assertEquals("every 15min · moves of 200m+", v.cadence)
     }
 
+    @Test fun cadenceShowsKilometersForLongDistances() {
+        assertEquals("every 15min · moves of 1.5km+", SubscriptionView.of(sub(dist = 1500, expiresAt = 10 * 3_600_000L), now = 0L).cadence)
+        assertEquals("every 15min · moves of 50km+", SubscriptionView.of(sub(dist = 50_000, expiresAt = 10 * 3_600_000L), now = 0L).cadence)
+    }
+
     @Test fun cadenceAnyMovementWhenDistanceZero() {
         val v = SubscriptionView.of(sub(dist = 0, freq = 5, expiresAt = 10 * 3_600_000L), now = 0L)
         assertEquals("every 5min · any movement", v.cadence)

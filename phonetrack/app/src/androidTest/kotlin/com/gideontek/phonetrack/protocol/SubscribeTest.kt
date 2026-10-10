@@ -42,7 +42,7 @@ class SubscribeTest {
         data class Case(val args: String, val dist: Int, val freq: Int, val hours: Int, val ackPart: String)
         val cases = listOf(
             Case("--dist 0 --freq 1 --time 1", 0, 1, 1, "update every 1 min, regardless of movement, for 1h"),
-            Case("--dist 50000 --freq 1440 --time 168", 50000, 1440, 168, "update every 1440 min, only if moved 50000m+, for 168h"),
+            Case("--dist 50000 --freq 1440 --time 168", 50000, 1440, 168, "update every 1440 min, only if moved 50km+, for 168h"),
         )
         for (c in cases) {
             TestState.seedSubscriptions()
