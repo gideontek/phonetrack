@@ -35,7 +35,15 @@ run() { # run "<name>" <command...>
 
 [ "$SKIP_UNIT" = 1 ] || run "JVM unit tests"            ./gradlew testDebugUnitTest -q
 mkdir -p "$OUT"
+# A flaky test is only explained by what the device logged while it ran, so start from an empty, large log
+# buffer and keep the log when the suite fails (the default buffer would roll over during a 10 minute run).
+adb -s "$SERIAL" logcat -G 16M >/dev/null 2>&1 || true
+adb -s "$SERIAL" logcat -c >/dev/null 2>&1 || true
 run "Instrumented (all granted)" ./gradlew connectedDebugAndroidTest -q
+if [ "${RESULTS[${#RESULTS[@]}-1]}" = FAIL ]; then
+  adb -s "$SERIAL" logcat -d -v threadtime > "$OUT/instrumented-logcat.txt" 2>/dev/null || true
+  echo "  Device log of the failed run: $OUT/instrumented-logcat.txt"
+fi
 # Keep the per-test XML (the release gate reads skips from it) and the UI suite's screenshot tour,
 # which leaves its pictures on the device for a person to look through.
 rm -rf "$OUT/instrumented" "$OUT/screens"; mkdir -p "$OUT/instrumented" "$OUT/screens"
