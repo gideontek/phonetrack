@@ -127,7 +127,23 @@ class SmsComposerTest {
         val msgs = SmsComposer.composeLocation(fix(), all, prevLat = 37.7649, prevLon = -122.4194)
         val arrows = listOf("⇑", "⇗", "⇒", "⇘", "⇓", "⇙", "⇐", "⇖")
         assertTrue(arrows.any { msgs[0].contains(it) })
-        assertTrue(msgs[0].contains("m"))
+        assertTrue(msgs[0], msgs[0].contains("⇑1.1km"))
+    }
+
+    @Test
+    fun `the movement distance is meters under a kilometer, then km with one decimal, then whole km`() {
+        fun movement(prevLat: Double) =
+            SmsComposer.composeLocation(fix(), all, prevLat = prevLat, prevLon = -122.4194)[0]
+        assertTrue(movement(37.7739).contains("⇑111m"))
+        assertTrue(movement(37.7649).contains("⇑1.1km"))
+        assertTrue(movement(36.7749).contains("⇑111km"))
+    }
+
+    @Test
+    fun `the subscribe confirmation shows long distances in km`() {
+        assertTrue(SmsComposer.composeSubscribeAck("pt", SubscribeParams(50_000, 15, 4), endsAt)[0].contains("only if moved 50km+"))
+        assertTrue(SmsComposer.composeSubscribeAck("pt", SubscribeParams(1_500, 15, 4), endsAt)[0].contains("only if moved 1.5km+"))
+        assertTrue(SmsComposer.composeSubscribeAck("pt", SubscribeParams(200, 15, 4), endsAt)[0].contains("only if moved 200m+"))
     }
 
     @Test

@@ -54,7 +54,7 @@ object SmsComposer {
         val movement = if (prevLat != 0.0 || prevLon != 0.0) {
             val distM = haversineMeters(prevLat, prevLon, fix.lat, fix.lon)
             val bearing = initialBearing(prevLat, prevLon, fix.lat, fix.lon)
-            "${SubscriptionLogic.bearingToArrow(bearing.toFloat())}${distM.toInt()}m"
+            "${SubscriptionLogic.bearingToArrow(bearing.toFloat())}${DistanceFormat.compact(distM)}"
         } else null
         val opts = options.normalized()
         val lines = textLines(fix, opts, header = null, movement = movement)
@@ -150,7 +150,7 @@ object SmsComposer {
         val ends = SimpleDateFormat("MMM d HH:mm'Z'", Locale.US)
             .apply { timeZone = TimeZone.getTimeZone("UTC") }
             .format(Date(expiresAtMs))
-        val movement = if (params.dist == 0) ", regardless of movement" else ", only if moved ${params.dist}m+"
+        val movement = if (params.dist == 0) ", regardless of movement" else ", only if moved ${DistanceFormat.compact(params.dist)}+"
         return listOf(
             "[PhoneTrack] Subscribed: update every ${params.freq} min$movement, " +
                 "for ${params.hours}h (ends $ends). Text \"$keyword unsubscribe\" to stop."
