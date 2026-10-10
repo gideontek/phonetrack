@@ -98,7 +98,7 @@ class KnownNumbersTest {
         compose.onNodeWithText("Send location").performClick()
         val reply = Loopback.await(before) { it.startsWith("[PhoneTrack]") }
         assertNotNull("no location reply arrived", reply)
-        assertTrue(reply!!, reply.contains("Lat: 37.7749"))
+        assertTrue(reply!!, reply.contains("mlat=37.7749"))
     }
 
     @Test

@@ -5,11 +5,11 @@ import org.junit.Test
 
 class ReplyOptionsTest {
 
-    @Test fun `the default is coordinates, accuracy, battery and the map link`() {
+    @Test fun `the default is accuracy, battery and the map link`() {
         val d = ReplyOptions.DEFAULT
-        assertTrue(d.coords && d.accuracy && d.battery && d.osm)
-        assertFalse(d.time || d.geo)
-        assertEquals(4, d.count)
+        assertTrue(d.accuracy && d.battery && d.osm)
+        assertFalse(d.coords || d.time || d.geo)
+        assertEquals(3, d.count)
     }
 
     @Test fun `a no-argument instance has everything off`() {
@@ -40,8 +40,24 @@ class ReplyOptionsTest {
         assertEquals(ReplyOptions.LINK_ONLY, ReplyOptions().normalized())
     }
 
-    @Test fun `normalizing leaves any non-empty set alone`() {
+    @Test fun `normalizing leaves a set with a location part alone`() {
         val opts = ReplyOptions(coords = true, geo = true, osm = false)
         assertEquals(opts, opts.normalized())
+        val geoOnly = ReplyOptions(accuracy = true, geo = true)
+        assertEquals(geoOnly, geoOnly.normalized())
+    }
+
+    @Test fun `accuracy, battery and time alone are not a location, so the map link is added`() {
+        assertFalse(ReplyOptions(accuracy = true, battery = true, time = true).hasLocation)
+        assertEquals(
+            ReplyOptions(accuracy = true, battery = true, time = true, osm = true),
+            ReplyOptions(accuracy = true, battery = true, time = true).normalized()
+        )
+    }
+
+    @Test fun `the location parts are coordinates, geo link and map link`() {
+        assertEquals(0, ReplyOptions(accuracy = true, battery = true, time = true).locationCount)
+        assertEquals(3, ReplyOptions(coords = true, geo = true, osm = true).locationCount)
+        assertTrue(ReplyOptions(geo = true).hasLocation)
     }
 }

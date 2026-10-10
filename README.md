@@ -81,15 +81,14 @@ Any other word after the keyword (for example `phonetrack hello`) gets the help 
 phonetrack
 ```
 
-The phone acquires a GPS fix and replies with what you've chosen under **Reply contents** in the app. By default that is one SMS with the coordinates, accuracy, battery level and an OpenStreetMap link (which opens the location in any browser):
+The phone acquires a GPS fix and replies with what you've chosen under **Reply contents** in the app. By default that is one SMS with the accuracy, battery level and an OpenStreetMap link (which opens the location in any browser):
 
 ```
-[PhoneTrack] Lat: 51.5074, Lon: -0.1278
-Acc: 8m, Bat: 73%
+[PhoneTrack] Acc: 8m, Bat: 73%
 https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
-You can switch any of these parts on or off (at least one must stay on; the time of fix and the `geo:` link are off by default):
+You can switch any of these parts on or off (at least one of Coordinates, the `geo:` link and the OpenStreetMap link must stay on; coordinates, the time of fix and the `geo:` link are off by default):
 
 | Part | Looks like |
 |------|------------|
@@ -120,12 +119,11 @@ If location services are turned off when the request arrives, the phone posts a 
 phonetrack last
 ```
 
-Replies immediately with the newest location the phone already has cached, using the same Reply contents settings as a one-shot request (battery and time of fix are left out), headed with how old the fix is. By default:
+Replies immediately with the newest location the phone already has cached, using the same Reply contents settings as a one-shot request (the time of fix is replaced by the age, and the battery is the phone's charge now, not at the fix), headed with how old the fix is. By default:
 
 ```
 [PhoneTrack] Last known (12m ago)
-Lat: 51.5074, Lon: -0.1278
-Acc: 8m
+Acc: 8m, Bat: 73%
 https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 

@@ -58,7 +58,7 @@ phonetrack-android-2026/
             │   ├── ApprovalStore.kt       # Prefs/JSON store for the approvals list (synchronized)
             │   ├── NumberMigration.kt     # Pure merge logic for the numbers migration
             │   ├── PrefsMigration.kt      # One-time versioned upgrade of stored data
-            │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: coordinates, accuracy, battery, map link)
+            │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: accuracy, battery, map link; at least one of coordinates, geo link, map link must stay on)
             │   ├── ReplyOptionsStore.kt   # Prefs store for the reply options
             │   ├── ReplySettingsCard.kt   # "Replies" section: expandable Reply contents with live preview
             │   ├── SmsLength.kt           # Pure: does text fit one SMS (GSM-7 160 / UCS-2 70)
@@ -95,7 +95,7 @@ phonetrack-android-2026/
   - `max_subscriptions` (Int, default 10, coerced to 1..20; concurrent non-expired subscriptions)
   - `rate_limit_per_hour` (Int, default 20, min 1; commands per approved sender per hour)
   - `rate_state` (JSON object of `key -> {start, count, noticed}`; see `RateLimiter`/`RateStore`)
-  - `reply_coords` / `reply_accuracy` / `reply_battery` / `reply_time` / `reply_geo` / `reply_osm` (Boolean; what a location reply contains; absent = default, which has `reply_coords`, `reply_accuracy`, `reply_battery` and `reply_osm` on and `reply_time`, `reply_geo` off)
+  - `reply_coords` / `reply_accuracy` / `reply_battery` / `reply_time` / `reply_geo` / `reply_osm` (Boolean; what a location reply contains; absent = default, which has `reply_accuracy`, `reply_battery` and `reply_osm` on and `reply_coords`, `reply_time`, `reply_geo` off; at least one of `reply_coords`, `reply_geo`, `reply_osm` is always on, `ReplyOptions.normalized()` adds the map link otherwise)
   - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)
 - No third-party libraries; only standard AndroidX
 

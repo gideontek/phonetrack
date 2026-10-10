@@ -28,7 +28,7 @@ class SubscribeTest {
         assertTrue(replies[0], replies[0].startsWith(
             "[PhoneTrack] Subscribed: update every 15 min, only if moved 200m+, for 4h (ends "))
         assertTrue(replies[0], replies[0].endsWith("Text \"phonetrack unsubscribe\" to stop."))
-        assertTrue("the second reply is the immediate fix: ${replies[1]}", replies[1].contains("Lat: 37.7749"))
+        assertTrue("the second reply is the immediate fix: ${replies[1]}", replies[1].contains("mlat=37.7749"))
         val sub = TestState.subscriptions().single()
         assertEquals(PhoneNumber.normalize(s.me), sub.number)
         assertEquals(200, sub.distMeters)

@@ -22,13 +22,13 @@ object SmsSender {
         charging = battery?.charging ?: false
     )
 
-    /** One-shot reply: the parts chosen in Reply contents (default: coordinates, accuracy, battery and the map link). */
+    /** One-shot reply: the parts chosen in Reply contents (default: accuracy, battery and the map link). */
     fun sendOneShotLocation(ctx: Context, to: String, loc: Location, battery: DeviceStatus.Battery) {
         SmsComposer.composeLocation(fixOf(loc, battery), ReplyOptionsStore.read(ctx))
             .forEach { sendRaw(ctx, to, it) }
     }
 
-    /** Periodic update: the same parts, plus the movement arrow and distance since the last one. */
+    /** Subscription update: the same parts, plus the movement arrow and distance since the last one. */
     fun sendSubscriptionLocation(
         ctx: Context,
         to: String,
@@ -66,7 +66,7 @@ object SmsSender {
     }
 
     fun sendLastKnown(ctx: Context, to: String, loc: Location, nowMs: Long) {
-        SmsComposer.composeLastKnown(fixOf(loc, null), ReplyOptionsStore.read(ctx), nowMs - loc.time)
+        SmsComposer.composeLastKnown(fixOf(loc, DeviceStatus.battery(ctx)), ReplyOptionsStore.read(ctx), nowMs - loc.time)
             .forEach { sendRaw(ctx, to, it) }
     }
 

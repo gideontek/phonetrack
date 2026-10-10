@@ -99,7 +99,7 @@ class SubscriptionsTest {
         compose.onNodeWithText("Send now").performClick()
         val reply = Loopback.await(before) { it.startsWith("[PhoneTrack]") }
         assertNotNull("no location reply arrived", reply)
-        assertTrue(reply!!, reply.contains("Lat: 37.7749, Lon: -122.4194"))
+        assertTrue(reply!!, reply.contains("mlat=37.7749&mlon=-122.4194"))
     }
 
     @Test

@@ -158,7 +158,7 @@ class LockTest {
         }
         val before = Loopback.lastId()
         compose.onNodeWithText("Send now").performClick()
-        assertNotNull(Loopback.await(before) { it.contains("Lat: 37.7749") })
+        assertNotNull(Loopback.await(before) { it.contains("mlat=37.7749") })
         assertNoPinPrompt()
         compose.onNodeWithText("Cancel").performClick()
         ui.waitUntil { TestState.subscriptions().isEmpty() }
@@ -175,7 +175,7 @@ class LockTest {
         compose.onNodeWithText("Approved and blocked numbers").performClick()
         val before = Loopback.lastId()
         compose.onNodeWithText("Send location").performClick()
-        assertNotNull(Loopback.await(before) { it.contains("Lat: 37.7749") })
+        assertNotNull(Loopback.await(before) { it.contains("mlat=37.7749") })
         assertNoPinPrompt()
     }
 

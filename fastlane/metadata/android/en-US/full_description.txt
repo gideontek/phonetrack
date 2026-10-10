@@ -1,7 +1,7 @@
 PhoneTrack SMS lets people you trust locate your phone with a text message. No internet, no account, no cloud and no data plan. This phone tracker works wherever you can receive a text.
 
 HOW IT WORKS
-An approved contact texts your keyword. Your phone texts back its GPS coordinates and an OpenStreetMap link. They don't need the app and there is nothing to sign up for. For regular check-ins they can subscribe to updates every few minutes, each showing how far and in which direction the phone has moved.
+An approved contact texts your keyword. Your phone texts back a map link to its GPS coordinates, with its location accuracy and battery level. They don't need the app and there is nothing to sign up for. For regular check-ins they can subscribe to updates every few minutes, each showing how far and in which direction the phone has moved.
 
 YOU STAY IN CONTROL
 * A new number that texts your keyword waits for your approval. Nothing is sent until you tap Approve; blocked numbers are ignored.
