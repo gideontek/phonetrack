@@ -22,19 +22,24 @@ object EventLogStore {
     fun isEnabled(ctx: Context): Boolean = prefs(ctx).getBoolean(KEY_ENABLED, false)
 
     /** Turning the log off deletes the entries and the alias map. */
-    fun setEnabled(ctx: Context, on: Boolean) = synchronized(lock) {
-        val edit = prefs(ctx).edit().putBoolean(KEY_ENABLED, on)
-        if (!on) edit.remove(KEY_LOG).remove(KEY_ALIASES)
-        edit.commit()
-        Unit
+    fun setEnabled(ctx: Context, on: Boolean) {
+        synchronized(lock) {
+            val edit = prefs(ctx).edit().putBoolean(KEY_ENABLED, on)
+            if (!on) edit.remove(KEY_LOG).remove(KEY_ALIASES)
+            edit.commit()
+        }
     }
 
-    fun clear(ctx: Context) = synchronized(lock) {
-        prefs(ctx).edit().remove(KEY_LOG).remove(KEY_ALIASES).commit()
-        Unit
+    fun clear(ctx: Context) {
+        synchronized(lock) {
+            prefs(ctx).edit().remove(KEY_LOG).remove(KEY_ALIASES).commit()
+        }
     }
 
-    /** The stored entries, oldest first, without any older than 48 hours. */
+    /**
+     * The stored entries, oldest first, without any older than 48 hours. It prunes on read but
+     * does not write the pruned list back; the next [append] does.
+     */
     fun read(ctx: Context, now: Long = System.currentTimeMillis()): List<EventEntry> = synchronized(lock) {
         EventLogLogic.prune(readLocked(ctx), now)
     }
@@ -49,8 +54,13 @@ object EventLogStore {
         if (durable) edit.commit() else edit.apply()
     }
 
-    /** The alias for [key] (a [PhoneNumber.rateKey]), assigning the next free one the first time. */
+    /**
+     * The alias for [key] (a [PhoneNumber.rateKey]), assigning the next free one the first time.
+     * Returns "" and stores nothing while the log is off. The alias map keeps every number key
+     * seen while the log is on, and is cleared together with the log.
+     */
     fun alias(ctx: Context, key: String): String = synchronized(lock) {
+        if (!isEnabled(ctx)) return@synchronized ""
         val current = readAliases(ctx)
         val (name, map) = EventLogLogic.assignAlias(current, key)
         if (map != current) {
@@ -100,8 +110,8 @@ object EventLogStore {
 
     internal fun fromJson(o: JSONObject): EventEntry? {
         val type = EventType.entries.firstOrNull { it.name == o.optString("e") } ?: return null
-        fun int(key: String): Int? = if (o.has(key)) o.optInt(key) else null
-        fun str(key: String): String? = if (o.has(key)) o.optString(key) else null
+        fun int(key: String): Int? = if (o.isNull(key)) null else o.optInt(key)
+        fun str(key: String): String? = if (o.isNull(key)) null else o.optString(key)
         val outcomes = o.optJSONArray("outcomes")?.let { a ->
             (0 until a.length()).mapNotNull { i -> a.optJSONObject(i)?.let { outcomeFromJson(it) } }
         } ?: emptyList()
@@ -125,7 +135,7 @@ object EventLogStore {
         val kind = OutcomeKind.fromText(o.optString("k")) ?: return null
         return Outcome(
             who = o.optString("who"), kind = kind, moved = Bucket.fromText(o.optString("moved")),
-            needM = if (o.has("needM")) o.optInt("needM") else null,
+            needM = if (o.isNull("needM")) null else o.optInt("needM"),
         )
     }
 

@@ -10,7 +10,7 @@ import androidx.core.app.NotificationManagerCompat
 
 /**
  * What the rest of the app calls to record an event. Every function returns at once while the log
- * is off (one prefs read) and none can throw: a logging bug must never stop an update being sent.
+ * is off (one prefs read; [tickReport] and [recordTick] still build a small in-memory report) and none can throw: a logging bug must never stop an update being sent.
  * The typed parameters are the privacy rule: nothing here accepts a number, a location or text
  * other than a class name, and numbers only ever reach the store as aliases.
  */
@@ -18,13 +18,26 @@ object EventLog {
 
     @Volatile private var lastEnv: EnvInfo? = null
 
-    fun isEnabled(ctx: Context): Boolean = EventLogStore.isEnabled(ctx)
+    fun isEnabled(ctx: Context): Boolean =
+        try { EventLogStore.isEnabled(ctx) } catch (_: Exception) { false }
 
     /** Turns the log on or off. Off deletes it; on starts with an environment snapshot. */
     fun setEnabled(ctx: Context, on: Boolean) {
         EventLogStore.setEnabled(ctx, on)
         lastEnv = null
         if (on) env(ctx, force = true)
+    }
+
+    /** Empties the log and starts it again with an environment snapshot. No-op while the log is off. */
+    fun clear(ctx: Context) {
+        try {
+            if (!EventLogStore.isEnabled(ctx)) return
+            EventLogStore.clear(ctx)
+            lastEnv = null
+            env(ctx, force = true)
+        } catch (_: Exception) {
+            // Deliberately ignored: see the class comment.
+        }
     }
 
     private fun alias(ctx: Context, number: String): String =
@@ -45,11 +58,15 @@ object EventLog {
 
     /** A report for one tick; [expectedAt] is when the tick was scheduled to run. */
     fun tickReport(ctx: Context, expectedAt: Long, startedAt: Long = now()): TickReport =
-        TickReport(startedAt, expectedAt) { if (isEnabled(ctx)) alias(ctx, it) else "" }
+        TickReport(startedAt, expectedAt) { n -> if (isEnabled(ctx)) alias(ctx, n) else "" }
 
     fun recordTick(ctx: Context, report: TickReport) {
-        val entry = report.finish(now()) ?: return
-        log(ctx) { entry }
+        try {
+            val entry = report.finish(now()) ?: return
+            log(ctx) { entry }
+        } catch (_: Exception) {
+            // Deliberately ignored: see the class comment.
+        }
     }
 
     fun serviceStarted(ctx: Context, reason: Reason) {
