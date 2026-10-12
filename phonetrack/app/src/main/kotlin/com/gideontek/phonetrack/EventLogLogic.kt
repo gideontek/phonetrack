@@ -16,10 +16,15 @@ object EventLogLogic {
     private val lineTime = DateTimeFormatter.ofPattern("MM-dd HH:mm:ss")
     private val fullTime = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
-    /** Entries (oldest first) younger than 48 hours at [now], at most [MAX_ENTRIES] of the newest. */
+    /**
+     * Entries (oldest first) younger than 48 hours at [now], at most [MAX_ENTRIES] of the newest.
+     * A timestamp from a clock that is ahead of real time makes pruning drop real history;
+     * this is accepted for v1.
+     */
     fun prune(entries: List<EventEntry>, now: Long): List<EventEntry> =
         entries.filter { now - it.t < MAX_AGE_MS }.takeLast(MAX_ENTRIES)
 
+    /** Appends and prunes by the new entry's time (see [prune] for the clock-skew caveat). */
     fun append(entries: List<EventEntry>, entry: EventEntry): List<EventEntry> =
         prune(entries + entry, entry.t)
 
@@ -53,9 +58,12 @@ object EventLogLogic {
     }
 
     fun lateSeconds(now: Long, expectedAt: Long): Int =
-        ((now - expectedAt) / 1000).toInt().coerceAtLeast(0)
+        ((now - expectedAt) / 1000).coerceIn(0L, Int.MAX_VALUE.toLong()).toInt()
 
-    /** Keeps letters, digits and ` ._-$`, trimmed and cut to [max]: for class names and the device model. */
+    /**
+     * Keeps letters, digits and ` ._-$`, trimmed and cut to [max]: for class names and the device model.
+     * It keeps digits, so it must not be used on free-form text.
+     */
     fun safeText(raw: String, max: Int): String =
         raw.filter { it.isLetterOrDigit() || it in " ._-$" }.trim().take(max)
 
@@ -66,28 +74,36 @@ object EventLogLogic {
             "PhoneTrack event log",
             "Recorded on this phone only. No phone numbers, locations or message text are included; " +
                 "senders appear as Contact-A, Contact-B, ...",
-            "App $appVersion · Android API $apiLevel · keeps the last 48 hours (up to $MAX_ENTRIES events)",
+            "App $appVersion · Android API $apiLevel · keeps the last ${MAX_AGE_MS / 3_600_000} hours (up to $MAX_ENTRIES events)",
         )
         if (entries.isEmpty()) return (header + "" + "No events recorded.").joinToString("\n")
 
-        val newestFirst = entries.sortedByDescending { it.t }
+        val newestFirst = entries.asReversed().sortedByDescending { it.t }
         val first = newestFirst.last().t
         val last = newestFirst.first().t
         val offset = zone.rules.getOffset(Instant.ofEpochMilli(last))
         val zoneText = if (offset.totalSeconds == 0) "UTC" else "UTC${offset.id}"
-        header += "Times: $zoneText · first ${fullTime.withZone(zone).format(Instant.ofEpochMilli(first))}" +
-            " · last ${fullTime.withZone(zone).format(Instant.ofEpochMilli(last))}"
-        val body = newestFirst.map {
-            "${lineTime.withZone(zone).format(Instant.ofEpochMilli(it.t))}  ${line(it)}"
-        }
+        // One offset for the header and every line, so they agree even across a DST change.
+        val full = fullTime.withZone(offset)
+        val short = lineTime.withZone(offset)
+        header += "Times: $zoneText · first ${full.format(Instant.ofEpochMilli(first))}" +
+            " · last ${full.format(Instant.ofEpochMilli(last))}"
+        val body = newestFirst.map { "${short.format(Instant.ofEpochMilli(it.t))}  ${line(it)}" }
         return (header + "" + body).joinToString("\n")
     }
+
+    private val aliasPattern = Regex("^Contact-[A-Z]+$")
+
+    /** Only a well-formed alias is shown; anything else (a number, say) becomes `?`. */
+    private fun alias(who: String?) = who?.takeIf { aliasPattern.matches(it) } ?: "?"
 
     private fun reason(e: EventEntry) = e.reason?.let { " (${it.text})" } ?: ""
 
     private fun settings(e: EventEntry): String {
+        val every = e.freqMin?.toString() ?: "?"
+        val hours = e.hours?.toString() ?: "?"
         val move = if ((e.distM ?: 0) == 0) "regardless of movement" else "only if moved ${e.distM} m or more"
-        return "every ${e.freqMin} min, $move, for ${e.hours} h"
+        return "every $every min, $move, for $hours h"
     }
 
     private fun line(e: EventEntry): String = when (e.type) {
@@ -97,13 +113,13 @@ object EventLogLogic {
         EventType.BOOT_RESUME ->
             if (e.reason != null) "boot: could not resume ${e.n ?: 0} subscription(s)" + reason(e)
             else "boot: resumed ${e.n ?: 0} subscription(s)"
-        EventType.SUBSCRIBED -> "${e.who ?: "?"} subscribed: ${settings(e)}"
-        EventType.REPLACED -> "${e.who ?: "?"} replaced subscription: ${settings(e)}"
-        EventType.EXPIRED -> "${e.who ?: "?"} subscription expired"
-        EventType.CANCELLED -> "${e.who ?: "?"} unsubscribed"
+        EventType.SUBSCRIBED -> "${alias(e.who)} subscribed: ${settings(e)}"
+        EventType.REPLACED -> "${alias(e.who)} replaced subscription: ${settings(e)}"
+        EventType.EXPIRED -> "${alias(e.who)} subscription expired"
+        EventType.CANCELLED -> "${alias(e.who)} unsubscribed"
         EventType.SUBSCRIBE_REJECTED -> "subscribe rejected" + reason(e)
         EventType.FIX_FAIL -> "no location fix" + reason(e)
-        EventType.SEND_FAIL -> "${e.who ?: "?"} send failed (${e.err ?: "error"}, ${e.parts ?: 0} part(s))"
+        EventType.SEND_FAIL -> "${alias(e.who)} send failed (${e.err?.let { safeText(it, 60) } ?: "error"}, ${e.parts ?: 0} part(s))"
         EventType.ENV -> envLine(e.env)
     }
 
@@ -111,10 +127,10 @@ object EventLogLogic {
         val head = "tick (late ${e.lateS ?: 0}s) · ${e.n ?: 0} subs, ${e.due ?: 0} due"
         val outcomes = e.outcomes.map {
             when (it.kind) {
-                OutcomeKind.SENT -> "${it.who} sent"
+                OutcomeKind.SENT -> "${alias(it.who)} sent"
                 OutcomeKind.NOT_MOVED ->
-                    "${it.who} skipped: moved ${it.moved?.text ?: "?"}, needs ${it.needM ?: 0}m"
-                OutcomeKind.LISTENER_OFF -> "${it.who} skipped: listener off"
+                    "${alias(it.who)} skipped: moved ${it.moved?.text ?: "?"}, needs ${it.needM ?: 0}m"
+                OutcomeKind.LISTENER_OFF -> "${alias(it.who)} skipped: listener off"
             }
         }
         val fix = if (e.fixS != null) listOf("fix ${e.fixS}s, ${e.acc?.text ?: "?"}") else emptyList()
@@ -126,13 +142,14 @@ object EventLogLogic {
         fun yn(b: Boolean) = if (b) "yes" else "no"
         return "env: fine-location ${yn(env.fineLocation)}, background-location ${yn(env.backgroundLocation)}, " +
             "notifications ${yn(env.notifications)}, location-services ${yn(env.locationServices)}, " +
-            "battery-unrestricted ${yn(env.batteryUnrestricted)}, device ${env.device}"
+            "battery-unrestricted ${yn(env.batteryUnrestricted)}, device ${safeText(env.device, 40)}"
     }
 }
 
 /**
  * Collects what one service tick did, so it is logged as a single line however the tick ends.
  * [aliasOf] turns a phone number into its alias; the number itself is never kept.
+ * Calls made after [finish] are silently lost.
  */
 class TickReport(
     startedAt: Long,

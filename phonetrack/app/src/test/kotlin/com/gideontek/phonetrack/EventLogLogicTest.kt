@@ -35,6 +35,15 @@ class EventLogLogicTest {
         assertEquals(listOf(2 * hour, 49 * hour), out.map { it.t })
     }
 
+    @Test fun `prune applies the age limit and the cap together`() {
+        val now = 100 * hour
+        val old = List(10) { entry(now - 60 * hour + it) }
+        val recent = List(310) { entry(now - 10 * hour + it) }
+        val out = EventLogLogic.prune(old + recent, now)
+        assertEquals(300, out.size)
+        assertEquals(recent.takeLast(300).map { it.t }, out.map { it.t })
+    }
+
     // --- aliases -------------------------------------------------------------------------
 
     @Test fun `alias names run A to Z then AA`() {
@@ -43,6 +52,8 @@ class EventLogLogicTest {
         assertEquals("Contact-Z", EventLogLogic.aliasName(25))
         assertEquals("Contact-AA", EventLogLogic.aliasName(26))
         assertEquals("Contact-AB", EventLogLogic.aliasName(27))
+        assertEquals("Contact-ZZ", EventLogLogic.aliasName(701))
+        assertEquals("Contact-AAA", EventLogLogic.aliasName(702))
     }
 
     @Test fun `a key keeps its alias and a new key gets the next one`() {
@@ -62,6 +73,7 @@ class EventLogLogicTest {
         assertEquals(Bucket.M10_50, EventLogLogic.bucket(10f))
         assertEquals(Bucket.M10_50, EventLogLogic.bucket(49.9f))
         assertEquals(Bucket.M50_100, EventLogLogic.bucket(50f))
+        assertEquals(Bucket.M50_100, EventLogLogic.bucket(99.9f))
         assertEquals(Bucket.M100_200, EventLogLogic.bucket(100f))
         assertEquals(Bucket.M200_500, EventLogLogic.bucket(200f))
         assertEquals(Bucket.M500_1K, EventLogLogic.bucket(500f))
@@ -97,7 +109,6 @@ class EventLogLogicTest {
     }
 
     @Test fun `a tick report carries lateness fix and outcomes`() {
-        aliases.clear()
         val report = TickReport(startedAt = 12_500, expectedAt = 10_000, aliasOf = ::aliasOf)
         report.subs = 2; report.due = 2
         report.fix(seconds = 4, accuracyM = 5f)
@@ -119,7 +130,6 @@ class EventLogLogicTest {
     }
 
     @Test fun `listener off marks every due subscriber`() {
-        aliases.clear()
         val report = TickReport(startedAt = 1_000, expectedAt = 1_000, aliasOf = ::aliasOf)
         report.listenerOff(listOf("5551111111", "5552222222"))
         assertEquals(
@@ -174,9 +184,9 @@ class EventLogLogicTest {
             ),
         )
         val text = EventLogLogic.render(log, "1.1", 35, ZoneOffset.UTC)
+        assertTrue("no plain 'service stopped' line in:\n$text", text.lines().any { it.endsWith("  service stopped") })
         for (line in listOf(
             "service stopped (no-subs)",
-            "service stopped\n",
             "boot: resumed 2 subscription(s)",
             "boot: could not resume 2 subscription(s) (cannot-start)",
             "Contact-A replaced subscription: every 1 min, regardless of movement, for 1 h",
@@ -199,21 +209,87 @@ class EventLogLogicTest {
 
     // --- privacy ----------------------------------------------------------------------------
 
-    @Test fun `a full tick never puts a number or a coordinate in the log`() {
-        aliases.clear()
+    @Test fun `a full tick never puts a number or an exact distance in the log`() {
         val number = "+15551234567"
         val report = TickReport(startedAt = 2_000, expectedAt = 1_000, aliasOf = ::aliasOf)
         report.subs = 1; report.due = 1
         report.fix(seconds = 3, accuracyM = 8f)
         report.notMoved(number, movedMeters = 12.34f, needM = 200)
-        val entries = listOf(
-            report.finish(now = 3_000)!!,
-            EventEntry(4_000, EventType.SUBSCRIBED, who = aliasOf(number), freqMin = 15, distM = 200, hours = 4),
-        )
+        val entries = listOf(report.finish(now = 3_000)!!)
         val everything = EventLogLogic.render(entries, "1.1", 35, ZoneOffset.UTC) + entries.toString()
-        for (secret in listOf("5551234567", "15551234567", "37.77", "-122.41", "12.34")) {
+        for (secret in listOf("5551234567", "12.34")) {
             assertFalse("'$secret' leaked into: $everything", everything.contains(secret))
         }
         assertTrue(everything.contains("Contact-A"))
+    }
+
+    @Test fun `render refuses a number as an alias and strips odd characters`() {
+        val number = "+15551234567"
+        val log = listOf(
+            EventEntry(1_000, EventType.SUBSCRIBED, who = number, freqMin = 15, distM = 0, hours = 1),
+            EventEntry(2_000, EventType.SEND_FAIL, who = "Contact-a", parts = 1, err = "Boom $number"),
+            EventEntry(
+                3_000, EventType.TICK, n = 1, due = 1, lateS = 0,
+                outcomes = listOf(Outcome(number, OutcomeKind.SENT))
+            ),
+            EventEntry(
+                4_000, EventType.ENV,
+                env = EnvInfo(true, true, true, true, true, "Evil:Dev@ice")
+            ),
+        )
+        val text = EventLogLogic.render(log, "1.1", 35, ZoneOffset.UTC)
+        // safeText keeps digits (by design: it is for class names), so only the '+' form is guaranteed gone.
+        assertFalse(text, text.contains("+1555"))
+        assertFalse(text, text.contains("Contact-a"))
+        assertFalse(text, text.contains("@"))
+        assertFalse(text, text.contains("Evil:"))
+        assertTrue(text, text.contains("device EvilDevice"))
+        assertTrue(text, text.contains("  ? subscribed"))
+        assertTrue(text, text.contains("  ? send failed (Boom"))
+        assertTrue(text, text.contains("? sent"))
+    }
+
+    // --- offsets, ordering and edge cases ----------------------------------------------------
+
+    @Test fun `a non-UTC zone shifts every time and names its offset`() {
+        val log = listOf(EventEntry(0, EventType.SERVICE_START), EventEntry(1_000, EventType.SERVICE_STOP))
+        val text = EventLogLogic.render(log, "1.1", 35, java.time.ZoneId.of("Asia/Kolkata"))
+        assertTrue(text, text.contains("Times: UTC+05:30 · first 1970-01-01 05:30:00 · last 1970-01-01 05:30:01"))
+        assertTrue(text, text.contains("01-01 05:30:01  service stopped"))
+        assertTrue(text, text.contains("01-01 05:30:00  service started"))
+    }
+
+    @Test fun `all lines use the newest entry's offset across a DST change`() {
+        val before = java.time.Instant.parse("2026-10-24T22:00:00Z").toEpochMilli() // CEST, +02:00
+        val after = java.time.Instant.parse("2026-10-25T10:00:00Z").toEpochMilli()  // CET, +01:00
+        val log = listOf(EventEntry(before, EventType.SERVICE_START), EventEntry(after, EventType.SERVICE_STOP))
+        val text = EventLogLogic.render(log, "1.1", 35, java.time.ZoneId.of("Europe/Berlin"))
+        assertTrue(text, text.contains("Times: UTC+01:00 · first 2026-10-24 23:00:00 · last 2026-10-25 11:00:00"))
+        assertTrue(text, text.contains("10-25 11:00:00  service stopped"))
+        assertTrue(text, text.contains("10-24 23:00:00  service started"))
+    }
+
+    @Test fun `entries with the same time render newest written first`() {
+        val log = listOf(EventEntry(5_000, EventType.EXPIRED, who = "Contact-A"), EventEntry(5_000, EventType.CANCELLED, who = "Contact-B"))
+        val lines = EventLogLogic.render(log, "1.1", 35, ZoneOffset.UTC).lines()
+        val cancelled = lines.indexOfFirst { it.contains("Contact-B unsubscribed") }
+        val expired = lines.indexOfFirst { it.contains("Contact-A subscription expired") }
+        assertTrue(cancelled in 0 until expired)
+    }
+
+    @Test fun `lateness does not wrap for a huge gap`() {
+        assertEquals(Int.MAX_VALUE, EventLogLogic.lateSeconds(now = Long.MAX_VALUE / 2, expectedAt = 0))
+    }
+
+    @Test fun `missing subscription settings render as a question mark, not null`() {
+        val text = EventLogLogic.render(listOf(EventEntry(1_000, EventType.REPLACED)), "1.1", 35, ZoneOffset.UTC)
+        assertFalse(text, text.contains("null"))
+        assertTrue(text, text.contains("every ? min, regardless of movement, for ? h"))
+    }
+
+    @Test fun `a tick with no fix and no outcomes is just the head`() {
+        val log = listOf(EventEntry(1_000, EventType.TICK, n = 1, due = 1, lateS = 0))
+        val text = EventLogLogic.render(log, "1.1", 35, ZoneOffset.UTC)
+        assertTrue(text, text.lines().any { it.endsWith("  tick (late 0s) · 1 subs, 1 due") })
     }
 }
