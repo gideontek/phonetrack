@@ -39,18 +39,7 @@ class UiScenario(mockLocation: Boolean = false, grant: Boolean = true) : TestRul
     }
 
     /** Turns the system location switch and waits for the system itself to report it. */
-    fun setLocationServices(on: Boolean) {
-        Shell.run("cmd location set-location-enabled $on")
-        Shell.run("settings put secure location_mode ${if (on) 3 else 0}")
-        val lm = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-            .getSystemService(android.location.LocationManager::class.java)
-        val deadline = android.os.SystemClock.elapsedRealtime() + 5_000
-        fun reported() = if (android.os.Build.VERSION.SDK_INT >= 28) lm.isLocationEnabled
-            else lm.isProviderEnabled(android.location.LocationManager.GPS_PROVIDER) ||
-                lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)
-        while (reported() != on && android.os.SystemClock.elapsedRealtime() < deadline) android.os.SystemClock.sleep(200)
-        org.junit.Assume.assumeTrue("this device did not apply the location setting", reported() == on)
-    }
+    fun setLocationServices(on: Boolean) = LocationSwitch.set(on)
 
     /** Runs [block] on the main thread with the running activity (e.g. to reach its view model). */
     fun onActivity(block: (MainActivity) -> Unit) = scenario!!.onActivity { block(it) }
