@@ -83,8 +83,10 @@ class SmsReceiver : BroadcastReceiver() {
         when (val command = SmsCommandParser.parse(tokens.drop(1))) {
             SmsCommand.OneShot -> startLocationFetch(context, sender)
             is SmsCommand.Subscribe -> handleSubscribe(context, sender, keyword, command.params)
-            is SmsCommand.InvalidSubscribe ->
+            is SmsCommand.InvalidSubscribe -> {
+                EventLog.subscribeRejected(context, Reason.INVALID_FLAGS)
                 SmsSender.sendInvalidSubscribe(context, sender, command.message, keyword)
+            }
             SmsCommand.Unsubscribe -> handleUnsubscribe(context, sender)
             SmsCommand.Last -> handleLast(context, sender, keyword)
             SmsCommand.Help -> SmsSender.sendHelp(context, sender, keyword)
@@ -142,9 +144,11 @@ class SmsReceiver : BroadcastReceiver() {
                 .getInt("max_subscriptions", SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
         )
         if (!SubscriptionLogic.canAdd(SubscriptionManager.getAll(ctx), sender, now, maxSubscriptions)) {
+            EventLog.subscribeRejected(ctx, Reason.LIMIT)
             SmsSender.sendSubscriptionLimit(ctx, sender)
             return
         }
+        val replaced = SubscriptionManager.getFor(ctx, sender) != null
         val sub = Subscription(
             number = PhoneNumber.normalize(sender),
             distMeters = params.dist,
@@ -157,6 +161,7 @@ class SmsReceiver : BroadcastReceiver() {
             lastSentAt = now
         )
         SubscriptionManager.add(ctx, sub)
+        EventLog.subscribed(ctx, sender, sub, replaced)
         SubscriptionManager.ensureServiceRunning(ctx)
         SmsSender.sendSubscribeAck(ctx, sender, keyword, params, sub.expiresAt)
         // Immediate location fix (same as one-shot)
@@ -180,6 +185,7 @@ class SmsReceiver : BroadcastReceiver() {
 
     private fun handleUnsubscribe(ctx: Context, sender: String) {
         if (SubscriptionManager.remove(ctx, sender)) {
+            EventLog.cancelled(ctx, sender)
             SmsSender.sendSubscriptionCancelled(ctx, sender)
         } else {
             SmsSender.sendNoSubscription(ctx, sender)

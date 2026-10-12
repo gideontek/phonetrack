@@ -6,6 +6,7 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.gideontek.phonetrack.ApprovalEntry
 import com.gideontek.phonetrack.ApprovalState
+import com.gideontek.phonetrack.EventLogStore
 import com.gideontek.phonetrack.PinStore
 import com.gideontek.phonetrack.ApprovalStore
 import com.gideontek.phonetrack.SmsLocationService
@@ -28,6 +29,10 @@ object TestState {
         context.stopService(Intent(context, SubscriptionService::class.java))
         context.stopService(Intent(context, SmsLocationService::class.java))
         prefs.edit().clear().commit()
+        // stopService is asynchronous: a service still being destroyed may be inside an event log
+        // append that read the old log and writes it back after the clear above. The store's own
+        // locked clear waits for that append, and (the log is off now) later ones do nothing.
+        EventLogStore.clear(context)
         context.getSystemService(NotificationManager::class.java).cancelAll()
     }
 
