@@ -45,6 +45,7 @@ class SubscriptionService : Service() {
     private var startLogged = false
     private var stopReason: Reason? = null
     private var expectedTickAt = 0L
+    private var currentReport: TickReport? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // SubscriptionManager.ensureServiceRunning() — the sole caller that starts this
@@ -70,6 +71,7 @@ class SubscriptionService : Service() {
             stopSelf()
             return START_NOT_STICKY
         }
+        stopReason = null
         // onStartCommand runs on every startForegroundService call; log the service starting once.
         if (!startLogged) {
             startLogged = true
@@ -96,12 +98,29 @@ class SubscriptionService : Service() {
     /** Logs the tick (one summary line, however it ended) and schedules the next one. */
     private fun endTick(report: TickReport, delayMs: Long) {
         EventLog.recordTick(this, report)
+        currentReport = null
         scheduleTick(delayMs)
     }
 
+    /**
+     * A new tick can start while the previous fetch is still pending (onStartCommand re-runs the
+     * tick on every start request). Drop that fetch, so its listener cannot remove the new one and
+     * its timeout cannot log a false FIX_FAIL, and log the abandoned tick.
+     */
+    private fun cancelInFlightFetch() {
+        locationTimeoutRunnable?.let { handler.removeCallbacks(it) }
+        locationTimeoutRunnable = null
+        locationListener?.let { locationManager?.removeUpdates(it) }
+        locationListener = null
+        currentReport?.let { EventLog.recordTick(this, it) }
+        currentReport = null
+    }
+
     private fun tick() {
+        cancelInFlightFetch()
         EventLog.env(this)
         val report = EventLog.tickReport(this, expectedTickAt)
+        currentReport = report
 
         // 1. Prune expired subscriptions; notify each one.
         val expired = SubscriptionManager.pruneExpired(this)
@@ -181,6 +200,10 @@ class SubscriptionService : Service() {
         )
     }
 
+    // -------------------------------------------------------------------------
+    // Location fetch (Handler + LocationListener, same pattern as SmsLocationService)
+    // -------------------------------------------------------------------------
+
     @SuppressLint("MissingPermission")
     @Suppress("DEPRECATION") // requestSingleUpdate deprecated at API 30; acceptable for MVP
     private fun fetchLocation(onLocation: (Location) -> Unit, onFailure: (Reason) -> Unit) {
@@ -252,6 +275,8 @@ class SubscriptionService : Service() {
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         locationListener?.let { locationManager?.removeUpdates(it) }
+        // Destroyed mid-fetch: the tick that was waiting for a fix is still logged (finish() is once-only).
+        currentReport?.let { EventLog.recordTick(this, it) }
         EventLog.serviceStopped(this, stopReason)
         super.onDestroy()
     }

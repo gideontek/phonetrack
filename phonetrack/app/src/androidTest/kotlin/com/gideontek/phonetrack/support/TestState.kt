@@ -32,6 +32,7 @@ object TestState {
         // stopService is asynchronous: a service still being destroyed may be inside an event log
         // append that read the old log and writes it back after the clear above. The store's own
         // locked clear waits for that append, and (the log is off now) later ones do nothing.
+        // A dying service's SERVICE_STOP can still land after the next test enables the log.
         EventLogStore.clear(context)
         context.getSystemService(NotificationManager::class.java).cancelAll()
     }

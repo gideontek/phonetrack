@@ -1,6 +1,8 @@
 package com.gideontek.phonetrack.protocol
 
 import android.content.Context
+import android.location.LocationManager
+import androidx.core.location.LocationManagerCompat
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import com.gideontek.phonetrack.EventLogStore
@@ -38,19 +40,23 @@ class EventLogFailureTest {
         TestState.seedSubscriptions(Subscription("+15550001111", 200, 15, 4, old, now + 3_600_000L, 0.0, 0.0, old))
         Shell.run("cmd location set-location-enabled false")
         Shell.run("settings put secure location_mode 0")
-        SystemClock.sleep(500)
+        val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val offBy = SystemClock.elapsedRealtime() + 10_000
+        while (SystemClock.elapsedRealtime() < offBy && LocationManagerCompat.isLocationEnabled(lm)) SystemClock.sleep(100)
+        assertTrue("location did not switch off", !LocationManagerCompat.isLocationEnabled(lm))
         SubscriptionManager.ensureServiceRunning(context)
 
         val end = SystemClock.elapsedRealtime() + 25_000
-        var failed = false
-        while (SystemClock.elapsedRealtime() < end && !failed) {
-            failed = EventLogStore.read(context).any { it.type == EventType.FIX_FAIL && it.reason == Reason.PROVIDER_OFF }
-            if (!failed) SystemClock.sleep(300)
+        var done = false
+        while (SystemClock.elapsedRealtime() < end && !done) {
+            val log = EventLogStore.read(context)
+            done = log.any { it.type == EventType.FIX_FAIL && it.reason == Reason.PROVIDER_OFF } &&
+                log.any { it.type == EventType.TICK && it.due == 1 && it.outcomes.isEmpty() }
+            if (!done) SystemClock.sleep(300)
         }
-        assertTrue("no FIX_FAIL provider-off in ${EventLogStore.read(context)}", failed)
         assertTrue(
-            "the failed tick is still summarised, with no update sent",
-            EventLogStore.read(context).any { it.type == EventType.TICK && it.due == 1 && it.outcomes.isEmpty() }
+            "want FIX_FAIL provider-off and a TICK (1 due, nothing sent); log was ${EventLogStore.read(context)}",
+            done
         )
     }
 }
