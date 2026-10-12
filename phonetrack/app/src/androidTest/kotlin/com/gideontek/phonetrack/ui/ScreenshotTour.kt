@@ -2,6 +2,7 @@ package com.gideontek.phonetrack.ui
 
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -11,6 +12,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.test.core.app.ApplicationProvider
 import com.gideontek.phonetrack.support.RichData
 import com.gideontek.phonetrack.support.Shell
+import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.UiScenario
 import com.gideontek.phonetrack.support.clickVisible
 import org.junit.Rule
@@ -69,4 +71,22 @@ class ScreenshotTour {
     @Test fun darkNormal() = tour("dark-1.0x", dark = true, scale = 1.0f)
     @Test fun lightLargeText() = tour("light-1.3x", dark = false, scale = 1.3f)
     @Test fun darkLargeText() = tour("dark-1.3x", dark = true, scale = 1.3f)
+
+    private fun eventLogTour(tag: String, dark: Boolean) {
+        ui.setDarkMode(dark)
+        ui.launch { TestState.seedEventLog() }
+        compose.onNodeWithContentDescription("Settings").clickVisible()
+        compose.onNodeWithText("Diagnostics").performScrollTo()
+        compose.onNodeWithText("View event log").performScrollTo() // brings the whole section into view
+        compose.waitForIdle()
+        save("settings-eventlog-$tag")
+        compose.onNodeWithText("View event log").clickVisible()
+        // The log text is one scrolling node: there is no parent to scroll it into view.
+        compose.onNodeWithText("PhoneTrack event log", substring = true).assertIsDisplayed()
+        compose.waitForIdle()
+        save("eventlog-$tag")
+    }
+
+    @Test fun eventLogLight() = eventLogTour("light", dark = false)
+    @Test fun eventLogDark() = eventLogTour("dark", dark = true)
 }

@@ -52,6 +52,9 @@ class UiScenario(mockLocation: Boolean = false, grant: Boolean = true) : TestRul
         org.junit.Assume.assumeTrue("this device did not apply the location setting", reported() == on)
     }
 
+    /** Runs [block] on the main thread with the running activity (e.g. to reach its view model). */
+    fun onActivity(block: (MainActivity) -> Unit) = scenario!!.onActivity { block(it) }
+
     fun recreate() {
         scenario!!.recreate()
         compose.waitForIdle()
