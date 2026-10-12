@@ -28,7 +28,7 @@ assert_not_contains "$(sms_rows_since $BASE | grep '^2|')" "Lat:" "nothing is se
 
 location_services on
 "${ADB[@]}" emu geo fix -122.4194 37.7749 >/dev/null
-if wait_for 45 bash -c "source '$(dirname "$0")/lib.sh'; sms_rows_since '$BASE' | grep -q '^2|.*Lat: 37.77'"; then
+if wait_for 45 bash -c "source '$(dirname "$0")/lib.sh'; sms_rows_since '$BASE' | grep -q '^2|.*Acc: 5m'"; then
   pass "the request is answered once location is back on"
 else
   fail "no reply after switching location on: $(sms_rows_since $BASE | head -3)"
