@@ -9,8 +9,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationManagerCompat
 
 /**
- * What the rest of the app calls to record an event. Every function returns at once while the log
- * is off (one prefs read; [tickReport] and [recordTick] still build a small in-memory report) and none can throw: a logging bug must never stop an update being sent.
+ * What the rest of the app calls to record an event. Every function returns at once while the
+ * log is off (one prefs read; [tickReport] and [recordTick] still build a small in-memory report)
+ * and none can throw: a logging bug must never stop an update being sent.
  * The typed parameters are the privacy rule: nothing here accepts a number, a location or text
  * other than a class name, and numbers only ever reach the store as aliases.
  */
@@ -23,7 +24,11 @@ object EventLog {
 
     /** Turns the log on or off. Off deletes it; on starts with an environment snapshot. */
     fun setEnabled(ctx: Context, on: Boolean) {
-        EventLogStore.setEnabled(ctx, on)
+        try {
+            EventLogStore.setEnabled(ctx, on)
+        } catch (_: Exception) {
+            // Deliberately ignored: see the class comment.
+        }
         lastEnv = null
         if (on) env(ctx, force = true)
     }
