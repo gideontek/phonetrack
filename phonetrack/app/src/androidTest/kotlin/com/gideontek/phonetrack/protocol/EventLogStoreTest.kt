@@ -135,11 +135,16 @@ class EventLogStoreTest {
     @Test
     fun explicitJsonNullsReadAsMissing() {
         EventLogStore.setEnabled(context, true)
-        val row = """[{"t":${System.currentTimeMillis()},"e":"CANCELLED","who":null,"n":null}]"""
+        val now = System.currentTimeMillis()
+        val row = """[{"t":$now,"e":"CANCELLED","who":null,"n":null},
+            {"t":$now,"e":"TICK","outcomes":[{"who":"Contact-A","k":"sent","needM":null}]}]"""
         TestState.prefs.edit().putString("event_log", row).commit()
-        val read = EventLogStore.read(context).single()
-        assertEquals(null, read.who)
-        assertEquals(null, read.n)
+        val read = EventLogStore.read(context)
+        assertEquals(null, read[0].who)
+        assertEquals(null, read[0].n)
+        val outcome = read.single { it.type == EventType.TICK }.outcomes.single()
+        assertEquals(OutcomeKind.SENT, outcome.kind)
+        assertEquals(null, outcome.needM)
     }
 
     @Test
@@ -173,8 +178,10 @@ class EventLogStoreTest {
 
     @Test
     fun clearingThroughTheFacadeDoesNothingWhileTheLogIsOff() {
+        TestState.prefs.edit().putString("event_log_aliases", "{\"k\":\"Contact-A\"}").commit()
         EventLog.clear(context)
         assertFalse(TestState.prefs.contains("event_log"))
+        assertTrue("the facade must do nothing while off", TestState.prefs.contains("event_log_aliases"))
     }
 
     @Test
