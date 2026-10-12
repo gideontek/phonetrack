@@ -238,7 +238,8 @@ class EventLogLogicTest {
             ),
         )
         val text = EventLogLogic.render(log, "1.1", 35, ZoneOffset.UTC)
-        // safeText keeps digits (by design: it is for class names), so only the '+' form is guaranteed gone.
+        assertFalse(text, text.contains("5551234567"))
+        assertTrue(text, text.contains("send failed (Boom,"))
         assertFalse(text, text.contains("+1555"))
         assertFalse(text, text.contains("Contact-a"))
         assertFalse(text, text.contains("@"))
@@ -247,6 +248,12 @@ class EventLogLogicTest {
         assertTrue(text, text.contains("  ? subscribed"))
         assertTrue(text, text.contains("  ? send failed (Boom"))
         assertTrue(text, text.contains("? sent"))
+    }
+
+    @Test fun `an exception class name renders unchanged`() {
+        val log = listOf(EventEntry(1_000, EventType.SEND_FAIL, who = "Contact-A", parts = 1, err = "SecurityException"))
+        val text = EventLogLogic.render(log, "1.1", 35, ZoneOffset.UTC)
+        assertTrue(text, text.contains("Contact-A send failed (SecurityException, 1 part(s))"))
     }
 
     // --- offsets, ordering and edge cases ----------------------------------------------------

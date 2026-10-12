@@ -97,6 +97,10 @@ object EventLogLogic {
     /** Only a well-formed alias is shown; anything else (a number, say) becomes `?`. */
     private fun alias(who: String?) = who?.takeIf { aliasPattern.matches(it) } ?: "?"
 
+    /** An exception class name: letters and `.`, `_`, `$` only, so no digits or spaces can carry a number. */
+    private fun errName(err: String?): String =
+        err?.filter { it.isLetter() || it in "._$" }?.take(60)?.takeIf { it.isNotEmpty() } ?: "error"
+
     private fun reason(e: EventEntry) = e.reason?.let { " (${it.text})" } ?: ""
 
     private fun settings(e: EventEntry): String {
@@ -119,7 +123,7 @@ object EventLogLogic {
         EventType.CANCELLED -> "${alias(e.who)} unsubscribed"
         EventType.SUBSCRIBE_REJECTED -> "subscribe rejected" + reason(e)
         EventType.FIX_FAIL -> "no location fix" + reason(e)
-        EventType.SEND_FAIL -> "${alias(e.who)} send failed (${e.err?.let { safeText(it, 60) } ?: "error"}, ${e.parts ?: 0} part(s))"
+        EventType.SEND_FAIL -> "${alias(e.who)} send failed (${errName(e.err)}, ${e.parts ?: 0} part(s))"
         EventType.ENV -> envLine(e.env)
     }
 
