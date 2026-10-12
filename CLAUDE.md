@@ -43,7 +43,7 @@ phonetrack-android-2026/
             │   ├── SettingsScreen.kt      # Settings screen: General, Replies, Limits, Permissions, Security, Diagnostics (event log), About
             │   ├── SettingsComponents.kt  # Section/row building blocks (ToggleRow, StepperRow, PermissionRow)
             │   ├── SettingsLogic.kt       # Pure: limit-stepper rules (LimitSteps), reply summary, sample fix
-            │   ├── HomeViewModel.kt       # Activity-scoped ViewModel shared by both screens
+            │   ├── HomeViewModel.kt       # Activity-scoped ViewModel shared by all screens
             │   ├── PermissionsState.kt    # rememberPermissionsState(): grant state, launchers, resume hook
             │   ├── PinDialogs.kt          # Set/unlock PIN dialogs, lock button, guard() for on-demand unlock
             │   ├── SmsReceiver.kt         # BroadcastReceiver (gate + dispatch on SmsCommand)

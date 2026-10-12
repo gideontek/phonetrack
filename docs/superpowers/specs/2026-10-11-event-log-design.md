@@ -55,7 +55,7 @@ free-text field.
 | `reason` | enum | skips, fix failures, send failures, service start/stop, rejections |
 | `fixS` | int seconds | fix latency |
 | `acc` | bucket | `<10m`, `10-50m`, `50-100m`, `100-200m`, `200-500m`, `0.5-1km`, `1-5km`, `>5km` |
-| `moved` (bucket), `need` (exact int metres, the subscription's own distance setting) | a `not-moved` outcome inside a TICK |
+| `moved` (bucket), `needM` (exact int metres, the subscription's own distance setting; an outcome's kind is stored under key `k`) | a `not-moved` outcome inside a TICK |
 | `parts` | int | SEND_FAIL |
 | `freqMin`, `distM`, `hours` | int | SUBSCRIBED, REPLACED (the subscription's settings; configuration, not location data, so exact values are fine) |
 | `err` | exception class name | SEND_FAIL |
@@ -95,7 +95,7 @@ Reasons:
    of the copied text, and is cleared with the log. Aliases are stable for the log's life and
    never reused for a different sender. (The numbers already live in `subscriptions_list` and
    `approvals_list`, so this adds no exposure.)
-3. Movement and accuracy are bucketed (the finer bucket list above), never exact. The one exact distance is `need`, the subscription's configured threshold, which is configuration, not location data.
+3. Movement and accuracy are bucketed (the finer bucket list above), never exact. The one exact distance is `needM`, the subscription's configured threshold, which is configuration, not location data.
 4. Exceptions record the class name only, never the message.
 5. The copied text starts with a header: privacy note, app version, Android API level,
    retention window, log start and end time.
@@ -191,8 +191,8 @@ app-resume hook. `EventLog.clear` re-snapshots the environment, so Clear leaves 
    off clears log and alias map; `SUBSCRIBE_REJECTED` at the limit; `EventLogStore` JSON round-trip (org.json is
    stubbed in JVM tests; confirm against how existing store tests handle it).
 3. **Compose UI**: toggle and view row; empty and off states; Copy puts header and entries on
-   the clipboard; Clear needs confirmation; PIN guard; the new screen in `AccessibilityTest`
-   and `ScreenshotTour`.
+   the clipboard; Clear needs confirmation; the viewer locked while a PIN is set; 48 dp touch areas at 1.0x and 1.3x text (in
+   `EventLogUiTest`, not `AccessibilityTest`); the new screen in `ScreenshotTour`.
 4. **Host scenario** `scripts/e2e/slow-event-log.sh`: a real tick is logged; location services
    off then `provider-off`; a killed process then `sticky-restart`; no phone number in the stored
    log. (Revoking location kills the process and is covered by `perm-no-location`; the 60 s
