@@ -55,24 +55,26 @@ free-text field.
 | `reason` | enum | skips, fix failures, send failures, service start/stop, rejections |
 | `fixS` | int seconds | fix latency |
 | `acc` | bucket | `<10m`, `10-50m`, `50-100m`, `100-200m`, `200-500m`, `0.5-1km`, `1-5km`, `>5km` |
-| `moved` (bucket), `need` (exact int metres, the subscription's own distance setting) | SKIP_NOT_MOVED (outcome inside the TICK) |
-| `parts` | int | SENT, SEND_FAIL |
+| `moved` (bucket), `need` (exact int metres, the subscription's own distance setting) | a `not-moved` outcome inside a TICK |
+| `parts` | int | SEND_FAIL |
 | `freqMin`, `distM`, `hours` | int | SUBSCRIBED, REPLACED (the subscription's settings; configuration, not location data, so exact values are fine) |
 | `err` | exception class name | SEND_FAIL |
 
 Event codes:
 
 - Tick and service: `TICK`, `SERVICE_START`, `SERVICE_STOP`, `BOOT_RESUME`
-- Subscriber decisions: `SKIP_NOT_MOVED`, `SKIP_LISTENER_OFF`, `SENT`, `SUBSCRIBED`, `EXPIRED`,
-  `CANCELLED`, `REPLACED`, `SUBSCRIBE_REJECTED`
-- Location: `FIX_OK`, `FIX_FAIL`
+- Subscriptions: `SUBSCRIBED`, `REPLACED`, `EXPIRED`, `CANCELLED`, `SUBSCRIBE_REJECTED`
+- Location: `FIX_FAIL` (a successful fix is not an event; its latency and accuracy are TICK fields)
 - Send: `SEND_FAIL`
 - Environment: `ENV`
+
+A due subscriber's result in a tick is an outcome (`sent`, `not-moved`, `listener-off`) stored as a
+field of that `TICK` entry, not as an event of its own.
 
 In the rendered text, per-subscriber results of a tick (sent, skipped, fix result) are folded
 into that tick's line, e.g.
 `tick (late 2s) · 3 subs, 1 due -> Contact-A sent (fix 4s, <10m)`. `sent` means the update was handed to `SmsSender`; a failed hand-off adds a `SEND_FAIL` line.
-`SKIP_NOT_MOVED` etc. are fields of that line, not separate lines. Separate lines are for
+Outcomes are part of that line, not separate lines. Separate lines are for
 service start/stop, boot resume, subscribe/expiry/cancel/replace, subscribe rejection, `FIX_FAIL`,
 `SEND_FAIL` and `ENV`.
 
@@ -81,6 +83,7 @@ Reasons:
 - Fix failure: `no-permission`, `provider-off`, `timeout`
 - Service start: `requested` (any start request: subscribe, boot, app resume), `sticky-restart` (null intent). `onStartCommand` runs on every `startForegroundService`, so the start is logged once per service instance; a boot start is visible from the `BOOT_RESUME` line before it
 - Service stop: `no-subs`, `startForeground-denied`
+- Boot resume failure: `cannot-start` (the service could not be started from the boot receiver)
 - Rejection: `limit`, `invalid-flags`
 
 ## Privacy rules
