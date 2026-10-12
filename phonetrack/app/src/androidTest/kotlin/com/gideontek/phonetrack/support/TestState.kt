@@ -6,8 +6,14 @@ import android.content.Intent
 import androidx.test.core.app.ApplicationProvider
 import com.gideontek.phonetrack.ApprovalEntry
 import com.gideontek.phonetrack.ApprovalState
+import com.gideontek.phonetrack.Bucket
+import com.gideontek.phonetrack.EventEntry
 import com.gideontek.phonetrack.EventLogStore
+import com.gideontek.phonetrack.EventType
+import com.gideontek.phonetrack.Outcome
+import com.gideontek.phonetrack.OutcomeKind
 import com.gideontek.phonetrack.PinStore
+import com.gideontek.phonetrack.Reason
 import com.gideontek.phonetrack.ApprovalStore
 import com.gideontek.phonetrack.SmsLocationService
 import com.gideontek.phonetrack.Subscription
@@ -104,6 +110,21 @@ object TestState {
     fun approvalState(number: String): ApprovalState? = approvals().firstOrNull { it.number == number }?.state
 
     fun approvalsJson(): String = prefs.getString("approvals_list", "[]") ?: "[]"
+
+    /** Turns the event log on and gives it two events (a service start, then a sent tick). */
+    fun seedEventLog() {
+        EventLogStore.setEnabled(context, true)
+        val now = System.currentTimeMillis()
+        EventLogStore.append(context, EventEntry(now - 60_000, EventType.SERVICE_START, reason = Reason.REQUESTED), false)
+        EventLogStore.append(
+            context,
+            EventEntry(
+                now - 30_000, EventType.TICK, n = 1, due = 1, lateS = 2, fixS = 4, acc = Bucket.UNDER_10,
+                outcomes = listOf(Outcome("Contact-A", OutcomeKind.SENT))
+            ),
+            false
+        )
+    }
 }
 
 /** Runs [TestState.reset] before each test, before any activity rule inside it starts. */
