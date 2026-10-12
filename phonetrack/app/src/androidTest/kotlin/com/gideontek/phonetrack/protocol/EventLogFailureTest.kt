@@ -1,8 +1,6 @@
 package com.gideontek.phonetrack.protocol
 
 import android.content.Context
-import android.location.LocationManager
-import androidx.core.location.LocationManagerCompat
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import com.gideontek.phonetrack.EventLogStore
@@ -10,6 +8,7 @@ import com.gideontek.phonetrack.EventType
 import com.gideontek.phonetrack.Reason
 import com.gideontek.phonetrack.Subscription
 import com.gideontek.phonetrack.SubscriptionManager
+import com.gideontek.phonetrack.support.LocationSwitch
 import com.gideontek.phonetrack.support.Scenario
 import com.gideontek.phonetrack.support.Shell
 import com.gideontek.phonetrack.support.TestState
@@ -38,12 +37,7 @@ class EventLogFailureTest {
         val now = System.currentTimeMillis()
         val old = now - 2 * 3_600_000L
         TestState.seedSubscriptions(Subscription("+15550001111", 200, 15, 4, old, now + 3_600_000L, 0.0, 0.0, old))
-        Shell.run("cmd location set-location-enabled false")
-        Shell.run("settings put secure location_mode 0")
-        val lm = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        val offBy = SystemClock.elapsedRealtime() + 10_000
-        while (SystemClock.elapsedRealtime() < offBy && LocationManagerCompat.isLocationEnabled(lm)) SystemClock.sleep(100)
-        assertTrue("location did not switch off", !LocationManagerCompat.isLocationEnabled(lm))
+        LocationSwitch.set(false)
         SubscriptionManager.ensureServiceRunning(context)
 
         val end = SystemClock.elapsedRealtime() + 25_000
