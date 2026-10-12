@@ -77,6 +77,10 @@ class SubscriptionService : Service() {
             startLogged = true
             EventLog.serviceStarted(this, if (intent == null) Reason.STICKY_RESTART else Reason.REQUESTED)
         }
+        // A fetch is already in flight (every approved command and app resume starts the service
+        // again): leave it alone, or frequent starts would keep restarting a slow GPS fix and starve
+        // the update. Its endTick reschedules from the reloaded subscription list.
+        if (locationListener != null) return START_STICKY
         // Cancel any pending tick and run immediately so a new/replaced subscription
         // gets its first update without waiting for the previous tick delay.
         tickRunnable?.let { handler.removeCallbacks(it) }
@@ -103,9 +107,9 @@ class SubscriptionService : Service() {
     }
 
     /**
-     * A new tick can start while the previous fetch is still pending (onStartCommand re-runs the
-     * tick on every start request). Drop that fetch, so its listener cannot remove the new one and
-     * its timeout cannot log a false FIX_FAIL, and log the abandoned tick.
+     * Defensive guard: onStartCommand leaves a pending fetch alone, but if a new tick ever starts
+     * while one is pending, drop that fetch so its listener cannot remove the new one and its
+     * timeout cannot log a false FIX_FAIL, and log the abandoned tick.
      */
     private fun cancelInFlightFetch() {
         locationTimeoutRunnable?.let { handler.removeCallbacks(it) }
