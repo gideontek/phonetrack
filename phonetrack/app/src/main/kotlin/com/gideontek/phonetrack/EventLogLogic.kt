@@ -153,7 +153,7 @@ object EventLogLogic {
 /**
  * Collects what one service tick did, so it is logged as a single line however the tick ends.
  * [aliasOf] turns a phone number into its alias; the number itself is never kept.
- * Calls made after [finish] are silently lost.
+ * Calls made after [finish] are silently lost. Must not throw: it is called unguarded on the send path.
  */
 class TickReport(
     startedAt: Long,

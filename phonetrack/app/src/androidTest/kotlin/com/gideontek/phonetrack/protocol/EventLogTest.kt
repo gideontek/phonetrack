@@ -49,10 +49,20 @@ class EventLogTest {
 
     @Test
     fun nothingIsRecordedWhileTheLogIsOff() {
-        val s = Scenario().ready()
-        subscribe(s)
+        // Make the service really tick and send, then check that it left no log behind.
+        TestState.enableListening()
+        val seeded = dueSub("+15550001111", 0.0, 0.0)
+        TestState.seedSubscriptions(seeded)
+        SubscriptionManager.ensureServiceRunning(context)
+        val end = SystemClock.elapsedRealtime() + 25_000
+        while (SystemClock.elapsedRealtime() < end &&
+            TestState.subscriptions().none { it.lastSentAt > seeded.lastSentAt }
+        ) SystemClock.sleep(300)
+        assertTrue("the service never sent an update", TestState.subscriptions().any { it.lastSentAt > seeded.lastSentAt })
+        subscribe(Scenario().ready())
         assertTrue(log().isEmpty())
         assertFalse(TestState.prefs.contains("event_log"))
+        assertFalse(TestState.prefs.contains("event_log_aliases"))
     }
 
     @Test
