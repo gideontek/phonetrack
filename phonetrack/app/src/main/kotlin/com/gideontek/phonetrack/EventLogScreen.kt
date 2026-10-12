@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -29,6 +30,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,7 +53,7 @@ fun EventLogScreen(
     val isLocked by vm.isLocked.collectAsState()
     val context = LocalContext.current
     val clipboard = LocalClipboardManager.current
-    var confirmClear by remember { mutableStateOf(false) }
+    var confirmClear by rememberSaveable { mutableStateOf(false) }
     val text = remember(entries) {
         EventLogLogic.render(entries, BuildConfig.VERSION_NAME, Build.VERSION.SDK_INT, ZoneId.systemDefault())
     }
@@ -99,14 +101,14 @@ fun EventLogScreen(
                 }
                 !enabled -> Text("Event log is off.", style = MaterialTheme.typography.bodyLarge)
                 entries.isEmpty() -> Text("No events yet", style = MaterialTheme.typography.bodyLarge)
-                else -> Text(
-                    text,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontFamily = FontFamily.Monospace,
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                )
+                else -> SelectionContainer(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontFamily = FontFamily.Monospace,
+                        modifier = Modifier.verticalScroll(rememberScrollState())
+                    )
+                }
             }
         }
     }

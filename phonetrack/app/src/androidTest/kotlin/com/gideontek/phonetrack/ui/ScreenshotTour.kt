@@ -21,7 +21,8 @@ import java.io.File
 import java.io.FileOutputStream
 
 /**
- * Saves screenshots of Main and Settings (top, scrolled, and with Reply contents open) in light and dark at 1.0x and 1.3x text
+ * Saves screenshots of Main and Settings (top, scrolled, and with Reply contents open) in light and dark at 1.0x and 1.3x text,
+ * plus the event log's Settings section and viewer in light and dark at 1.0x,
  * to `/sdcard/phonetrack-screens/` (`run-e2e.sh` pulls them into `build/e2e-report/screens/`), for a person to look through before a release.
  * Nothing is compared: the test only fails if the screens cannot be shown.
  */

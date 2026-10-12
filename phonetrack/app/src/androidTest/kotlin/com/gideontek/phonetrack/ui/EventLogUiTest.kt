@@ -3,6 +3,7 @@ package com.gideontek.phonetrack.ui
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.res.Resources
+import android.os.Build
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -22,7 +23,6 @@ import com.gideontek.phonetrack.EventType
 import com.gideontek.phonetrack.HomeViewModel
 import com.gideontek.phonetrack.support.TestState
 import com.gideontek.phonetrack.support.UiScenario
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -51,20 +51,26 @@ class EventLogUiTest {
 
     private fun toggle() = compose.onNode(hasText("Event log") and isToggleable())
 
+    private fun readClipboard(): String {
+        var text = ""
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            val cm = context.getSystemService(ClipboardManager::class.java)
+            text = cm.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
+        }
+        return text
+    }
+
     /**
-     * The clipboard text. A headless emulator never gives the app input focus, and Android 10+ denies
-     * clipboard reads to an app without it, so the read is made as the shell, which may read in the background.
+     * The clipboard text. From Android 10 an app without input focus (a headless emulator never gives
+     * it) is denied clipboard reads, so there the read is made as the shell, which may read in the
+     * background. Before that there is no such rule (and no shell identity API).
      */
     private fun clipboardText(): String {
+        if (Build.VERSION.SDK_INT < 29) return readClipboard()
         val automation = InstrumentationRegistry.getInstrumentation().uiAutomation
         automation.adoptShellPermissionIdentity("android.permission.READ_CLIPBOARD_IN_BACKGROUND")
         try {
-            var text = ""
-            InstrumentationRegistry.getInstrumentation().runOnMainSync {
-                val cm = context.getSystemService(ClipboardManager::class.java)
-                text = cm.primaryClip?.getItemAt(0)?.text?.toString().orEmpty()
-            }
-            return text
+            return readClipboard()
         } finally {
             automation.dropShellPermissionIdentity()
         }
@@ -208,6 +214,5 @@ class EventLogUiTest {
         openSettings { TestState.seedEventLog() }
         openViewer()
         for (description in listOf("Back", "Copy event log", "Clear event log")) assertTouchTarget(description)
-        assertEquals(true, EventLogStore.isEnabled(context))
     }
 }

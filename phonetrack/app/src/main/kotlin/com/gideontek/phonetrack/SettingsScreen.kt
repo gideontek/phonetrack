@@ -29,7 +29,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,7 +56,7 @@ fun SettingsScreen(
     val maxSubscriptions by vm.maxSubscriptions.collectAsState()
     val eventLogEnabled by vm.eventLogEnabled.collectAsState()
     val eventLog by vm.eventLog.collectAsState()
-    var confirmEventLogOff by remember { mutableStateOf(false) }
+    var confirmEventLogOff by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
 
@@ -208,7 +208,7 @@ fun SettingsScreen(
                 ToggleRow(
                     label = "Event log",
                     supporting = "Records timing and reasons for subscription updates. " +
-                        "No phone numbers or locations. Kept 48 hours.",
+                        "No phone numbers or locations. Kept ${EventLogLogic.MAX_AGE_MS / 3_600_000} hours.",
                     checked = eventLogEnabled,
                     enabled = !isLocked,
                     onCheckedChange = { on ->
@@ -216,7 +216,7 @@ fun SettingsScreen(
                         else vm.setEventLogEnabled(on)
                     }
                 )
-                if (eventLogEnabled || eventLog.isNotEmpty()) {
+                if (eventLogEnabled) {
                     RowDivider()
                     Row(
                         modifier = Modifier
@@ -227,11 +227,17 @@ fun SettingsScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("View event log", style = MaterialTheme.typography.bodyLarge)
+                            // Dimmed like the other controls while settings are locked.
+                            val dim = if (isLocked) 0.38f else 1f
+                            Text(
+                                "View event log",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = dim)
+                            )
                             Text(
                                 if (eventLog.size == 1) "1 event" else "${eventLog.size} events",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = dim)
                             )
                         }
                     }
