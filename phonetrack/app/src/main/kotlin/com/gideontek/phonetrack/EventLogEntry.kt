@@ -2,8 +2,9 @@ package com.gideontek.phonetrack
 
 /**
  * What happened. The per-subscriber results of a tick (sent, skipped) are [Outcome]s inside the
- * TICK entry rather than entries of their own. There is deliberately no free-text field anywhere
- * in an entry, so a phone number, coordinate or message can't be written by accident.
+ * TICK entry rather than entries of their own. An entry has no message, coordinate or number
+ * field; its only strings are an alias, an exception class name and the device model.
+ * The constant names are stored in prefs: do not rename them.
  */
 enum class EventType {
     TICK, SERVICE_START, SERVICE_STOP, BOOT_RESUME, SUBSCRIBED, REPLACED, EXPIRED,
