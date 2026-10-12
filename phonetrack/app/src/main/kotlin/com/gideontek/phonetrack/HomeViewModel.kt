@@ -198,8 +198,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun cancelSubscription(number: String) {
         val ctx = getApplication<Application>()
         SmsSender.sendSubscriptionCancelled(ctx, number)
-        SubscriptionManager.remove(ctx, number)
-        EventLog.cancelled(ctx, number)
+        if (SubscriptionManager.remove(ctx, number)) EventLog.cancelled(ctx, number)
         _subscriptions.value = SubscriptionManager.getAll(ctx)
     }
 
