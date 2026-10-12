@@ -204,7 +204,7 @@ class EventLogLogicTest {
     @Test fun `an empty log renders the header and says so`() {
         val text = EventLogLogic.render(emptyList(), "1.1", 35, ZoneOffset.UTC)
         assertTrue(text.startsWith("PhoneTrack event log\n"))
-        assertTrue(text.endsWith("No events recorded."))
+        assertTrue(text.endsWith("No events yet"))
     }
 
     // --- privacy ----------------------------------------------------------------------------

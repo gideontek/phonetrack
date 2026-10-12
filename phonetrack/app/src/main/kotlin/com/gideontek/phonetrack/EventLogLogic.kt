@@ -76,7 +76,7 @@ object EventLogLogic {
                 "senders appear as Contact-A, Contact-B, ...",
             "App $appVersion · Android API $apiLevel · keeps the last ${MAX_AGE_MS / 3_600_000} hours (up to $MAX_ENTRIES events)",
         )
-        if (entries.isEmpty()) return (header + "" + "No events recorded.").joinToString("\n")
+        if (entries.isEmpty()) return (header + "" + "No events yet").joinToString("\n")
 
         val newestFirst = entries.asReversed().sortedByDescending { it.t }
         val first = newestFirst.last().t
