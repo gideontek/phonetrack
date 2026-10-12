@@ -2,6 +2,9 @@
 
 Date: 2026-10-11 · Branch: `feat/event-log`
 
+Amended after implementation to match what was built (see the plan's deviations); where this text
+and the code differ, the code is right.
+
 ## Problem
 
 Subscription updates are sometimes late or never sent, with no visible reason. Several paths
@@ -46,13 +49,13 @@ free-text field.
 
 | Field | Type | Used by |
 |---|---|---|
-| `who` | alias (`Sub-A`) | per-subscriber events |
+| `who` | alias (`Contact-A`) | per-subscriber events |
 | `n`, `due` | int | TICK (subscriptions, due) |
 | `lateS` | int seconds | TICK (actual fire time minus scheduled time) |
 | `reason` | enum | skips, fix failures, send failures, service start/stop, rejections |
 | `fixS` | int seconds | fix latency |
-| `acc` | bucket | `<10m`, `10-50m`, `50-200m`, `>200m` |
-| `moved`, `need` | bucket | SKIP_NOT_MOVED |
+| `acc` | bucket | `<10m`, `10-50m`, `50-100m`, `100-200m`, `200-500m`, `0.5-1km`, `1-5km`, `>5km` |
+| `moved` (bucket), `need` (exact int metres, the subscription's own distance setting) | SKIP_NOT_MOVED (outcome inside the TICK) |
 | `parts` | int | SENT, SEND_FAIL |
 | `freqMin`, `distM`, `hours` | int | SUBSCRIBED, REPLACED (the subscription's settings; configuration, not location data, so exact values are fine) |
 | `err` | exception class name | SEND_FAIL |
@@ -68,7 +71,7 @@ Event codes:
 
 In the rendered text, per-subscriber results of a tick (sent, skipped, fix result) are folded
 into that tick's line, e.g.
-`tick (late 2s) · 3 subs, 1 due -> Sub-A sent (fix 4s, <10m)`.
+`tick (late 2s) · 3 subs, 1 due -> Contact-A sent (fix 4s, <10m)`. `sent` means the update was handed to `SmsSender`; a failed hand-off adds a `SEND_FAIL` line.
 `SKIP_NOT_MOVED` etc. are fields of that line, not separate lines. Separate lines are for
 service start/stop, boot resume, subscribe/expiry/cancel/replace, subscribe rejection, `FIX_FAIL`,
 `SEND_FAIL` and `ENV`.
@@ -76,7 +79,7 @@ service start/stop, boot resume, subscribe/expiry/cancel/replace, subscribe reje
 Reasons:
 
 - Fix failure: `no-permission`, `provider-off`, `timeout`
-- Service start: `first-sub`, `sticky-restart` (null intent), `boot`
+- Service start: `requested` (any start request: subscribe, boot, app resume), `sticky-restart` (null intent). `onStartCommand` runs on every `startForegroundService`, so the start is logged once per service instance; a boot start is visible from the `BOOT_RESUME` line before it
 - Service stop: `no-subs`, `startForeground-denied`
 - Rejection: `limit`, `invalid-flags`
 
@@ -84,12 +87,12 @@ Reasons:
 
 1. The record API accepts only the typed fields above. It never takes a phone number, a
    `Location` or a message string.
-2. Senders are shown as aliases (`Sub-A`, `Sub-B`, ...) assigned in order of first
+2. Senders are shown as aliases (`Contact-A`, `Contact-B`, ...; a one-shot requester is not a subscriber) assigned in order of first
    appearance. The number-to-alias map is stored in prefs (`event_log_aliases`), is never part
    of the copied text, and is cleared with the log. Aliases are stable for the log's life and
    never reused for a different sender. (The numbers already live in `subscriptions_list` and
    `approvals_list`, so this adds no exposure.)
-3. Distances, accuracy and ages are bucketed, never exact.
+3. Movement and accuracy are bucketed (the finer bucket list above), never exact. The one exact distance is `need`, the subscription's configured threshold, which is configuration, not location data.
 4. Exceptions record the class name only, never the message.
 5. The copied text starts with a header: privacy note, app version, Android API level,
    retention window, log start and end time.
@@ -138,7 +141,11 @@ passed only to look up the alias.
 **`ENV`**: booleans only (fine / background location, notifications, location services,
 battery-optimization exemption) plus API level, app version, and device manufacturer and
 model (OEM battery savers differ a lot; these identify a product line, not a person). Written when the toggle goes
-on, at each `SERVICE_START`, and when a permission or location-services change is seen.
+on, at each `SERVICE_START`, and on a tick when it differs from the last snapshot (checked in memory). There is no
+app-resume hook. `EventLog.clear` re-snapshots the environment, so Clear leaves a fresh `ENV` line.
+
+**Service lifecycle details**: a service destroyed mid-fetch still writes its `TICK`; re-entering
+`onStartCommand` mid-fetch cancels the in-flight fetch and logs its report.
 
 **Write durability**: routine `TICK` uses `apply()`; `SERVICE_STOP`, `SEND_FAIL` and
 `FIX_FAIL` use `commit()` so they survive a kill right after.
@@ -148,18 +155,18 @@ on, at each `SERVICE_START`, and when a permission or location-services change i
 - `Screen` gains `EventLog`. Back from EventLog returns to Settings, from Settings to Main
   (the `BackHandler` uses a parent-of rule).
 - New "Diagnostics" section between Security and About: `ToggleRow` "Event log" (supporting
-  text: records timing and reasons for subscription updates, no phone numbers or locations,
-  kept 48 hours) and a "View event log" row (entry count as supporting text), shown when the
-  toggle is on or entries exist.
+  text: no phone numbers or locations, kept 48 hours) and a "View event log" row (entry count
+  as supporting text), shown only while the log is on.
 - Viewer: top bar with Back, Copy, Clear. Monospace text, newest first, wrapped (no sideways
-  scroll), one scrollable region. The header block is part of what Copy puts on the
-  clipboard. Empty state "No events yet"; off state "Event log is off" with an Enable button.
+  scroll), one scrollable region; the text is selectable. The header block is part of what Copy puts on the
+  clipboard. Empty state "No events yet"; off state "Event log is off." as plain text (no Enable button).
   Copy shows brief feedback except where Android 13+ already shows its own. Clear asks for
   confirmation and empties the alias map.
-- PIN: enabling, disabling and clearing go through `pinDialogs.guard`. Viewing and copying
-  follow the existing Settings lock state when a PIN is set.
+- PIN: the existing Settings pattern applies, controls are disabled while locked (not
+  `pinDialogs.guard`). The viewer shows "Unlock to view the event log." with an Unlock button
+  while locked, which also covers a restored process.
 - Accessibility: 48 dp touch areas, content descriptions "Copy event log" and "Clear event
-  log". UI strings go in `strings.xml`; the log's own line text is rendered by
+  log". UI strings are inline like the rest of the UI (no `strings.xml`); the log's own line text is rendered by
   `EventLogLogic`, in English.
 
 ## Error handling
@@ -183,10 +190,10 @@ on, at each `SERVICE_START`, and when a permission or location-services change i
 3. **Compose UI**: toggle and view row; empty and off states; Copy puts header and entries on
    the clipboard; Clear needs confirmation; PIN guard; the new screen in `AccessibilityTest`
    and `ScreenshotTour`.
-4. **Host scenario** `scripts/e2e/event-log.sh`: force-stop then `SERVICE_START
-   (sticky-restart)`; revoke location then `FIX_FAIL (no-permission)`; location services off
-   then `provider-off`. The 60 s `timeout` reason is left to the existing
-   `slow-location-timeout` or a `slow-` scenario.
+4. **Host scenario** `scripts/e2e/slow-event-log.sh`: a real tick is logged; location services
+   off then `provider-off`; a killed process then `sticky-restart`; no phone number in the stored
+   log. (Revoking location kills the process and is covered by `perm-no-location`; the 60 s
+   `timeout` reason by `slow-location-timeout`.)
 
 ## Housekeeping
 
