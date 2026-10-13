@@ -147,8 +147,9 @@ model (OEM battery savers differ a lot; these identify a product line, not a per
 on, at each `SERVICE_START`, and on a tick when it differs from the last snapshot (checked in memory). There is no
 app-resume hook. `EventLog.clear` re-snapshots the environment, so Clear leaves a fresh `ENV` line.
 
-**Service lifecycle details**: a service destroyed mid-fetch still writes its `TICK`; re-entering
-`onStartCommand` mid-fetch cancels the in-flight fetch and logs its report.
+**Service lifecycle details**: a service destroyed mid-fetch still writes its `TICK`; a start request
+(`onStartCommand`) mid-fetch leaves the pending fetch alone; its `TICK` is written when the fix
+arrives or times out.
 
 **Write durability**: routine `TICK` uses `apply()`; `SERVICE_STOP`, `SEND_FAIL` and
 `FIX_FAIL` use `commit()` so they survive a kill right after.
