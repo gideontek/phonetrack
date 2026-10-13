@@ -46,6 +46,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _subscriptions = MutableStateFlow(SubscriptionManager.getAll(app))
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
 
+    private val _eventLogEnabled = MutableStateFlow(EventLogStore.isEnabled(app))
+    val eventLogEnabled: StateFlow<Boolean> = _eventLogEnabled.asStateFlow()
+
+    private val _eventLog = MutableStateFlow(EventLogStore.read(app))
+    val eventLog: StateFlow<List<EventEntry>> = _eventLog.asStateFlow()
+
     // Timestamps of the most recent inbound SMS request / outbound SMS reply, written by
     // SmsReceiver and SmsSender respectively. Drives the live StreamStatusIndicator state
     // via StreamActivityLogic — see MainScreen.
@@ -68,6 +74,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "rate_limit_per_hour" -> _rateLimitPerHour.value = readRateLimit()
             "max_subscriptions" -> _maxSubscriptions.value = readMaxSubscriptions()
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
+            EventLogStore.KEY_ENABLED -> _eventLogEnabled.value = EventLogStore.isEnabled(app)
+            EventLogStore.KEY_LOG -> _eventLog.value = EventLogStore.read(app)
             "last_receive_at" -> _lastReceiveAt.value = prefs.getLong("last_receive_at", 0L)
             "last_send_at" -> _lastSendAt.value = prefs.getLong("last_send_at", 0L)
         }
@@ -107,6 +115,16 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         val v = LimitSteps.clampSubscriptions(value)
         _maxSubscriptions.value = v
         prefs.edit().putInt("max_subscriptions", v).apply()
+    }
+
+    /** Turns the event log on, or off (which deletes it). */
+    fun setEventLogEnabled(on: Boolean) {
+        EventLog.setEnabled(getApplication(), on)
+    }
+
+    /** Deletes the recorded events and the alias map; the log stays on and re-snapshots the environment. */
+    fun clearEventLog() {
+        EventLog.clear(getApplication())
     }
 
     fun setEnabled(value: Boolean) {
@@ -180,7 +198,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun cancelSubscription(number: String) {
         val ctx = getApplication<Application>()
         SmsSender.sendSubscriptionCancelled(ctx, number)
-        SubscriptionManager.remove(ctx, number)
+        if (SubscriptionManager.remove(ctx, number)) EventLog.cancelled(ctx, number)
         _subscriptions.value = SubscriptionManager.getAll(ctx)
     }
 

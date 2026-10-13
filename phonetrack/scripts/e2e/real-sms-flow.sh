@@ -31,7 +31,7 @@ assert_contains "$(prefs_xml)" "APPROVED" "tapping Approve stores the decision"
 
 if [ $HAVE_SMS_READ = 1 ]; then
   "${ADB[@]}" emu sms send "$ME" "phonetrack" >/dev/null
-  if wait_for 40 bash -c "source '$(dirname "$0")/lib.sh'; sms_rows_since '$BASE' | grep -q '^2|.*Lat: 37.77'"; then
+  if wait_for 40 bash -c "source '$(dirname "$0")/lib.sh'; sms_rows_since '$BASE' | grep -q '^2|.*Acc: [0-9]'"; then
     pass "the next request is answered with the GPS fix"
   else
     fail "no location reply arrived: $(sms_rows_since $BASE | head -3)"

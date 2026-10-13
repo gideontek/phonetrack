@@ -19,10 +19,13 @@ class BootReceiver : BroadcastReceiver() {
         PrefsMigration.run(context)
         SubscriptionManager.pruneExpired(context) // silent — no SMS on boot
         if (SubscriptionManager.hasActive(context)) {
+            val count = SubscriptionManager.getAll(context).size
             if (LocationPermission.canStartLocationService(context)) {
+                EventLog.bootResume(context, count)
                 SubscriptionManager.ensureServiceRunning(context)
             } else {
                 // Subscribers would silently stop getting updates; tell the owner why.
+                EventLog.bootResume(context, count, Reason.CANNOT_START)
                 HostAlerts.locationPermissionNeeded(context, null)
             }
         }

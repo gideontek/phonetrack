@@ -15,6 +15,7 @@ import android.location.LocationManager
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -41,6 +42,10 @@ class SubscriptionService : Service() {
     private var locationManager: LocationManager? = null
     private var locationListener: LocationListener? = null
     private var locationTimeoutRunnable: Runnable? = null
+    private var startLogged = false
+    private var stopReason: Reason? = null
+    private var expectedTickAt = 0L
+    private var currentReport: TickReport? = null
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // SubscriptionManager.ensureServiceRunning() — the sole caller that starts this
@@ -62,9 +67,20 @@ class SubscriptionService : Service() {
         } catch (e: SecurityException) {
             Log.w("SubscriptionService", "Cannot start as a location foreground service", e)
             HostAlerts.locationPermissionNeeded(this, null)
+            stopReason = Reason.FOREGROUND_DENIED
             stopSelf()
             return START_NOT_STICKY
         }
+        stopReason = null
+        // onStartCommand runs on every startForegroundService call; log the service starting once.
+        if (!startLogged) {
+            startLogged = true
+            EventLog.serviceStarted(this, if (intent == null) Reason.STICKY_RESTART else Reason.REQUESTED)
+        }
+        // A fetch is already in flight (every approved command and app resume starts the service
+        // again): leave it alone, or frequent starts would keep restarting a slow GPS fix and starve
+        // the update. Its endTick reschedules from the reloaded subscription list.
+        if (locationListener != null) return START_STICKY
         // Cancel any pending tick and run immediately so a new/replaced subscription
         // gets its first update without waiting for the previous tick delay.
         tickRunnable?.let { handler.removeCallbacks(it) }
@@ -77,21 +93,52 @@ class SubscriptionService : Service() {
     // -------------------------------------------------------------------------
 
     private fun scheduleTick(delayMs: Long) {
+        expectedTickAt = System.currentTimeMillis() + delayMs
         val runnable = Runnable { tick() }
         tickRunnable = runnable
         handler.postDelayed(runnable, delayMs)
     }
 
+    /** Logs the tick (one summary line, however it ended) and schedules the next one. */
+    private fun endTick(report: TickReport, delayMs: Long) {
+        EventLog.recordTick(this, report)
+        currentReport = null
+        scheduleTick(delayMs)
+    }
+
+    /**
+     * Defensive guard: onStartCommand leaves a pending fetch alone, but if a new tick ever starts
+     * while one is pending, drop that fetch so its listener cannot remove the new one and its
+     * timeout cannot log a false FIX_FAIL, and log the abandoned tick.
+     */
+    private fun cancelInFlightFetch() {
+        locationTimeoutRunnable?.let { handler.removeCallbacks(it) }
+        locationTimeoutRunnable = null
+        locationListener?.let { locationManager?.removeUpdates(it) }
+        locationListener = null
+        currentReport?.let { EventLog.recordTick(this, it) }
+        currentReport = null
+    }
+
     private fun tick() {
+        cancelInFlightFetch()
+        EventLog.env(this)
+        val report = EventLog.tickReport(this, expectedTickAt)
+        currentReport = report
+
         // 1. Prune expired subscriptions; notify each one.
         val expired = SubscriptionManager.pruneExpired(this)
         for (sub in expired) {
+            EventLog.expired(this, sub.number)
             SmsSender.sendSubscriptionExpired(this, sub.number)
         }
 
         // 2. Reload; stop if no subscribers remain.
         val subs = SubscriptionManager.getAll(this)
+        report.subs = subs.size
         if (subs.isEmpty()) {
+            stopReason = Reason.NO_SUBS
+            EventLog.recordTick(this, report)
             stopSelf()
             return
         }
@@ -102,6 +149,7 @@ class SubscriptionService : Service() {
         // 3. Check which subscribers are due for an update.
         val now = System.currentTimeMillis()
         val dueSubs = SubscriptionLogic.dueSubs(subs, now)
+        report.due = dueSubs.size
 
         // While the SMS listener is switched off, send nothing: skip the fetch. Expiry above
         // still runs, and the service stays alive. Keep ticking at the normal pace rather than
@@ -111,13 +159,16 @@ class SubscriptionService : Service() {
         val smsEnabled = getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
             .getBoolean("sms_enabled", false)
         if (!SubscriptionLogic.shouldFetch(smsEnabled, dueSubs.size)) {
-            scheduleTick(SubscriptionLogic.nextTickDelay(subs, now))
+            if (!smsEnabled) report.listenerOff(dueSubs.map { it.number })
+            endTick(report, SubscriptionLogic.nextTickDelay(subs, now))
             return
         }
 
         // 4. Fetch location; process due subscribers in the callback.
+        val fetchStartedAt = SystemClock.elapsedRealtime()
         fetchLocation(
             onLocation = { loc ->
+                report.fix(((SystemClock.elapsedRealtime() - fetchStartedAt) / 1000).toInt(), loc.accuracy)
                 val sendTime = System.currentTimeMillis()
                 val battery = DeviceStatus.battery(this)
                 for (sub in dueSubs) {
@@ -136,15 +187,19 @@ class SubscriptionService : Service() {
                         SubscriptionManager.updateTracking(
                             this, sub.number, loc.latitude, loc.longitude, sendTime
                         )
+                        report.sent(sub.number)
+                    } else {
+                        report.notMoved(sub.number, dist[0], sub.distMeters)
                     }
                 }
                 // Reload subs (tracking was updated) and schedule next tick.
                 val updated = SubscriptionManager.getAll(this)
-                scheduleTick(SubscriptionLogic.nextTickDelay(updated, System.currentTimeMillis()))
+                endTick(report, SubscriptionLogic.nextTickDelay(updated, System.currentTimeMillis()))
             },
-            onFailure = {
+            onFailure = { reason ->
                 // Location unavailable this cycle; retry sooner than the normal interval.
-                scheduleTick(RETRY_DELAY_MS)
+                EventLog.fixFailed(this, reason)
+                endTick(report, RETRY_DELAY_MS)
             }
         )
     }
@@ -155,11 +210,11 @@ class SubscriptionService : Service() {
 
     @SuppressLint("MissingPermission")
     @Suppress("DEPRECATION") // requestSingleUpdate deprecated at API 30; acceptable for MVP
-    private fun fetchLocation(onLocation: (Location) -> Unit, onFailure: () -> Unit) {
+    private fun fetchLocation(onLocation: (Location) -> Unit, onFailure: (Reason) -> Unit) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            onFailure()
+            onFailure(Reason.NO_PERMISSION)
             return
         }
 
@@ -169,14 +224,14 @@ class SubscriptionService : Service() {
         val provider = when {
             lm.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
             lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
-            else -> { onFailure(); return }
+            else -> { onFailure(Reason.PROVIDER_OFF); return }
         }
 
         val timeoutRunnable = Runnable {
             locationTimeoutRunnable = null
             locationListener?.let { lm.removeUpdates(it) }
             locationListener = null
-            onFailure()
+            onFailure(Reason.TIMEOUT)
         }
         locationTimeoutRunnable = timeoutRunnable
         handler.postDelayed(timeoutRunnable, LOCATION_TIMEOUT_MS)
@@ -224,6 +279,9 @@ class SubscriptionService : Service() {
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
         locationListener?.let { locationManager?.removeUpdates(it) }
+        // Destroyed mid-fetch: the tick that was waiting for a fix is still logged (finish() is once-only).
+        currentReport?.let { EventLog.recordTick(this, it) }
+        EventLog.serviceStopped(this, stopReason)
         super.onDestroy()
     }
 }
