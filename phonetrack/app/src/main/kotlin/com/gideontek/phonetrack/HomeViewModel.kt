@@ -166,7 +166,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
      * Debug-only: simulates a receive/send event pair so the real [StreamActivityLogic]
      * window (and decay) can be previewed without a real SMS. Writes through the same
      * prefs keys SmsReceiver/SmsSender use, so the UI reacts exactly as it would in
-     * production — see the debug cycle button in MainScreen (BuildConfig.DEBUG only).
+     * production — see the tap-to-cycle on the status circle in StatusCard (BuildConfig.DEBUG only).
      */
     fun debugSimulateStream(target: StreamState) {
         val now = System.currentTimeMillis()

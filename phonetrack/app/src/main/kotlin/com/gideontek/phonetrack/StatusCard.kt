@@ -1,5 +1,6 @@
 package com.gideontek.phonetrack
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -46,7 +47,8 @@ fun StatusCard(
     lastReceiveAt: Long,
     now: Long,
     animate: Boolean,
-    onFix: (StatusFix) -> Unit
+    onFix: (StatusFix) -> Unit,
+    onDebugCycle: () -> Unit = {}
 ) {
     val detail = buildString {
         append(streamState.label())
@@ -65,8 +67,11 @@ fun StatusCard(
             ) {
                 StreamStatusIndicator(
                     state = streamState,
-                    modifier = // Purely visual: the text beside it says the same thing, so screen readers skip it.
-                    Modifier.clearAndSetSemantics { },
+                    modifier = Modifier
+                        // Debug builds only: tap the circle to step through the four stream states.
+                        .then(if (BuildConfig.DEBUG) Modifier.clickable(onClick = onDebugCycle) else Modifier)
+                        // Purely visual: the text beside it says the same thing, so screen readers skip it.
+                        .clearAndSetSemantics { },
                     circleRadius = 28.dp,
                     maxWaveRadius = 44.dp,
                     strokeWidth = 2.dp,

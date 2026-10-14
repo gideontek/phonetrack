@@ -58,7 +58,7 @@ class NavigationTest {
     @Test
     fun theTitleAndGearAreOnMain() {
         ui.launch()
-        compose.onNodeWithText("PhoneTrack").assertIsDisplayed()
+        compose.onNodeWithText("PhoneTrack SMS").assertIsDisplayed()
         compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
     }
 }

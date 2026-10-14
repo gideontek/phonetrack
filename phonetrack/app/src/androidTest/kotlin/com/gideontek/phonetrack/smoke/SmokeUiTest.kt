@@ -20,7 +20,7 @@ class SmokeUiTest {
 
     @Test
     fun mainOpensSettingsAndBackReturns() {
-        compose.onNodeWithText("PhoneTrack").assertIsDisplayed()
+        compose.onNodeWithText("PhoneTrack SMS").assertIsDisplayed()
         compose.onNodeWithContentDescription("Settings").performClick()
         compose.onNodeWithText("General").assertIsDisplayed()
 

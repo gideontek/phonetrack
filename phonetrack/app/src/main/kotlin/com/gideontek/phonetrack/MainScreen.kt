@@ -1,19 +1,24 @@
 package com.gideontek.phonetrack
 
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.Canvas
 import android.provider.Settings
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -29,6 +34,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -106,10 +112,6 @@ fun MainScreen(
         Toast.makeText(context, "Location Shared", Toast.LENGTH_SHORT).show()
     }
 
-    // Debug-only: cycles debugSimulateStream() through all 4 states so the real
-    // StreamActivityLogic window/decay can be previewed without a real SMS.
-    var debugStateIndex by remember { mutableStateOf(0) }
-
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -119,26 +121,29 @@ fun MainScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            // Title row: [PhoneTrack]----[debug][lock][settings]
+            // Title row: [PhoneTrack]----[lock][settings]
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "PhoneTrack",
-                    style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.weight(1f)
-                )
-                if (BuildConfig.DEBUG) {
-                    IconButton(onClick = {
-                        debugStateIndex = (debugStateIndex + 1) % StreamState.values().size
-                        vm.debugSimulateStream(StreamState.values()[debugStateIndex])
-                    }) {
-                        Icon(
-                            imageVector = Icons.Filled.Refresh,
-                            contentDescription = "Cycle stream state (debug)"
-                        )
-                    }
+                Row(modifier = Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                    // Decorative: the title beside it names the app.
+                    Image(
+                        bitmap = remember {
+                            // Adaptive launcher icons can't be loaded as a painter, so draw it once.
+                            val px = 144
+                            val bitmap = Bitmap.createBitmap(px, px, Bitmap.Config.ARGB_8888)
+                            context.packageManager.getApplicationIcon(context.packageName).apply {
+                                setBounds(0, 0, px, px)
+                                draw(Canvas(bitmap))
+                            }
+                            bitmap.asImageBitmap()
+                        },
+                        contentDescription = null,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text("PhoneTrack SMS", style = MaterialTheme.typography.headlineMedium)
                 }
                 LockButton(vm, pinDialogs)
                 IconButton(onClick = { pinDialogs.guard(vm) { onOpenSettings() } }) {
@@ -150,6 +155,7 @@ fun MainScreen(
             }
 
             StatusCard(
+                onDebugCycle = { vm.debugSimulateStream(StreamState.values()[(streamState.ordinal + 1) % StreamState.values().size]) },
                 summary = summary,
                 streamState = streamState,
                 subscriptionCount = liveSubscriptions.size,
