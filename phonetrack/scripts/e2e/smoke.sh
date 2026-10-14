@@ -7,7 +7,7 @@ echo "smoke: install, launch, receive a real SMS"
 "${ADB[@]}" install -r "$(dirname "$0")/../../app/build/outputs/apk/debug/app-debug.apk" >/dev/null || { fail "install"; exit 1; }
 clean_start
 launch
-assert_ui "PhoneTrack" "Main screen is showing"
+assert_ui "PhoneTrack SMS" "Main screen is showing"
 
 # Turn listening on through the stored state (process is idle), then relaunch.
 "${ADB[@]}" shell am force-stop "$PKG"
