@@ -63,6 +63,13 @@ class ScreenshotTour {
         compose.onNodeWithText("About").performScrollTo()
         compose.waitForIdle()
         save("settings-$tag-3")
+        compose.onNodeWithText("Advanced settings").clickVisible()
+        compose.onNodeWithText("Map link").performScrollTo()
+        compose.waitForIdle()
+        save("advanced-$tag-1")
+        compose.onNodeWithText("Samples").performScrollTo()
+        compose.waitForIdle()
+        save("advanced-$tag-2")
     }
 
     @Test fun lightNormal() = tour("light-1.0x", dark = false, scale = 1.0f)

@@ -51,7 +51,7 @@ class SettingsTest {
     @Test
     fun everySectionIsThere() {
         openSettings()
-        for (title in listOf("General", "Replies", "Limits", "Permissions", "Security", "About")) {
+        for (title in listOf("General", "Replies", "Advanced", "Limits", "Permissions", "Security", "About")) {
             compose.onNodeWithText(title).performScrollTo().assertIsDisplayed()
         }
     }
@@ -175,8 +175,8 @@ class SettingsTest {
     fun limitsShowTheDefaults() {
         openSettings()
         compose.onNodeWithText("Commands per number").performScrollTo()
-        compose.onNodeWithText("20").assertIsDisplayed()
-        compose.onNodeWithText("10").assertIsDisplayed()
+        compose.onNodeWithText("20").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("10").performScrollTo().assertIsDisplayed()
     }
 
     @Test

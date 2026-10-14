@@ -60,6 +60,33 @@ class AccessibilityTest {
         assertTargetsAreLabelledAndLargeEnough("Settings ($label)")
     }
 
+    private fun advancedScreen(label: String) {
+        compose.onNodeWithContentDescription("Settings").performClick()
+        compose.onNodeWithText("Advanced settings").clickVisible()
+        compose.onNodeWithText("Map link").assertIsDisplayed()
+        assertTargetsAreLabelledAndLargeEnough("Advanced ($label)")
+    }
+
+    @Test
+    fun theAdvancedScreenIsLabelledAndLargeEnoughInTheLightTheme() {
+        ui.launch()
+        advancedScreen("light")
+    }
+
+    @Test
+    fun theAdvancedScreenIsLabelledAndLargeEnoughInTheDarkTheme() {
+        ui.setDarkMode(true)
+        ui.launch()
+        advancedScreen("dark")
+    }
+
+    @Test
+    fun theAdvancedScreenIsLabelledAndLargeEnoughAtLargeTextSize() {
+        ui.setFontScale(1.3f)
+        ui.launch()
+        advancedScreen("1.3x text")
+    }
+
     @Test
     fun targetsAreLabelledAndLargeEnoughInTheLightTheme() {
         ui.launch { RichData.seed() }
