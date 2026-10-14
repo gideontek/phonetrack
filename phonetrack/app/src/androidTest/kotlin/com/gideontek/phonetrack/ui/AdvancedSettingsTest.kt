@@ -90,10 +90,10 @@ class AdvancedSettingsTest {
         for (label in listOf("Short address (osm.org)", "Compact code instead of coordinates")) {
             toggle(label).performScrollTo().assertIsDisplayed()
         }
-        compose.onNodeWithText("Map zoom").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Map zoom level").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Saves 14 characters", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("about 50 characters shorter", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Higher is closer", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Higher is zoomed in", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test
