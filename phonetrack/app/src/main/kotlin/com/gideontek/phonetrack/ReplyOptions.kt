@@ -14,6 +14,9 @@ package com.gideontek.phonetrack
  * - [geo]      a `geo:` URI that any maps app opens
  * - [osm]      an OpenStreetMap link that opens in any browser
  *
+ * [link] is how the map link is written (domain, readable or encoded position, zoom); it only has an effect
+ * while [osm] is on.
+ *
  * The movement arrow and distance in subscription updates, and the age header in `last`, are not
  * options: they are part of what those replies are for.
  */
@@ -23,7 +26,8 @@ data class ReplyOptions(
     val battery: Boolean = false,
     val time: Boolean = false,
     val geo: Boolean = false,
-    val osm: Boolean = false
+    val osm: Boolean = false,
+    val link: MapLinkOptions = MapLinkOptions.DEFAULT
 ) {
     val hasAny: Boolean get() = coords || accuracy || battery || time || geo || osm
 
@@ -37,7 +41,10 @@ data class ReplyOptions(
     val hasLocation: Boolean get() = locationCount > 0
 
     /** A reply without a location part gets the map link added, so an all-off set means "just the map link". */
-    fun normalized(): ReplyOptions = if (hasLocation) this else copy(osm = true)
+    fun normalized(): ReplyOptions {
+        val withLink = copy(link = link.normalized())
+        return if (hasLocation) withLink else withLink.copy(osm = true)
+    }
 
     companion object {
         /** What a reply contains until the owner changes it. */

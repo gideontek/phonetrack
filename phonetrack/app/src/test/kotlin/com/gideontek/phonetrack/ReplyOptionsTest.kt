@@ -60,4 +60,23 @@ class ReplyOptionsTest {
         assertEquals(3, ReplyOptions(coords = true, geo = true, osm = true).locationCount)
         assertTrue(ReplyOptions(geo = true).hasLocation)
     }
+
+    @Test fun `the default link options are the full readable url at zoom 12`() {
+        val l = ReplyOptions.DEFAULT.link
+        assertFalse(l.shortDomain); assertFalse(l.encoded); assertEquals(12, l.zoom)
+    }
+
+    @Test fun `building the six parts positionally keeps the default link options`() {
+        assertEquals(MapLinkOptions.DEFAULT, ReplyOptions(true, true, true, true, true, true).link)
+    }
+
+    @Test fun `normalized clamps the link zoom`() {
+        assertEquals(18, ReplyOptions.DEFAULT.copy(link = MapLinkOptions(zoom = 99)).normalized().link.zoom)
+        assertEquals(8, ReplyOptions.DEFAULT.copy(link = MapLinkOptions(zoom = 0)).normalized().link.zoom)
+    }
+
+    @Test fun `normalizing an all-off set keeps the chosen link options`() {
+        val link = MapLinkOptions(shortDomain = true, encoded = true, zoom = 13)
+        assertEquals(ReplyOptions.LINK_ONLY.copy(link = link), ReplyOptions(link = link).normalized())
+    }
 }
