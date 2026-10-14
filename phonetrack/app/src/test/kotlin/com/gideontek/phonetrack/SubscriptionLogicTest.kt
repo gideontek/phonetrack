@@ -298,4 +298,30 @@ class SubscriptionLogicTest {
     @Test fun `bearingToArrow 22_5 tips northeast`() { assertEquals("⇗", SubscriptionLogic.bearingToArrow(22.5f)) }
     @Test fun `bearingToArrow negative wraps`()   { assertEquals("⇑", SubscriptionLogic.bearingToArrow(-22.4f)) }
     @Test fun `bearingToArrow 360 wraps to north`() { assertEquals("⇑", SubscriptionLogic.bearingToArrow(360f)) }
+
+    // bearingToCompass
+
+    @Test fun `bearingToCompass names the eight directions`() {
+        val names = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+        names.forEachIndexed { i, n -> assertEquals(n, SubscriptionLogic.bearingToCompass(i * 45f)) }
+    }
+
+    @Test fun `bearingToCompass uses the same sectors as the arrows`() {
+        val arrows = listOf("⇑", "⇗", "⇒", "⇘", "⇓", "⇙", "⇐", "⇖")
+        val names = listOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")
+        var b = -400f
+        while (b <= 760f) {
+            val i = arrows.indexOf(SubscriptionLogic.bearingToArrow(b))
+            assertEquals("bearing $b", names[i], SubscriptionLogic.bearingToCompass(b))
+            b += 3.7f
+        }
+    }
+
+    @Test fun `bearingToCompass edges and wrapping`() {
+        assertEquals("N", SubscriptionLogic.bearingToCompass(22.4f))
+        assertEquals("NE", SubscriptionLogic.bearingToCompass(22.5f))
+        assertEquals("N", SubscriptionLogic.bearingToCompass(-22.4f))
+        assertEquals("N", SubscriptionLogic.bearingToCompass(360f))
+        assertEquals("NW", SubscriptionLogic.bearingToCompass(-45f))
+    }
 }

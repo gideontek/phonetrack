@@ -39,6 +39,13 @@ class AdvancedSettingsTest {
         compose.onNodeWithText("Map link").assertIsDisplayed()
     }
 
+    private fun seedMovement(show: Boolean? = null, cardinal: Boolean? = null) {
+        val e = prefs.edit()
+        show?.let { e.putBoolean("reply_move_show", it) }
+        cardinal?.let { e.putBoolean("reply_move_cardinal", it) }
+        e.commit()
+    }
+
     private fun seedLink(short: Boolean? = null, encoded: Boolean? = null, zoom: Int? = null) {
         val e = prefs.edit()
         short?.let { e.putBoolean("reply_osm_short", it) }
@@ -144,6 +151,68 @@ class AdvancedSettingsTest {
         assertTrue(compose.countWithText("#map=16/37.7749/-122.4194", substring = true) >= 2)
     }
 
+    // --- subscription updates ---------------------------------------------------------
+
+    @Test
+    fun theMovementOptionsAreThereWithTheirHints() {
+        openAdvanced()
+        toggle("Show movement").performScrollTo().assertIsDisplayed().assertIsEnabled()
+        toggle("Compass letters instead of arrows").performScrollTo().assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithText("Switch it off for shorter updates", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("160-character limit instead of 70", substring = true).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun compassLettersReplaceTheArrowInTheSampleAndKeepItToOneMessage() {
+        openAdvanced()
+        toggle("Compass letters instead of arrows").performScrollTo().performClick()
+        ui.waitUntil { prefs.getBoolean("reply_move_cardinal", false) }
+        compose.onNodeWithText("NE395m", substring = true).performScrollTo().assertIsDisplayed()
+        assertEquals(0, compose.countWithText("⇗395m", substring = true))
+        assertEquals(2, compose.countWithText("1${nbsp}SMS in total"))
+        assertEquals(0, compose.countWithText("2${nbsp}SMS in total"))
+        compose.onNodeWithText("GSM-7 · 123 of 160 characters").assertExists()
+    }
+
+    @Test
+    fun hidingTheMovementRemovesItFromTheSampleAndDisablesTheCompassSwitch() {
+        openAdvanced()
+        toggle("Show movement").performScrollTo().performClick()
+        ui.waitUntil { !prefs.getBoolean("reply_move_show", true) }
+        assertEquals(0, compose.countWithText("395m", substring = true))
+        compose.onNodeWithText("Subscription update (movement hidden)").performScrollTo().assertIsDisplayed()
+        toggle("Compass letters instead of arrows").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("Movement is hidden", substring = true).assertExists()
+    }
+
+    @Test
+    fun theMovementSettingsStartAtTheDefaultAndShowTheArrow() {
+        openAdvanced()
+        assertTrue(prefs.getBoolean("reply_move_show", true))
+        assertFalse(prefs.getBoolean("reply_move_cardinal", false))
+        compose.onNodeWithText("⇗395m", substring = true).performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun theStoredMovementChoicesAreShownWhenTheScreenOpens() {
+        openAdvanced { seedMovement(cardinal = true) }
+        toggle("Compass letters instead of arrows").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("NE395m", substring = true).assertExists()
+    }
+
+    // --- text length note -------------------------------------------------------------
+
+    @Test
+    fun theLengthNoteExplainsGsm7AndUcs2WithTheLimits() {
+        openAdvanced()
+        compose.onNodeWithText("How long a text can be").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("GSM-7 is the standard SMS alphabet", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("holds 160 characters", substring = true).assertExists()
+        compose.onNodeWithText("UCS-2 is used for the whole text", substring = true).assertExists()
+        compose.onNodeWithText("holds only 70 characters", substring = true).assertExists()
+        compose.onNodeWithText("153 (GSM-7) or 67 (UCS-2)", substring = true).assertExists()
+    }
+
     // --- reset ------------------------------------------------------------------------
 
     @Test
@@ -153,12 +222,19 @@ class AdvancedSettingsTest {
     }
 
     @Test
+    fun aMovementChangeAloneTurnsResetOn() {
+        openAdvanced { seedMovement(cardinal = true) }
+        compose.onNodeWithText("Reset to defaults").performScrollTo().assertIsEnabled()
+    }
+
+    @Test
     fun resetRestoresTheDefaults() {
-        openAdvanced { seedLink(short = true, encoded = true, zoom = 15) }
+        openAdvanced { seedLink(short = true, encoded = true, zoom = 15); seedMovement(show = false, cardinal = true) }
         compose.onNodeWithText("Reset to defaults").performScrollTo().assertIsEnabled().performClick()
         ui.waitUntil {
             !prefs.getBoolean("reply_osm_short", true) && !prefs.getBoolean("reply_osm_encoded", true) &&
-                prefs.getInt("reply_osm_zoom", 0) == 12
+                prefs.getInt("reply_osm_zoom", 0) == 12 &&
+                prefs.getBoolean("reply_move_show", false) && !prefs.getBoolean("reply_move_cardinal", true)
         }
         compose.onNodeWithText("Reset to defaults").assertIsNotEnabled()
         assertTrue(compose.countWithText("https://www.openstreetmap.org/?mlat", substring = true) >= 2)

@@ -28,7 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * Settings most owners never need. Today that is how the map link in a reply is written; the samples
+ * Settings most owners never need: how the map link in a reply is written, how a subscription update shows
+ * movement, and a short note on SMS length. The samples
  * underneath are built by the same [SmsComposer] that composes real replies, so what is shown is what is sent.
  * Controls are disabled while settings are PIN-locked, like everywhere else. Back returns to Settings.
  */
@@ -42,6 +43,8 @@ fun AdvancedScreen(
     val options by vm.replyOptions.collectAsState()
     val link = options.link.normalized()
     val setLink = { new: MapLinkOptions -> vm.setReplyOptions(options.copy(link = new)) }
+    val movement = options.movement
+    val setMovement = { new: MovementOptions -> vm.setReplyOptions(options.copy(movement = new)) }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -110,18 +113,34 @@ fun AdvancedScreen(
                     onLess = { setLink(link.copy(zoom = link.zoom - 1)) },
                     onMore = { setLink(link.copy(zoom = link.zoom + 1)) }
                 )
+            }
+
+            SettingsSection("Subscription updates") {
+                ToggleRow(
+                    label = "Show movement",
+                    supporting = "Adds the direction and distance since the previous update. Switch it " +
+                        "off for shorter updates; the map link already shows where the phone is.",
+                    checked = movement.show,
+                    enabled = !isLocked,
+                    onCheckedChange = { setMovement(movement.copy(show = it)) }
+                )
                 RowDivider()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    OutlinedButton(
-                        onClick = { setLink(MapLinkOptions.DEFAULT) },
-                        enabled = !isLocked && link != MapLinkOptions.DEFAULT
-                    ) { Text("Reset to defaults") }
-                }
+                ToggleRow(
+                    label = "Compass letters instead of arrows",
+                    supporting = "Writes the direction as N, NE, E, SE, S, SW, W or NW instead of an arrow (\u21D7). " +
+                        "The letters are in the standard alphabet, so an update can use the 160-character limit " +
+                        "instead of 70, which keeps more updates to one SMS.",
+                    checked = movement.cardinal,
+                    enabled = !isLocked && movement.show,
+                    onCheckedChange = { setMovement(movement.copy(cardinal = it)) }
+                )
+            }
+
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                OutlinedButton(
+                    onClick = { setLink(MapLinkOptions.DEFAULT); setMovement(MovementOptions.DEFAULT) },
+                    enabled = !isLocked && (link != MapLinkOptions.DEFAULT || movement != MovementOptions.DEFAULT)
+                ) { Text("Reset to defaults") }
             }
 
             val shown = options.normalized()
@@ -138,16 +157,48 @@ fun AdvancedScreen(
                 )
                 RowDivider()
                 SampleBlock(
-                    title = "Subscription update (moved 395 m north-east)",
+                    title = if (movement.show) "Subscription update (moved 395 m north-east)" else "Subscription update (movement hidden)",
                     messages = SmsComposer.composeLocation(SAMPLE_FIX, shown, SAMPLE_PREV_LAT, SAMPLE_PREV_LON)
                 )
                 Text(
-                    "Updates after the first include the movement arrow. Arrows aren't in the standard 160-character " +
-                        "alphabet, so that text drops to 70 characters per SMS, and a link that doesn't fit goes in a " +
-                        "second message.",
+                    when {
+                        !movement.show -> "Movement is hidden, so an update is the same as a location reply."
+                        movement.cardinal -> "Updates after the first include the direction and distance. Compass " +
+                            "letters are in the standard alphabet, so the text keeps the 160-character limit."
+                        else -> "Updates after the first include the movement arrow. Arrows aren't in the standard " +
+                            "alphabet, so that text drops to 70 characters per SMS, and a link that doesn't fit goes " +
+                            "in a second message."
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp)
+                )
+            }
+
+            SettingsSection("How long a text can be") {
+                Text(
+                    "A text message is stored in one of two encodings, and each sample above says which it uses.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp)
+                )
+                Text(
+                    "GSM-7 is the standard SMS alphabet: unaccented letters, digits and everyday punctuation. One SMS " +
+                        "holds 160 characters. The characters [ ] { } \\ ^ ~ | and \u20AC count as 2.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)
+                )
+                Text(
+                    "UCS-2 is used for the whole text as soon as one character is outside GSM-7, such as an arrow, an " +
+                        "emoji or most non-Latin letters. One SMS then holds only 70 characters.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp)
+                )
+                Text(
+                    "A longer text is split into parts of 153 (GSM-7) or 67 (UCS-2) characters each, and each part is " +
+                        "billed as one SMS. A reply that needs 2 or 3 parts can take longer to arrive and costs more " +
+                        "on plans that count messages.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 16.dp)
                 )
             }
         }

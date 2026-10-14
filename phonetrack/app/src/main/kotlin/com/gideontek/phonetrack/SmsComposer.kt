@@ -40,7 +40,7 @@ object SmsComposer {
 
     /**
      * One-shot or periodic location reply, containing what [options] select. [prevLat] / [prevLon]
-     * (0.0/0.0 = none) add the movement arrow and distance since the previous update.
+     * (0.0/0.0 = none) add the direction and distance since the previous update, unless [ReplyOptions.movement] hides it.
      */
     fun composeLocation(
         fix: LocationFix,
@@ -48,12 +48,14 @@ object SmsComposer {
         prevLat: Double = 0.0,
         prevLon: Double = 0.0
     ): List<String> {
-        val movement = if (prevLat != 0.0 || prevLon != 0.0) {
-            val distM = haversineMeters(prevLat, prevLon, fix.lat, fix.lon)
-            val bearing = initialBearing(prevLat, prevLon, fix.lat, fix.lon)
-            "${SubscriptionLogic.bearingToArrow(bearing.toFloat())}${DistanceFormat.compact(distM)}"
-        } else null
         val opts = options.normalized()
+        val movement = if (opts.movement.show && (prevLat != 0.0 || prevLon != 0.0)) {
+            val distM = haversineMeters(prevLat, prevLon, fix.lat, fix.lon)
+            val bearing = initialBearing(prevLat, prevLon, fix.lat, fix.lon).toFloat()
+            val direction = if (opts.movement.cardinal) SubscriptionLogic.bearingToCompass(bearing)
+            else SubscriptionLogic.bearingToArrow(bearing)
+            "$direction${DistanceFormat.compact(distM)}"
+        } else null
         val lines = textLines(fix, opts, header = null, movement = movement)
         // Selected parts that have nothing to show (battery only, but no battery reading) must
         // not leave the requester with an empty reply: fall back to the map link.

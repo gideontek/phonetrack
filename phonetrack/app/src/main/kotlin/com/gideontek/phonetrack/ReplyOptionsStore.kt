@@ -4,7 +4,8 @@ import android.content.Context
 
 /**
  * SharedPreferences-backed [ReplyOptions]: six booleans (`reply_coords` ... `reply_osm`) plus the three map link
- * settings (`reply_osm_short`, `reply_osm_encoded`, `reply_osm_zoom`). An absent key
+ * settings (`reply_osm_short`, `reply_osm_encoded`, `reply_osm_zoom`) and the two movement settings
+ * (`reply_move_show`, `reply_move_cardinal`). An absent key
  * means its default. Every key starts with [KEY_PREFIX], which is what the view model listens for.
  */
 object ReplyOptionsStore {
@@ -18,11 +19,14 @@ object ReplyOptionsStore {
     private const val LINK_SHORT = "reply_osm_short"
     private const val LINK_ENCODED = "reply_osm_encoded"
     private const val LINK_ZOOM = "reply_osm_zoom"
+    private const val MOVE_SHOW = "reply_move_show"
+    private const val MOVE_CARDINAL = "reply_move_cardinal"
 
     fun read(ctx: Context): ReplyOptions {
         val p = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
         val d = ReplyOptions.DEFAULT
         val l = d.link
+        val m = d.movement
         return ReplyOptions(
             coords = p.getBoolean(COORDS, d.coords),
             accuracy = p.getBoolean(ACCURACY, d.accuracy),
@@ -34,6 +38,10 @@ object ReplyOptionsStore {
                 shortDomain = p.getBoolean(LINK_SHORT, l.shortDomain),
                 encoded = p.getBoolean(LINK_ENCODED, l.encoded),
                 zoom = p.getInt(LINK_ZOOM, l.zoom)
+            ),
+            movement = MovementOptions(
+                show = p.getBoolean(MOVE_SHOW, m.show),
+                cardinal = p.getBoolean(MOVE_CARDINAL, m.cardinal)
             )
         ).normalized()
     }
@@ -46,6 +54,7 @@ object ReplyOptionsStore {
             .putBoolean(TIME, o.time).putBoolean(GEO, o.geo).putBoolean(OSM, o.osm)
             .putBoolean(LINK_SHORT, o.link.shortDomain).putBoolean(LINK_ENCODED, o.link.encoded)
             .putInt(LINK_ZOOM, o.link.zoom)
+            .putBoolean(MOVE_SHOW, o.movement.show).putBoolean(MOVE_CARDINAL, o.movement.cardinal)
             .apply()
     }
 }
