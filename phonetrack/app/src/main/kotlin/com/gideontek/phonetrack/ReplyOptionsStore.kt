@@ -3,8 +3,8 @@ package com.gideontek.phonetrack
 import android.content.Context
 
 /**
- * SharedPreferences-backed [ReplyOptions]: six booleans (`reply_coords` ... `reply_osm`) plus the four map link
- * settings (`reply_osm_short`, `reply_osm_encoded`, `reply_osm_zoom`, `reply_osm_avoid_tilde`). An absent key
+ * SharedPreferences-backed [ReplyOptions]: six booleans (`reply_coords` ... `reply_osm`) plus the three map link
+ * settings (`reply_osm_short`, `reply_osm_encoded`, `reply_osm_zoom`). An absent key
  * means its default. Every key starts with [KEY_PREFIX], which is what the view model listens for.
  */
 object ReplyOptionsStore {
@@ -18,7 +18,6 @@ object ReplyOptionsStore {
     private const val LINK_SHORT = "reply_osm_short"
     private const val LINK_ENCODED = "reply_osm_encoded"
     private const val LINK_ZOOM = "reply_osm_zoom"
-    private const val LINK_AVOID_TILDE = "reply_osm_avoid_tilde"
 
     fun read(ctx: Context): ReplyOptions {
         val p = ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
@@ -34,8 +33,7 @@ object ReplyOptionsStore {
             link = MapLinkOptions(
                 shortDomain = p.getBoolean(LINK_SHORT, l.shortDomain),
                 encoded = p.getBoolean(LINK_ENCODED, l.encoded),
-                zoom = p.getInt(LINK_ZOOM, l.zoom),
-                avoidTilde = p.getBoolean(LINK_AVOID_TILDE, l.avoidTilde)
+                zoom = p.getInt(LINK_ZOOM, l.zoom)
             )
         ).normalized()
     }
@@ -47,7 +45,7 @@ object ReplyOptionsStore {
             .putBoolean(COORDS, o.coords).putBoolean(ACCURACY, o.accuracy).putBoolean(BATTERY, o.battery)
             .putBoolean(TIME, o.time).putBoolean(GEO, o.geo).putBoolean(OSM, o.osm)
             .putBoolean(LINK_SHORT, o.link.shortDomain).putBoolean(LINK_ENCODED, o.link.encoded)
-            .putInt(LINK_ZOOM, o.link.zoom).putBoolean(LINK_AVOID_TILDE, o.link.avoidTilde)
+            .putInt(LINK_ZOOM, o.link.zoom)
             .apply()
     }
 }

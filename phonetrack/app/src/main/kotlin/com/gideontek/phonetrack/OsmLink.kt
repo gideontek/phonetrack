@@ -4,8 +4,7 @@ package com.gideontek.phonetrack
 data class MapLinkOptions(
     val shortDomain: Boolean = false,
     val encoded: Boolean = false,
-    val zoom: Int = DEFAULT_ZOOM,
-    val avoidTilde: Boolean = true
+    val zoom: Int = DEFAULT_ZOOM
 ) {
     fun normalized(): MapLinkOptions = copy(zoom = zoom.coerceIn(MIN_ZOOM, MAX_ZOOM))
 
@@ -53,24 +52,11 @@ object OsmLink {
         val o = options.normalized()
         val host = if (o.shortDomain) SHORT_HOST else FULL_HOST
         return if (o.encoded) {
-            "https://$host/go/${shortCode(lat, lon, zoomFor(lat, lon, o))}?m"
+            "https://$host/go/${shortCode(lat, lon, o.zoom)}?m"
         } else {
             val la = SmsComposer.fmt(lat)
             val lo = SmsComposer.fmt(lon)
             "https://$host/?mlat=$la&mlon=$lo#map=${o.zoom}/$la/$lo"
         }
-    }
-
-    /**
-     * The zoom an encoded link uses. A `~` in the code costs two characters in a text message, so with
-     * [MapLinkOptions.avoidTilde] a code containing one tries the zoom above, then below, and keeps the
-     * first without. A readable link always uses the chosen zoom.
-     */
-    fun zoomFor(lat: Double, lon: Double, options: MapLinkOptions): Int {
-        val z = options.zoom
-        if (!options.encoded || !options.avoidTilde) return z
-        return listOf(z, z + 1, z - 1)
-            .filter { it in 1..19 }
-            .firstOrNull { '~' !in shortCode(lat, lon, it) } ?: z
     }
 }

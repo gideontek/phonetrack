@@ -120,7 +120,6 @@ The text and the map link share one SMS whenever they fit (160 plain characters)
 | Short address | `osm.org` instead of `www.openstreetmap.org` (14 characters shorter; it forwards to the same map) |
 | Compact code | A code instead of coordinates, e.g. `https://osm.org/go/TZHvSR7--?m`: about 50 characters shorter and it opens the same map with a marker. The coordinates can't be read from the link, and the pin can be off by up to 153 m (zoom 8 to 10), 19 m (11 to 13), 2.4 m (14 to 16) or under 1 m (17 and 18) |
 | Zoom | 8 (a region) to 18 (a building); default 12. With a compact code, zoom 13 and 16 give the shortest codes |
-| Avoid `~` | A `~` in the code costs two characters. If the code has one, the link tries the zoom above or below. It only helps at zoom 8, 11, 14 and 17, and not always |
 
 Shorter links keep replies to fewer SMS. For example, a subscription update has to use the 70-character limit because of its movement arrow, so with the default link the link goes in a second SMS; with the short address and the compact code the whole update is 67 of 70 characters, one SMS (not while it also says "(charging)"):
 

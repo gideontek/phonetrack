@@ -61,7 +61,7 @@ phonetrack-android-2026/
             │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: accuracy, battery, map link; at least one of coordinates, geo link, map link must stay on)
             │   ├── ReplyOptionsStore.kt   # Prefs store for the reply options
             │   ├── AdvancedScreen.kt      # Advanced settings: map link options with hints and live samples (reply + subscription update)
-            │   ├── OsmLink.kt             # Pure: MapLinkOptions + OsmLink (full/osm.org domain, readable or OSM shortlink code, zoom, ~ avoidance)
+            │   ├── OsmLink.kt             # Pure: MapLinkOptions + OsmLink (full/osm.org domain, readable or OSM shortlink code, zoom)
             │   ├── ReplySettingsCard.kt   # "Replies" section: expandable Reply contents with live preview
             │   ├── SmsLength.kt           # Pure: does text fit one SMS (GSM-7 160 / UCS-2 70); info() gives encoding, units, SMS count
             │   ├── DeviceStatus.kt        # Battery percent + charging for replies
@@ -98,7 +98,7 @@ phonetrack-android-2026/
   - `rate_limit_per_hour` (Int, default 20, min 1; commands per approved sender per hour)
   - `rate_state` (JSON object of `key -> {start, count, noticed}`; see `RateLimiter`/`RateStore`)
   - `reply_coords` / `reply_accuracy` / `reply_battery` / `reply_time` / `reply_geo` / `reply_osm` (Boolean; what a location reply contains; absent = default, which has `reply_accuracy`, `reply_battery` and `reply_osm` on and `reply_coords`, `reply_time`, `reply_geo` off; at least one of `reply_coords`, `reply_geo`, `reply_osm` is always on, `ReplyOptions.normalized()` adds the map link otherwise)
-  - `reply_osm_short` (Boolean, default false: `osm.org` instead of `www.openstreetmap.org`) / `reply_osm_encoded` (Boolean, default false: `/go/<code>?m` instead of `?mlat=&mlon=`) / `reply_osm_zoom` (Int, default 12, coerced to 8..18) / `reply_osm_avoid_tilde` (Boolean, default true; only with `reply_osm_encoded`); the map link style, see `OsmLink`/`MapLinkOptions`. All share the `reply_` prefix so the view model's prefs listener refreshes them
+  - `reply_osm_short` (Boolean, default false: `osm.org` instead of `www.openstreetmap.org`) / `reply_osm_encoded` (Boolean, default false: `/go/<code>?m` instead of `?mlat=&mlon=`) / `reply_osm_zoom` (Int, default 12, coerced to 8..18); the map link style, see `OsmLink`/`MapLinkOptions`. All share the `reply_` prefix so the view model's prefs listener refreshes them
   - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)
 - No third-party libraries; only standard AndroidX
 
