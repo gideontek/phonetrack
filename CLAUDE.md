@@ -33,16 +33,16 @@ phonetrack-android-2026/
             ├── AndroidManifest.xml
             ├── kotlin/com/gideontek/phonetrack/
             │   ├── MainActivity.kt        # Activity + theme; hosts AppHost
-            │   ├── Navigation.kt          # Screen enum (Main/Settings), AppHost: shared state + Back handling
+            │   ├── Navigation.kt          # Screen enum (Main/Settings/Advanced), AppHost: shared state + Back handling
             │   ├── MainScreen.kt          # Main screen: composes the sections below; PIN guard on approval changes
             │   ├── MainUiState.kt         # Pure: status summary, relative-time text, subscription/approval view data
             │   ├── StatusCard.kt          # Status card: compact stream indicator, Listening switch, Fix banner
             │   ├── DecisionsSection.kt    # Pending numbers: tap-to-reveal Approve/Block (no swiping)
             │   ├── SubscriptionsSection.kt # Active subscriptions with Send now / Cancel
             │   ├── KnownNumbersSection.kt # Collapsed approved + blocked list
-            │   ├── SettingsScreen.kt      # Settings screen: General, Replies, Limits, Permissions, Security, About
+            │   ├── SettingsScreen.kt      # Settings screen: General, Replies, Advanced (row), Limits, Permissions, Security, About
             │   ├── SettingsComponents.kt  # Section/row building blocks (ToggleRow, StepperRow, PermissionRow)
-            │   ├── SettingsLogic.kt       # Pure: limit-stepper rules (LimitSteps), reply summary, sample fix
+            │   ├── SettingsLogic.kt       # Pure: limit-stepper rules (LimitSteps), reply summary, map link summary, sample fix
             │   ├── HomeViewModel.kt       # Activity-scoped ViewModel shared by both screens
             │   ├── PermissionsState.kt    # rememberPermissionsState(): grant state, launchers, resume hook
             │   ├── PinDialogs.kt          # Set/unlock PIN dialogs, lock button, guard() for on-demand unlock
@@ -60,8 +60,10 @@ phonetrack-android-2026/
             │   ├── PrefsMigration.kt      # One-time versioned upgrade of stored data
             │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: accuracy, battery, map link; at least one of coordinates, geo link, map link must stay on)
             │   ├── ReplyOptionsStore.kt   # Prefs store for the reply options
+            │   ├── AdvancedScreen.kt      # Advanced settings: map link options with hints and live samples (reply + subscription update)
+            │   ├── OsmLink.kt             # Pure: MapLinkOptions + OsmLink (full/osm.org domain, readable or OSM shortlink code, zoom, ~ avoidance)
             │   ├── ReplySettingsCard.kt   # "Replies" section: expandable Reply contents with live preview
-            │   ├── SmsLength.kt           # Pure: does text fit one SMS (GSM-7 160 / UCS-2 70)
+            │   ├── SmsLength.kt           # Pure: does text fit one SMS (GSM-7 160 / UCS-2 70); info() gives encoding, units, SMS count
             │   ├── DeviceStatus.kt        # Battery percent + charging for replies
             │   ├── PinHasher.kt           # Pure PBKDF2 hashing for the settings PIN
             │   ├── PinLockout.kt          # Pure failed-attempt lockout rules (1/5/15/60 min)
@@ -96,6 +98,7 @@ phonetrack-android-2026/
   - `rate_limit_per_hour` (Int, default 20, min 1; commands per approved sender per hour)
   - `rate_state` (JSON object of `key -> {start, count, noticed}`; see `RateLimiter`/`RateStore`)
   - `reply_coords` / `reply_accuracy` / `reply_battery` / `reply_time` / `reply_geo` / `reply_osm` (Boolean; what a location reply contains; absent = default, which has `reply_accuracy`, `reply_battery` and `reply_osm` on and `reply_coords`, `reply_time`, `reply_geo` off; at least one of `reply_coords`, `reply_geo`, `reply_osm` is always on, `ReplyOptions.normalized()` adds the map link otherwise)
+  - `reply_osm_short` (Boolean, default false: `osm.org` instead of `www.openstreetmap.org`) / `reply_osm_encoded` (Boolean, default false: `/go/<code>?m` instead of `?mlat=&mlon=`) / `reply_osm_zoom` (Int, default 12, coerced to 8..18) / `reply_osm_avoid_tilde` (Boolean, default true; only with `reply_osm_encoded`); the map link style, see `OsmLink`/`MapLinkOptions`. All share the `reply_` prefix so the view model's prefs listener refreshes them
   - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)
 - No third-party libraries; only standard AndroidX
 
@@ -105,7 +108,7 @@ Four layers, all runnable on the dedicated test emulator (never the one used for
 
 1. **JVM unit tests** (`app/src/test`): pure logic. `./gradlew testDebugUnitTest`
 2. **Instrumented integration tests** (`app/src/androidTest/.../smoke` and `protocol/`): the real `SmsReceiver` driven with synthetic SMS PDUs (`support/SyntheticSms`, multipart for long bodies), replies read back from the emulator's own-number loopback (`support/Loopback`), state seeded and reset with `support/TestState`. `protocol/` is the SMS protocol suite: `CommandMatrixTest`, `SubscribeTest`, `ApprovalGateTest`, `LimitsTest`, `ReplyContentTest`, `LastWithoutFixTest`, `MigrationTest`. A test reads as `Scenario().ready().ask("phonetrack help")` (`support/Scenario`: own number as the sender, `replies(expect)`, `assertSilent()`); `Scenario.rules(mockLocation = true)` grants permissions, resets state and (optionally) fixes the GPS at 37.7749, -122.4194 +-5 m with `support/MockLocationRule` (a test provider; `reportFixes = false` empties every cached fix for the "nothing saved" case).
-3. **Compose UI tests** (`app/src/androidTest/.../ui`): the real `MainActivity` under `UiScenario` (`support/UiScenario`: permissions granted, state reset, then `launch { seed }` so the activity starts from exactly that state; dark mode, font scale and location mode are restored afterwards). `RichData` seeds a full screen. Classes: `MainStatusTest`, `DecisionsTest`, `SubscriptionsTest`, `KnownNumbersTest`, `LockTest`, `SettingsTest`, `NavigationTest`, `AccessibilityTest` (labels, 48 dp touch areas in light, dark and 1.3x text) and `ScreenshotTour` (no assertions: writes PNGs to `/sdcard/phonetrack-screens`, which `run-e2e.sh` pulls to `build/e2e-report/screens/` for a person to look through). There are no `testTag`s: nodes are found by text, content description, role and state, as a screen reader would. Seed state before launch (`ResetStateRule` clears prefs first); check results in the stored prefs, not toasts.
+3. **Compose UI tests** (`app/src/androidTest/.../ui`): the real `MainActivity` under `UiScenario` (`support/UiScenario`: permissions granted, state reset, then `launch { seed }` so the activity starts from exactly that state; dark mode, font scale and location mode are restored afterwards). `RichData` seeds a full screen. Classes: `MainStatusTest`, `DecisionsTest`, `SubscriptionsTest`, `KnownNumbersTest`, `LockTest`, `SettingsTest`, `AdvancedSettingsTest`, `NavigationTest`, `AccessibilityTest` (labels, 48 dp touch areas in light, dark and 1.3x text) and `ScreenshotTour` (no assertions: writes PNGs to `/sdcard/phonetrack-screens`, which `run-e2e.sh` pulls to `build/e2e-report/screens/` for a person to look through). There are no `testTag`s: nodes are found by text, content description, role and state, as a screen reader would. Seed state before launch (`ResetStateRule` clears prefs first); check results in the stored prefs, not toasts.
 4. **Host scenarios** (`scripts/e2e/*.sh`): bash + adb for what an in-app test cannot do: runtime permission revokes (they kill the app process), a real reboot, process kill, wall-clock timing, the real emulator radio (`adb emu sms send`) and GPS (`adb emu geo fix`). Each prints PASS/FAIL lines and exits non-zero on failure; `slow-*.sh` are skipped by `--fast`. `lib.sh` has the helpers (`clean_start`, `revoke`/`grant`, `seed_prefs`, `phase`, `sms_max_id`/`sms_rows_since`, `tap_text`, `notifications`, `location_services`, `home_and_kill`). Scenarios: `perm-no-background-location`, `perm-no-location`, `perm-no-sms`, `perm-no-notifications`, `onboarding`, `real-sms-flow`, `location-services`, `process-death`, `upgrade-from-previous-release` (builds the last tag in a throwaway worktree, installs it, gives it legacy data, installs the current build over it), `slow-location-timeout`, `slow-boot-persistence`, `slow-cadence` (about 14 minutes, API 35 only).
 
    **Phase tests** (`androidTest/.../phase/`) are the in-app half of a scenario: the script sets the device up (e.g. revokes background location), then runs one class with `am instrument -e phase <name>` (`support/Phase.require`, so a plain `connectedDebugAndroidTest` skips them). They read replies and `support/Notifications` (the owner alerts) in-process and use `UiScenario(grant = false)` for the banner/Fix checks. Scenarios call `launch` (wakes the device, waits for the app window and its title, retries; `LAUNCH_READY=""` for an older release's screen) and use `assert_ui` (polls, and prints the focused window and screen text when it fails); a headless emulator can show a System UI ANR dialog after a reboot, so `hide_error_dialogs` is set. Scenarios need the app launched once first (an app that was force-stopped receives no SMS broadcast), and must take an SMS baseline (`sms_max_id`) because the provider keeps rows between runs; message bodies span several lines in `content query` output.
