@@ -61,4 +61,18 @@ class NavigationTest {
         compose.onNodeWithText("PhoneTrack SMS").assertIsDisplayed()
         compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
     }
+
+    @Test
+    fun advancedIsOneLevelBelowSettingsAndBackStepsUpOneLevelAtATime() {
+        ui.launch()
+        compose.onNodeWithContentDescription("Settings").performClick()
+        compose.onNodeWithText("Advanced settings").clickVisible()
+        compose.onNodeWithText("Map link").assertIsDisplayed()
+        ui.back()
+        compose.onNodeWithText("General").assertIsDisplayed()
+        assertEquals(0, compose.countWithText("Short address (osm.org)"))
+        ui.back()
+        compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
+        assertEquals(0, compose.countWithText("General"))
+    }
 }
