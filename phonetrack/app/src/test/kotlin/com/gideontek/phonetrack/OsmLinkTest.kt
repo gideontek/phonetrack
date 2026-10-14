@@ -65,7 +65,7 @@ class OsmLinkTest {
     @Test fun `encoded full domain`() {
         assertEquals(
             "https://www.openstreetmap.org/go/ZW0DCLd--?m",
-            OsmLink.url(41.52962, -81.459, MapLinkOptions(encoded = true, zoom = 12, avoidTilde = false))
+            OsmLink.url(41.52962, -81.459, MapLinkOptions(encoded = true, zoom = 12))
         )
     }
 
@@ -112,67 +112,5 @@ class OsmLinkTest {
             val errM = Math.hypot((lat - 41.52962) * 111_320.0, (lon + 81.459) * 111_320.0 * Math.cos(Math.toRadians(41.5)))
             assertTrue("zoom $z error $errM m", errM <= OsmLink.precisionMeters(z) * 1.5)
         }
-    }
-
-    // --- ~ avoidance ------------------------------------------------------------------
-
-    /** A deterministic grid of positions whose code at [zoom] contains a tilde. */
-    private fun tildePositions(zoom: Int): List<Pair<Double, Double>> =
-        (-80..80).flatMap { la -> (-170..170 step 3).map { lo -> (la + 0.1234) to (lo + 0.5678) } }
-            .filter { (la, lo) -> '~' in OsmLink.shortCode(la, lo, zoom) }
-
-    private fun tilde(zoom: Int) = MapLinkOptions(encoded = true, zoom = zoom, avoidTilde = true)
-
-    @Test fun `the grid has positions that need avoiding`() {
-        for (z in listOf(11, 12, 14)) assertTrue("zoom $z", tildePositions(z).size > 100)
-    }
-
-    @Test fun `avoidance never changes the zoom of a readable link`() {
-        for ((la, lo) in tildePositions(12).take(20)) {
-            assertEquals(12, OsmLink.zoomFor(la, lo, MapLinkOptions(avoidTilde = true)))
-        }
-    }
-
-    @Test fun `avoidance can be switched off`() {
-        for ((la, lo) in tildePositions(14).take(50)) {
-            assertEquals(14, OsmLink.zoomFor(la, lo, tilde(14).copy(avoidTilde = false)))
-        }
-    }
-
-    @Test fun `a position without a tilde keeps the chosen zoom`() {
-        assertEquals(16, OsmLink.zoomFor(37.7749, -122.4194, MapLinkOptions(encoded = true, zoom = 16)))
-    }
-
-    // Neighbouring zooms share their leading position characters, so an adjacent zoom can only drop a
-    // tilde that sits in the LAST character, and only where a zoom step drops a character: from 8, 11,
-    // 14 or 17 down to the zoom below. The tests pin that, so nobody expects more from the option.
-
-    @Test fun `at the first zoom of a precision tier a tilde in the last character is dodged by zooming out`() {
-        for (z in listOf(11, 14, 17)) {
-            var dodged = 0
-            for ((la, lo) in tildePositions(z)) {
-                val used = OsmLink.zoomFor(la, lo, tilde(z))
-                val freeExists = listOf(z, z + 1, z - 1).any { '~' !in OsmLink.shortCode(la, lo, it) }
-                assertEquals("zoom $z $la,$lo", freeExists, '~' !in OsmLink.shortCode(la, lo, used))
-                assertTrue("zoom $z used $used", used in (z - 1)..(z + 1))
-                if (used != z) { dodged++; assertEquals(z - 1, used) }
-            }
-            assertTrue("zoom $z should dodge some", dodged > 0)
-        }
-    }
-
-    @Test fun `in the middle of a tier no adjacent zoom can help so the chosen zoom is kept`() {
-        for (z in listOf(9, 12, 13, 15, 16)) {
-            for ((la, lo) in tildePositions(z).take(200)) {
-                assertEquals("zoom $z $la,$lo", z, OsmLink.zoomFor(la, lo, tilde(z)))
-            }
-        }
-    }
-
-    @Test fun `the url carries the dodged zoom's code`() {
-        val o = tilde(14)
-        val (la, lo) = tildePositions(14).first { (la, lo) -> OsmLink.zoomFor(la, lo, o) != 14 }
-        val z = OsmLink.zoomFor(la, lo, o)
-        assertEquals("https://www.openstreetmap.org/go/${OsmLink.shortCode(la, lo, z)}?m", OsmLink.url(la, lo, o))
     }
 }

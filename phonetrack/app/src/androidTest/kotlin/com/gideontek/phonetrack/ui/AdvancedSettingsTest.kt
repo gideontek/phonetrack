@@ -39,12 +39,11 @@ class AdvancedSettingsTest {
         compose.onNodeWithText("Map link").assertIsDisplayed()
     }
 
-    private fun seedLink(short: Boolean? = null, encoded: Boolean? = null, zoom: Int? = null, avoidTilde: Boolean? = null) {
+    private fun seedLink(short: Boolean? = null, encoded: Boolean? = null, zoom: Int? = null) {
         val e = prefs.edit()
         short?.let { e.putBoolean("reply_osm_short", it) }
         encoded?.let { e.putBoolean("reply_osm_encoded", it) }
         zoom?.let { e.putInt("reply_osm_zoom", it) }
-        avoidTilde?.let { e.putBoolean("reply_osm_avoid_tilde", it) }
         e.commit()
     }
 
@@ -81,14 +80,13 @@ class AdvancedSettingsTest {
     @Test
     fun everyOptionIsThereWithItsHint() {
         openAdvanced()
-        for (label in listOf("Short address (osm.org)", "Compact code instead of coordinates", "Avoid ~ in the code")) {
+        for (label in listOf("Short address (osm.org)", "Compact code instead of coordinates")) {
             toggle(label).performScrollTo().assertIsDisplayed()
         }
         compose.onNodeWithText("Map zoom").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Saves 14 characters", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("about 50 characters shorter", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Higher is closer", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("counts as two characters", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -146,23 +144,6 @@ class AdvancedSettingsTest {
         assertTrue(compose.countWithText("#map=16/37.7749/-122.4194", substring = true) >= 2)
     }
 
-    @Test
-    fun avoidingTheTildeNeedsTheCompactCode() {
-        openAdvanced()
-        toggle("Avoid ~ in the code").performScrollTo().assertIsNotEnabled()
-        toggle("Compact code instead of coordinates").performClick()
-        ui.waitUntil { prefs.getBoolean("reply_osm_encoded", false) }
-        toggle("Avoid ~ in the code").assertIsEnabled()
-    }
-
-    @Test
-    fun avoidingTheTildeIsOnByDefaultAndCanBeSwitchedOff() {
-        openAdvanced { seedLink(encoded = true) }
-        assertTrue(prefs.getBoolean("reply_osm_avoid_tilde", true))
-        toggle("Avoid ~ in the code").performScrollTo().performClick()
-        ui.waitUntil { !prefs.getBoolean("reply_osm_avoid_tilde", true) }
-    }
-
     // --- reset ------------------------------------------------------------------------
 
     @Test
@@ -173,11 +154,11 @@ class AdvancedSettingsTest {
 
     @Test
     fun resetRestoresTheDefaults() {
-        openAdvanced { seedLink(short = true, encoded = true, zoom = 15, avoidTilde = false) }
+        openAdvanced { seedLink(short = true, encoded = true, zoom = 15) }
         compose.onNodeWithText("Reset to defaults").performScrollTo().assertIsEnabled().performClick()
         ui.waitUntil {
             !prefs.getBoolean("reply_osm_short", true) && !prefs.getBoolean("reply_osm_encoded", true) &&
-                prefs.getInt("reply_osm_zoom", 0) == 12 && prefs.getBoolean("reply_osm_avoid_tilde", false)
+                prefs.getInt("reply_osm_zoom", 0) == 12
         }
         compose.onNodeWithText("Reset to defaults").assertIsNotEnabled()
         assertTrue(compose.countWithText("https://www.openstreetmap.org/?mlat", substring = true) >= 2)

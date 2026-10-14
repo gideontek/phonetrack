@@ -111,15 +111,6 @@ fun AdvancedScreen(
                     onMore = { setLink(link.copy(zoom = link.zoom + 1)) }
                 )
                 RowDivider()
-                ToggleRow(
-                    label = "Avoid ~ in the code",
-                    supporting = "A ~ counts as two characters in a text message. If the code has one, the link tries the " +
-                        "zoom above or below. Helps only at zoom 8, 11, 14 and 17, and not always. Needs the compact code.",
-                    checked = link.avoidTilde,
-                    enabled = !isLocked && link.encoded,
-                    onCheckedChange = { setLink(link.copy(avoidTilde = it)) }
-                )
-                RowDivider()
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -158,14 +149,6 @@ fun AdvancedScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp)
                 )
-                val used = OsmLink.zoomFor(SAMPLE_FIX.lat, SAMPLE_FIX.lon, link)
-                if (shown.osm && link.encoded && used != link.zoom) {
-                    Text(
-                        "The samples use zoom $used instead of ${link.zoom} to avoid a ~ in the code.",
-                        style = MaterialTheme.typography.bodySmall,
-                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp)
-                    )
-                }
             }
         }
     }
