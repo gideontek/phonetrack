@@ -33,7 +33,7 @@ object SmsComposer {
      * '.' separator. Raw Double.toString() can print 17 digits or scientific notation ("1.0E-4").
      * DecimalFormat isn't thread-safe, so a new one is built per call.
      */
-    private fun fmt(d: Double): String =
+    internal fun fmt(d: Double): String =
         DecimalFormat("0.#####", DecimalFormatSymbols(Locale.US)).format(d)
 
     private const val PREFIX = "[PhoneTrack] "
