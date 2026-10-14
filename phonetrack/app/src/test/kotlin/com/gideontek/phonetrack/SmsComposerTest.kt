@@ -448,4 +448,88 @@ class SmsComposerTest {
         assertEquals(1, msgs.size)
         assertTrue(msgs[0].contains("provider"))
     }
+
+    // -------------------------------------------------------------------------
+    // map link options
+    // -------------------------------------------------------------------------
+
+    private val shortUrl = "https://osm.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194"
+
+    @Test
+    fun `the short domain shortens the link in a reply`() {
+        val opts = ReplyOptions.DEFAULT.copy(link = MapLinkOptions(shortDomain = true))
+        assertEquals(listOf("[PhoneTrack] Acc: 5m, Bat: 85%\n$shortUrl"), SmsComposer.composeLocation(fix(), opts))
+    }
+
+    @Test
+    fun `an encoded link replaces the coordinates in the url`() {
+        val opts = ReplyOptions.LINK_ONLY.copy(link = MapLinkOptions(shortDomain = true, encoded = true, zoom = 16))
+        assertEquals(listOf("[PhoneTrack] https://osm.org/go/TZHvSR7N?m"), SmsComposer.composeLocation(fix(), opts))
+    }
+
+    @Test
+    fun `the link zoom applies to a readable link`() {
+        val opts = ReplyOptions.LINK_ONLY.copy(link = MapLinkOptions(zoom = 16))
+        assertEquals(
+            listOf("[PhoneTrack] https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194#map=16/37.7749/-122.4194"),
+            SmsComposer.composeLocation(fix(), opts)
+        )
+    }
+
+    @Test
+    fun `a compact link shortens the first message when every part is on`() {
+        val plain = SmsComposer.composeLocation(fix(), all)
+        val compact = SmsComposer.composeLocation(fix(), all.copy(link = MapLinkOptions(shortDomain = true, encoded = true)))
+        assertEquals(plain.toString(), 2, plain.size)          // text + link merged, geo: on its own
+        assertEquals(compact.toString(), 2, compact.size)
+        assertTrue("${plain[0].length} vs ${compact[0].length}", compact[0].length <= plain[0].length - 50)
+        assertTrue(compact.toString(), compact.all { SmsLength.fitsOneSms(it) })
+    }
+
+    @Test
+    fun `the link options also apply to a last-known reply`() {
+        val opts = ReplyOptions.DEFAULT.copy(link = MapLinkOptions(shortDomain = true))
+        val text = SmsComposer.composeLastKnown(fix(), opts, 60_000).joinToString("\n")
+        assertTrue(text, text.contains(shortUrl))
+    }
+
+    @Test
+    fun `a subscription update with a readable link takes two messages because the arrow makes it UCS-2`() {
+        for (link in listOf(MapLinkOptions(), MapLinkOptions(shortDomain = true))) {
+            val messages = SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT.copy(link = link), SAMPLE_PREV_LAT, SAMPLE_PREV_LON)
+            assertEquals(messages.toString(), 2, messages.size)
+            assertEquals(SmsLength.Encoding.UCS2, SmsLength.info(messages[0]).encoding)
+            assertTrue(messages[1], messages[1].startsWith("https://"))
+        }
+    }
+
+    @Test
+    fun `a compact short link brings a subscription update back to one message`() {
+        val opts = ReplyOptions.DEFAULT.copy(link = MapLinkOptions(shortDomain = true, encoded = true))
+        val messages = SmsComposer.composeLocation(fix(), opts, SAMPLE_PREV_LAT, SAMPLE_PREV_LON)
+        assertEquals(messages.toString(), 1, messages.size)
+        val info = SmsLength.info(messages[0])
+        assertEquals(SmsLength.Encoding.UCS2, info.encoding)
+        assertTrue("${info.units} of ${info.limit}", info.units <= info.limit)
+        assertTrue(messages[0], messages[0].contains("⇗395m\nhttps://osm.org/go/"))
+    }
+
+    @Test
+    fun `the compact short link stops fitting a subscription update that also says charging`() {
+        val opts = ReplyOptions.DEFAULT.copy(link = MapLinkOptions(shortDomain = true, encoded = true))
+        val messages = SmsComposer.composeLocation(fix(charging = true), opts, SAMPLE_PREV_LAT, SAMPLE_PREV_LON)
+        assertEquals(messages.toString(), 2, messages.size)
+    }
+
+    @Test
+    fun `a compact link on the full domain is too long to merge into a subscription update`() {
+        val opts = ReplyOptions.DEFAULT.copy(link = MapLinkOptions(encoded = true))
+        assertEquals(2, SmsComposer.composeLocation(fix(), opts, SAMPLE_PREV_LAT, SAMPLE_PREV_LON).size)
+    }
+
+    @Test
+    fun `an all-off set still gets the map link in the chosen style`() {
+        val opts = ReplyOptions(link = MapLinkOptions(shortDomain = true))
+        assertEquals(listOf("[PhoneTrack] $shortUrl"), SmsComposer.composeLocation(fix(), opts))
+    }
 }
