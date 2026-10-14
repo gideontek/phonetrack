@@ -87,7 +87,7 @@ class AdvancedSettingsTest {
     @Test
     fun everyOptionIsThereWithItsHint() {
         openAdvanced()
-        for (label in listOf("Short address (osm.org)", "Compact code instead of coordinates")) {
+        for (label in listOf("Use osm.org instead of openstreetmap.org", "Compact code instead of coordinates")) {
             toggle(label).performScrollTo().assertIsDisplayed()
         }
         compose.onNodeWithText("Map zoom level").performScrollTo().assertIsDisplayed()
@@ -100,7 +100,7 @@ class AdvancedSettingsTest {
     fun theShortAddressSwitchStoresItAndShortensTheSamples() {
         openAdvanced()
         assertEquals(0, compose.countWithText("https://osm.org/?mlat", substring = true))
-        toggle("Short address (osm.org)").performScrollTo().performClick()
+        toggle("Use osm.org instead of openstreetmap.org").performScrollTo().performClick()
         ui.waitUntil { prefs.getBoolean("reply_osm_short", false) }
         assertTrue(compose.countWithText("https://osm.org/?mlat", substring = true) >= 2)
         assertEquals(0, compose.countWithText("https://www.openstreetmap.org", substring = true))
@@ -113,6 +113,12 @@ class AdvancedSettingsTest {
         ui.waitUntil { prefs.getBoolean("reply_osm_encoded", false) }
         assertTrue(compose.countWithText("/go/", substring = true) >= 2)
         assertEquals(0, compose.countWithText("mlat=", substring = true))
+    }
+
+    @Test
+    fun theCompactCodeHintSaysToKeepCoordinatesForEmergencyServices() {
+        openAdvanced()
+        compose.onNodeWithText("passed on to a dispatcher or rescue team", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -322,6 +328,6 @@ class AdvancedSettingsTest {
         compose.onNodeWithText("Map link").assertIsDisplayed()
         compose.onNodeWithContentDescription("Lock settings").performClick()
         compose.onNodeWithText("General").assertIsDisplayed()
-        assertFalse(compose.onAllNodesWithText("Short address (osm.org)").fetchSemanticsNodes().isNotEmpty())
+        assertFalse(compose.onAllNodesWithText("Use osm.org instead of openstreetmap.org").fetchSemanticsNodes().isNotEmpty())
     }
 }
