@@ -532,4 +532,96 @@ class SmsComposerTest {
         val opts = ReplyOptions(link = MapLinkOptions(shortDomain = true))
         assertEquals(listOf("[PhoneTrack] $shortUrl"), SmsComposer.composeLocation(fix(), opts))
     }
+
+    // --- movement options ---
+
+    private fun update(movement: MovementOptions, link: MapLinkOptions = MapLinkOptions()) =
+        SmsComposer.composeLocation(
+            fix(), ReplyOptions.DEFAULT.copy(link = link, movement = movement), SAMPLE_PREV_LAT, SAMPLE_PREV_LON
+        )
+
+    @Test
+    fun `the default movement is the arrow`() {
+        assertEquals(MovementOptions(show = true, cardinal = false), ReplyOptions.DEFAULT.movement)
+        assertTrue(update(MovementOptions.DEFAULT).joinToString("\n").contains("⇗395m"))
+    }
+
+    @Test
+    fun `compass letters replace the arrow`() {
+        val text = update(MovementOptions(cardinal = true)).joinToString("\n")
+        assertTrue(text, text.contains("\nNE395m\n"))
+        assertFalse(text, arrows.any { text.contains(it) })
+    }
+
+    @Test
+    fun `compass letters keep a default-link update in one GSM-7 message`() {
+        val messages = update(MovementOptions(cardinal = true))
+        assertEquals(messages.toString(), 1, messages.size)
+        val info = SmsLength.info(messages[0])
+        assertEquals(SmsLength.Encoding.GSM7, info.encoding)
+        assertEquals(1, info.smsCount)
+    }
+
+    @Test
+    fun `compass letters also keep an update that says charging in one message`() {
+        val messages = SmsComposer.composeLocation(
+            fix(charging = true),
+            ReplyOptions.DEFAULT.copy(movement = MovementOptions(cardinal = true)),
+            SAMPLE_PREV_LAT, SAMPLE_PREV_LON
+        )
+        assertEquals(messages.toString(), 1, messages.size)
+    }
+
+    @Test
+    fun `hiding the movement makes an update the same as a location reply`() {
+        val hidden = update(MovementOptions(show = false))
+        assertEquals(SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT), hidden)
+        assertFalse(hidden.toString(), arrows.any { a -> hidden.any { it.contains(a) } })
+        assertFalse(hidden.toString(), hidden.any { it.contains("395m") })
+    }
+
+    @Test
+    fun `hiding the movement overrides the compass setting`() {
+        assertEquals(update(MovementOptions(show = false)), update(MovementOptions(show = false, cardinal = true)))
+    }
+
+    @Test
+    fun `hiding the movement keeps a readable-link update in one GSM-7 message`() {
+        val messages = update(MovementOptions(show = false))
+        assertEquals(1, messages.size)
+        assertEquals(SmsLength.Encoding.GSM7, SmsLength.info(messages[0]).encoding)
+    }
+
+    @Test
+    fun `compass letters cover all eight directions in a real update`() {
+        val cases = mapOf(
+            "N" to (1.0 to 0.0), "NE" to (1.0 to 1.0), "E" to (0.0 to 1.0), "SE" to (-1.0 to 1.0),
+            "S" to (-1.0 to 0.0), "SW" to (-1.0 to -1.0), "W" to (0.0 to -1.0), "NW" to (1.0 to -1.0)
+        )
+        for ((name, d) in cases) {
+            val f = fix()
+            // the previous fix is on the opposite side, so the phone moved in direction `name`
+            val text = SmsComposer.composeLocation(
+                f, ReplyOptions.DEFAULT.copy(movement = MovementOptions(cardinal = true)),
+                f.lat - d.first * 0.005, f.lon - d.second * 0.005
+            ).joinToString("\n")
+            assertTrue("$name: $text", Regex("\\n$name\\d").containsMatchIn(text))
+        }
+    }
+
+    @Test
+    fun `the movement options do not change a reply without a previous fix`() {
+        assertEquals(
+            SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT),
+            SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT.copy(movement = MovementOptions(cardinal = true)))
+        )
+    }
+
+    @Test
+    fun `the movement options never touch a last-known reply`() {
+        assertEquals(
+            SmsComposer.composeLastKnown(fix(), ReplyOptions.DEFAULT, 60_000),
+            SmsComposer.composeLastKnown(fix(), ReplyOptions.DEFAULT.copy(movement = MovementOptions(show = false)), 60_000)
+        )
+    }
 }

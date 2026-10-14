@@ -79,4 +79,15 @@ class ReplyOptionsTest {
         val link = MapLinkOptions(shortDomain = true, encoded = true, zoom = 13)
         assertEquals(ReplyOptions.LINK_ONLY.copy(link = link), ReplyOptions(link = link).normalized())
     }
+
+    @Test fun `movement shows an arrow by default`() {
+        assertEquals(MovementOptions(show = true, cardinal = false), ReplyOptions.DEFAULT.movement)
+        assertEquals(MovementOptions.DEFAULT, ReplyOptions().movement)
+    }
+
+    @Test fun `movement does not count as a reply part and survives normalizing`() {
+        val m = MovementOptions(show = false, cardinal = true)
+        assertEquals(ReplyOptions.DEFAULT.count, ReplyOptions.DEFAULT.copy(movement = m).count)
+        assertEquals(m, ReplyOptions().copy(movement = m).normalized().movement)
+    }
 }

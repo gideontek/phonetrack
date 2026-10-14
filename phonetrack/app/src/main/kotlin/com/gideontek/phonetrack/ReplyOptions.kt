@@ -1,6 +1,20 @@
 package com.gideontek.phonetrack
 
 /**
+ * The movement part of a subscription update: the direction and distance since the previous update.
+ * [show] off drops it. [cardinal] writes the direction as compass letters (`NE395m`) instead of an arrow
+ * (`⇗395m`); the letters are in the 160-character SMS alphabet, the arrow is not.
+ */
+data class MovementOptions(
+    val show: Boolean = true,
+    val cardinal: Boolean = false
+) {
+    companion object {
+        val DEFAULT = MovementOptions()
+    }
+}
+
+/**
  * What a location reply contains. The app's default ([DEFAULT]) is accuracy, battery and the
  * OpenStreetMap link; coordinates, time of fix and the `geo:` link are opt-in from the "Reply contents"
  * settings card. At least one of coordinates, `geo:` link and map link must stay on ([normalized] adds the
@@ -17,8 +31,9 @@ package com.gideontek.phonetrack
  * [link] is how the map link is written (domain, readable or encoded position, zoom); it only has an effect
  * while [osm] is on.
  *
- * The movement arrow and distance in subscription updates, and the age header in `last`, are not
- * options: they are part of what those replies are for.
+ * [movement] is how a subscription update says how far the phone moved since the previous one (arrow or
+ * compass letters, or nothing); it has no effect on any other reply. The age header in `last` is not an
+ * option: it is part of what that reply is for.
  */
 data class ReplyOptions(
     val coords: Boolean = false,
@@ -27,7 +42,8 @@ data class ReplyOptions(
     val time: Boolean = false,
     val geo: Boolean = false,
     val osm: Boolean = false,
-    val link: MapLinkOptions = MapLinkOptions.DEFAULT
+    val link: MapLinkOptions = MapLinkOptions.DEFAULT,
+    val movement: MovementOptions = MovementOptions.DEFAULT
 ) {
     val hasAny: Boolean get() = coords || accuracy || battery || time || geo || osm
 
