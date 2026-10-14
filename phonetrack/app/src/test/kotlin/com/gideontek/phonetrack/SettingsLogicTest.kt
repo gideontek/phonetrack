@@ -87,4 +87,11 @@ class SettingsLogicTest {
         val first = SmsComposer.composeLocation(SAMPLE_FIX, ReplyOptions.DEFAULT, SAMPLE_PREV_LAT, SAMPLE_PREV_LON).first()
         assertTrue(first, first.contains("⇗395m"))
     }
+
+    @Test fun `precision text is whole metres from 10 m up and one decimal below`() {
+        assertEquals("±153 m", MapLinkSummary.precision(8))
+        assertEquals("±19 m", MapLinkSummary.precision(12))
+        assertEquals("±2.4 m", MapLinkSummary.precision(14))
+        assertEquals("±0.3 m", MapLinkSummary.precision(17))
+    }
 }
