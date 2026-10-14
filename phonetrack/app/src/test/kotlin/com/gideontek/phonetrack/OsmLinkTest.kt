@@ -22,9 +22,11 @@ class OsmLinkTest {
         }
     }
 
-    @Test fun `zoom 13 and 16 give the shortest codes`() {
+    @Test fun `zoom 10, 13 and 16 give the shortest codes`() {
         val lengths = (8..18).associateWith { OsmLink.shortCode(10.0, 20.0, it).length }
-        assertEquals(7, lengths[13]); assertEquals(8, lengths[16])
+        assertEquals(6, lengths[10]); assertEquals(7, lengths[13]); assertEquals(8, lengths[16])
+        assertTrue(lengths.getValue(9) > lengths.getValue(10))
+        assertTrue(lengths.getValue(11) > lengths.getValue(10))
         assertTrue(lengths.getValue(12) > lengths.getValue(13))
         assertTrue(lengths.getValue(14) > lengths.getValue(13))
     }

@@ -99,7 +99,7 @@ fun AdvancedScreen(
                         "${MapLinkSummary.precision(link.zoom)} at zoom ${link.zoom} (more zoomed out, less precise). " +
                         "Keep the coordinates if a message may be passed on to a dispatcher or rescue team: they can " +
                         "read out and enter latitude and longitude, but not a code, and a code needs a web browser. " +
-                        "You can also switch on Coordinates under Replies to send both.",
+                        "The Coordinates and geo: link options under Replies also send the coordinates.",
                     checked = link.encoded,
                     enabled = !isLocked,
                     onCheckedChange = { setLink(link.copy(encoded = it)) }
@@ -107,7 +107,7 @@ fun AdvancedScreen(
                 RowDivider()
                 StepperRow(
                     label = "Map zoom level",
-                    supporting = "Higher is zoomed in. 8 is a region, 12 a district, 16 a street. Levels 13 and 16 " +
+                    supporting = "Higher is zoomed in. 8 is a region, 12 a district, 16 a street. Levels 10, 13 and 16 " +
                         "give the shortest compact codes.",
                     valueText = link.zoom.toString(),
                     lessDescription = "Zoom out",

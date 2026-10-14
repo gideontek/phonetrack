@@ -118,8 +118,8 @@ The text and the map link share one SMS whenever they fit (160 plain characters)
 | Option | What it does |
 |--------|--------------|
 | osm.org instead of openstreetmap.org | `osm.org` instead of `www.openstreetmap.org` (14 characters shorter; it forwards to the same map) |
-| Compact code | A code instead of coordinates, e.g. `https://osm.org/go/TZHvSR7--?m`: about 50 characters shorter and it opens the same map with a marker. The coordinates can't be read from the link, and the pin can be off by up to 153 m (zoom 8 to 10), 19 m (11 to 13), 2.4 m (14 to 16) or under 1 m (17 and 18). Keep the coordinates if a message may be passed on to a dispatcher or rescue team: they can read out and enter latitude and longitude, but not a code, and a code needs a web browser (Coordinates under Replies sends both) |
-| Zoom | 8 (a region) to 18 (a building); default 12. With a compact code, zoom 13 and 16 give the shortest codes |
+| Compact code | A code instead of coordinates, e.g. `https://osm.org/go/TZHvSR7--?m`: about 50 characters shorter and it opens the same map with a marker. The coordinates can't be read from the link, and the pin can be off by up to 153 m (zoom 8 to 10), 19 m (11 to 13), 2.4 m (14 to 16) or under 1 m (17 and 18). Keep the coordinates if a message may be passed on to a dispatcher or rescue team: they can read out and enter latitude and longitude, but not a code, and a code needs a web browser (the Coordinates and geo: link options under Replies also send the coordinates) |
+| Zoom | 8 (a region) to 18 (a building); default 12. With a compact code, zoom 10, 13 and 16 give the shortest codes |
 | Show movement | On by default. Off drops the direction and distance from subscription updates, so they read like a location reply |
 | Compass letters | Off by default. Writes the direction as `N`, `NE`, `E`, `SE`, `S`, `SW`, `W` or `NW` (`NE395m`) instead of an arrow (`⇗395m`). The letters are in the standard SMS alphabet, so an update keeps the 160-character limit instead of 70 |
 
