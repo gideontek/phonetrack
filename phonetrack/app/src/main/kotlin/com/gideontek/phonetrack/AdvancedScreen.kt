@@ -29,8 +29,8 @@ import androidx.compose.ui.unit.dp
 
 /**
  * Settings most owners never need: how the map link in a reply is written, how a subscription update shows
- * movement, and a short note on SMS length. The samples
- * underneath are built by the same [SmsComposer] that composes real replies, so what is shown is what is sent.
+ * movement, and a short note on SMS length. Each sample
+ * sits under the options it shows and is built by the same [SmsComposer] that composes real replies, so what is shown is what is sent.
  * Controls are disabled while settings are PIN-locked, like everywhere else. Back returns to Settings.
  */
 @Composable
@@ -44,6 +44,7 @@ fun AdvancedScreen(
     val link = options.link.normalized()
     val setLink = { new: MapLinkOptions -> vm.setReplyOptions(options.copy(link = new)) }
     val movement = options.movement
+    val shown = options.normalized()
     val setMovement = { new: MovementOptions -> vm.setReplyOptions(options.copy(movement = new)) }
 
     Surface(modifier = Modifier.fillMaxSize()) {
@@ -102,9 +103,9 @@ fun AdvancedScreen(
                 )
                 RowDivider()
                 StepperRow(
-                    label = "Map zoom",
-                    supporting = "Higher is closer: 8 is a region, 12 a district, 16 a street. Zoom 13 and 16 give " +
-                        "the shortest compact codes.",
+                    label = "Map zoom level",
+                    supporting = "Higher is zoomed in. 8 is a region, 12 a district, 16 a street. Levels 13 and 16 " +
+                        "give the shortest compact codes.",
                     valueText = link.zoom.toString(),
                     lessDescription = "Zoom out",
                     moreDescription = "Zoom in",
@@ -112,6 +113,12 @@ fun AdvancedScreen(
                     moreEnabled = !isLocked && link.zoom < MapLinkOptions.MAX_ZOOM,
                     onLess = { setLink(link.copy(zoom = link.zoom - 1)) },
                     onMore = { setLink(link.copy(zoom = link.zoom + 1)) }
+                )
+                RowDivider()
+                SampleBlock(
+                    title = "Location reply",
+                    note = "Built with your reply contents and the settings above, for a made-up fix in San Francisco.",
+                    messages = SmsComposer.composeLocation(SAMPLE_FIX, shown)
                 )
             }
 
@@ -134,6 +141,19 @@ fun AdvancedScreen(
                     enabled = !isLocked && movement.show,
                     onCheckedChange = { setMovement(movement.copy(cardinal = it)) }
                 )
+                RowDivider()
+                SampleBlock(
+                    title = if (movement.show) "Subscription update (moved 395 m north-east)" else "Subscription update (movement hidden)",
+                    note = when {
+                        !movement.show -> "Movement is hidden, so an update is the same as a location reply."
+                        movement.cardinal -> "Updates after the first include the direction and distance. Compass " +
+                            "letters are in the standard alphabet, so the text keeps the 160-character limit."
+                        else -> "Updates after the first include the movement arrow. Arrows aren't in the standard " +
+                            "alphabet, so that text drops to 70 characters per SMS, and a link that doesn't fit goes " +
+                            "in a second message."
+                    },
+                    messages = SmsComposer.composeLocation(SAMPLE_FIX, shown, SAMPLE_PREV_LAT, SAMPLE_PREV_LON)
+                )
             }
 
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -143,41 +163,9 @@ fun AdvancedScreen(
                 ) { Text("Reset to defaults") }
             }
 
-            val shown = options.normalized()
-            SettingsSection("Samples") {
-                Text(
-                    "Built with your reply contents and the settings above, for a made-up fix in San Francisco.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp)
-                )
-                SampleBlock(
-                    title = "Location reply",
-                    messages = SmsComposer.composeLocation(SAMPLE_FIX, shown)
-                )
-                RowDivider()
-                SampleBlock(
-                    title = if (movement.show) "Subscription update (moved 395 m north-east)" else "Subscription update (movement hidden)",
-                    messages = SmsComposer.composeLocation(SAMPLE_FIX, shown, SAMPLE_PREV_LAT, SAMPLE_PREV_LON)
-                )
-                Text(
-                    when {
-                        !movement.show -> "Movement is hidden, so an update is the same as a location reply."
-                        movement.cardinal -> "Updates after the first include the direction and distance. Compass " +
-                            "letters are in the standard alphabet, so the text keeps the 160-character limit."
-                        else -> "Updates after the first include the movement arrow. Arrows aren't in the standard " +
-                            "alphabet, so that text drops to 70 characters per SMS, and a link that doesn't fit goes " +
-                            "in a second message."
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = 16.dp, top = 4.dp, end = 16.dp, bottom = 16.dp)
-                )
-            }
-
             SettingsSection("How long a text can be") {
                 Text(
-                    "A text message is stored in one of two encodings, and each sample above says which it uses.",
+                    "A text message is stored in one of two encodings, and each sample above says which one it uses.",
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(start = 16.dp, top = 16.dp, end = 16.dp)
                 )
@@ -207,12 +195,13 @@ fun AdvancedScreen(
 
 /** One sample: how many SMS it is, then each message with its encoding and length. */
 @Composable
-private fun SampleBlock(title: String, messages: List<String>) {
+private fun SampleBlock(title: String, note: String, messages: List<String>) {
     Column(
         modifier = Modifier.padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(title, style = MaterialTheme.typography.labelLarge)
+        Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         val total = messages.sumOf { SmsLength.info(it).smsCount }
         Text(
             "$total SMS in total",

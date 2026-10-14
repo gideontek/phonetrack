@@ -67,9 +67,15 @@ class ScreenshotTour {
         compose.onNodeWithText("Map link").performScrollTo()
         compose.waitForIdle()
         save("advanced-$tag-1")
-        compose.onNodeWithText("Samples").performScrollTo()
+        compose.onNodeWithText("Location reply").performScrollTo()
         compose.waitForIdle()
         save("advanced-$tag-2")
+        compose.onNodeWithText("Subscription update (moved 395 m north-east)").performScrollTo()
+        compose.waitForIdle()
+        save("advanced-$tag-3")
+        compose.onNodeWithText("How long a text can be").performScrollTo()
+        compose.waitForIdle()
+        save("advanced-$tag-4")
     }
 
     @Test fun lightNormal() = tour("light-1.0x", dark = false, scale = 1.0f)
