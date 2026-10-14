@@ -83,7 +83,7 @@ fun AdvancedScreen(
                     RowDivider()
                 }
                 ToggleRow(
-                    label = "Short address (osm.org)",
+                    label = "Use osm.org instead of openstreetmap.org",
                     supporting = "Saves 14 characters. osm.org is OpenStreetMap's own short address and forwards to " +
                         "openstreetmap.org, so the link opens the same map.",
                     checked = link.shortDomain,
@@ -96,7 +96,10 @@ fun AdvancedScreen(
                     supporting = "Writes the position as a short code (osm.org/go/TZHvSR7N?m), about 50 characters " +
                         "shorter, which can keep a reply to 1 SMS instead of 2 or 3. The map and marker open the same, " +
                         "but the coordinates can't be read from the link, and the pin can be off by up to " +
-                        "${MapLinkSummary.precision(link.zoom)} at zoom ${link.zoom} (more zoomed out, less precise).",
+                        "${MapLinkSummary.precision(link.zoom)} at zoom ${link.zoom} (more zoomed out, less precise). " +
+                        "Keep the coordinates if a message may be passed on to a dispatcher or rescue team: they can " +
+                        "read out and enter latitude and longitude, but not a code, and a code needs a web browser. " +
+                        "You can also switch on Coordinates under Replies to send both.",
                     checked = link.encoded,
                     enabled = !isLocked,
                     onCheckedChange = { setLink(link.copy(encoded = it)) }

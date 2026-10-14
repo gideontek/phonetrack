@@ -70,7 +70,7 @@ class NavigationTest {
         compose.onNodeWithText("Map link").assertIsDisplayed()
         ui.back()
         compose.onNodeWithText("General").assertIsDisplayed()
-        assertEquals(0, compose.countWithText("Short address (osm.org)"))
+        assertEquals(0, compose.countWithText("Use osm.org instead of openstreetmap.org"))
         ui.back()
         compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
         assertEquals(0, compose.countWithText("General"))
