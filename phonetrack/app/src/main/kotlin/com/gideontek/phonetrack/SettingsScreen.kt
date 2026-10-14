@@ -16,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,7 @@ fun SettingsScreen(
     vm: HomeViewModel,
     permissions: PermissionsState,
     pinDialogs: PinDialogState,
+    onOpenAdvanced: () -> Unit,
     onBack: () -> Unit,
 ) {
     val enabled by vm.enabled.collectAsState()
@@ -112,6 +114,27 @@ fun SettingsScreen(
                 isLocked = isLocked,
                 onChange = { vm.setReplyOptions(it) }
             )
+
+            SettingsSection("Advanced") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(role = Role.Button, onClick = onOpenAdvanced)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .defaultMinSize(minHeight = 56.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Advanced settings", style = MaterialTheme.typography.bodyLarge)
+                        Text(
+                            "Map link: ${MapLinkSummary.text(replyOptions.link)}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+                }
+            }
 
             SettingsSection("Limits") {
                 StepperRow(

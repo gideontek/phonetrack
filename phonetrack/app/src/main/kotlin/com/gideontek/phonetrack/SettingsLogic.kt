@@ -54,6 +54,12 @@ object MapLinkSummary {
             "zoom ${o.zoom}"
         ).joinToString(" · ")
     }
+
+    /** How far off a compact code can put the pin at [zoom]: "±153 m", "±19 m", "±2.4 m", "±0.3 m". */
+    fun precision(zoom: Int): String {
+        val m = OsmLink.precisionMeters(zoom.coerceIn(MapLinkOptions.MIN_ZOOM, MapLinkOptions.MAX_ZOOM))
+        return if (m >= 10) "±${Math.round(m)} m" else "±${String.format(java.util.Locale.US, "%.1f", m)} m"
+    }
 }
 
 object ReplySummary {
