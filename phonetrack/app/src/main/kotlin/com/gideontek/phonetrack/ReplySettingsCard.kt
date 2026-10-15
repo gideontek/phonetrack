@@ -27,7 +27,7 @@ import androidx.compose.ui.unit.dp
 /**
  * The "Replies" section: one row summarising what a location reply contains; tapping it reveals a
  * switch per part and a live preview built by the same [SmsComposer] code that composes the real
- * messages. The last switch that is on can't be turned off (a reply can't be empty); everything
+ * messages. The last link that is on can't be turned off (a reply always carries a link); everything
  * is disabled while settings are PIN-locked.
  */
 @Composable
@@ -48,7 +48,7 @@ fun ReplySettingsCard(
             label = label,
             supporting = null,
             checked = checked,
-            // The last of Coordinates / geo: link / OpenStreetMap link must stay on.
+            // The last of geo: link / OpenStreetMap link must stay on.
             enabled = !isLocked && (!checked || !isLocation || locationCount > 1),
             onCheckedChange = { onChange(update(it)) }
         )
@@ -87,8 +87,8 @@ fun ReplySettingsCard(
         if (expanded) {
             RowDivider()
             Part("Coordinates", options.coords, isLocation = true) { options.copy(coords = it) }
-            Part("Accuracy", options.accuracy, isLocation = false) { options.copy(accuracy = it) }
-            Part("Battery", options.battery, isLocation = false) { options.copy(battery = it) }
+            Part("Location accuracy", options.accuracy, isLocation = false) { options.copy(accuracy = it) }
+            Part("Battery level", options.battery, isLocation = false) { options.copy(battery = it) }
             Part("Time of fix (UTC)", options.time, isLocation = false) { options.copy(time = it) }
             Part("geo: link", options.geo, isLocation = true) { options.copy(geo = it) }
             Part("OpenStreetMap link", options.osm, isLocation = true) { options.copy(osm = it) }
@@ -126,7 +126,7 @@ fun ReplySettingsCard(
                     }
                 }
                 Text(
-                    "At least one of Coordinates, geo: link and OpenStreetMap link must stay on. \"last\" shows how old its fix is.",
+                    "At least one of geo: link and OpenStreetMap link must stay on. \"last\" shows how old its fix is.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

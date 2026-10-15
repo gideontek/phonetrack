@@ -88,13 +88,13 @@ The phone acquires a GPS fix and replies with what you've chosen under **Reply c
 https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
-You can switch any of these parts on or off (at least one of Coordinates, the `geo:` link and the OpenStreetMap link must stay on; coordinates, the time of fix and the `geo:` link are off by default):
+You can switch any of these parts on or off (at least one of the `geo:` link and the OpenStreetMap link must stay on; coordinates, the time of fix and the `geo:` link are off by default):
 
 | Part | Looks like |
 |------|------------|
 | Coordinates | `Lat: 51.5074, Lon: -0.1278` |
-| Accuracy | `Acc: 8m` (GPS accuracy radius in metres) |
-| Battery | `Bat: 73%`, with `(charging)` while charging |
+| Location accuracy | `Acc: 8m` (GPS accuracy radius in metres) |
+| Battery level | `Bat: 73%`, with `(charging)` while charging |
 | Time of fix | `Time: 14:32Z` (UTC) |
 | `geo:` link | `geo:51.5074,-0.1278`, which opens in any maps app |
 | OpenStreetMap link | as above |

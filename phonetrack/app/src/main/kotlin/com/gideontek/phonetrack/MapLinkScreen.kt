@@ -61,7 +61,7 @@ fun MapLinkScreen(
                     "${MapLinkSummary.precision(link.zoom)} at zoom ${link.zoom} (more zoomed out, less precise). " +
                     "Keep the coordinates if a message may be passed on to a dispatcher or rescue team: they can " +
                     "read out and enter latitude and longitude, but not a code, and a code needs a web browser. " +
-                    "The Coordinates and geo: link options under Replies also send the coordinates.",
+                    "The Coordinates option under Replies also sends them.",
                 checked = link.encoded,
                 enabled = !isLocked,
                 onCheckedChange = { setLink(link.copy(encoded = it)) }

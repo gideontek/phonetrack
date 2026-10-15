@@ -55,9 +55,14 @@ class ReplyOptionsTest {
         )
     }
 
-    @Test fun `the location parts are coordinates, geo link and map link`() {
-        assertEquals(0, ReplyOptions(accuracy = true, battery = true, time = true).locationCount)
-        assertEquals(3, ReplyOptions(coords = true, geo = true, osm = true).locationCount)
+    @Test fun `coordinates alone are not a link, so the map link is added`() {
+        assertFalse(ReplyOptions(coords = true).hasLocation)
+        assertEquals(ReplyOptions(coords = true, osm = true), ReplyOptions(coords = true).normalized())
+    }
+
+    @Test fun `the link parts are geo link and map link`() {
+        assertEquals(0, ReplyOptions(coords = true, accuracy = true, battery = true, time = true).locationCount)
+        assertEquals(2, ReplyOptions(coords = true, geo = true, osm = true).locationCount)
         assertTrue(ReplyOptions(geo = true).hasLocation)
     }
 
