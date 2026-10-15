@@ -67,9 +67,9 @@ class ReplyContentTest {
     }
 
     @Test
-    fun coordinatesOnly() {
+    fun coordinatesGetTheMapLinkBecauseTheyAreNotALink() {
         parts("coords")
-        assertEquals("[PhoneTrack] Lat: 37.7749, Lon: -122.4194", assertOneReply(oneShot()))
+        assertEquals("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\n$link", assertOneReply(oneShot()))
     }
 
     @Test

@@ -58,7 +58,7 @@ phonetrack-android-2026/
             │   ├── ApprovalStore.kt       # Prefs/JSON store for the approvals list (synchronized)
             │   ├── NumberMigration.kt     # Pure merge logic for the numbers migration
             │   ├── PrefsMigration.kt      # One-time versioned upgrade of stored data
-            │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: accuracy, battery, map link; at least one of coordinates, geo link, map link must stay on)
+            │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: accuracy, battery, map link; at least one of geo link, map link must stay on)
             │   ├── ReplyOptionsStore.kt   # Prefs store for the reply options
             │   ├── MapLinkScreen.kt       # "Customize OpenStreetMap link" (from Replies): domain, compact code, zoom, with hints and a live reply sample
             │   ├── MovementScreen.kt      # "Customize movement" (from Replies): compass letters vs arrows, with a live subscription-update sample
@@ -99,7 +99,7 @@ phonetrack-android-2026/
   - `max_subscriptions` (Int, default 10, coerced to 1..20; concurrent non-expired subscriptions)
   - `rate_limit_per_hour` (Int, default 20, min 1; commands per approved sender per hour)
   - `rate_state` (JSON object of `key -> {start, count, noticed}`; see `RateLimiter`/`RateStore`)
-  - `reply_coords` / `reply_accuracy` / `reply_battery` / `reply_time` / `reply_geo` / `reply_osm` (Boolean; what a location reply contains; absent = default, which has `reply_accuracy`, `reply_battery` and `reply_osm` on and `reply_coords`, `reply_time`, `reply_geo` off; at least one of `reply_coords`, `reply_geo`, `reply_osm` is always on, `ReplyOptions.normalized()` adds the map link otherwise)
+  - `reply_coords` / `reply_accuracy` / `reply_battery` / `reply_time` / `reply_geo` / `reply_osm` (Boolean; what a location reply contains; absent = default, which has `reply_accuracy`, `reply_battery` and `reply_osm` on and `reply_coords`, `reply_time`, `reply_geo` off; at least one of `reply_geo`, `reply_osm` is always on, `ReplyOptions.normalized()` adds the map link otherwise)
   - `reply_osm_short` (Boolean, default false: `osm.org` instead of `www.openstreetmap.org`) / `reply_osm_encoded` (Boolean, default false: `/go/<code>?m` instead of `?mlat=&mlon=`) / `reply_osm_zoom` (Int, default 12, coerced to 8..18); the map link style, see `OsmLink`/`MapLinkOptions`
   - `reply_move_show` (Boolean, default true: direction and distance in subscription updates) / `reply_move_cardinal` (Boolean, default false: `NE395m` instead of `⇗395m`); see `MovementOptions`. All the `reply_osm_*` and `reply_move_*` keys share the `reply_` prefix so the view model's prefs listener refreshes them
   - `last_receive_at` / `last_send_at` (Long, epoch ms; drive the stream status indicator)

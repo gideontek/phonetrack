@@ -38,7 +38,11 @@ class SmsComposerTest {
 
     @Test
     fun `each location part alone produces just that part`() {
-        assertEquals(listOf("[PhoneTrack] Lat: 37.7749, Lon: -122.4194"), SmsComposer.composeLocation(fix(), only("coords")))
+        // Coordinates are not a link, so the map link is added to them.
+        assertEquals(
+            listOf("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\n$url"),
+            SmsComposer.composeLocation(fix(), only("coords"))
+        )
         assertEquals(listOf("geo:37.7749,-122.4194"), SmsComposer.composeLocation(fix(), only("geo")))
         assertEquals(listOf("[PhoneTrack] $url"), SmsComposer.composeLocation(fix(), only("osm")))
     }
@@ -110,9 +114,9 @@ class SmsComposerTest {
 
     @Test
     fun `an unknown battery level is never shown`() {
-        val opts = ReplyOptions(coords = true, battery = true, osm = false)
+        val opts = ReplyOptions(coords = true, battery = true, osm = true)
         assertEquals(
-            listOf("[PhoneTrack] Lat: 37.7749, Lon: -122.4194"),
+            listOf("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\n$url"),
             SmsComposer.composeLocation(fix(battery = -1), opts)
         )
     }
@@ -212,8 +216,8 @@ class SmsComposerTest {
     // -------------------------------------------------------------------------
 
     private fun coordsOnly(lat: Double, lon: Double) = SmsComposer.composeLocation(
-        LocationFix(lat, lon, 5, 0L), ReplyOptions(coords = true, osm = false)
-    )[0]
+        LocationFix(lat, lon, 5, 0L), ReplyOptions(coords = true, osm = true)
+    )[0].lines().first()
 
     @Test
     fun `coordinates keep short values without trailing zeros`() {
