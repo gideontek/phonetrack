@@ -63,13 +63,14 @@ class NavigationTest {
     }
 
     @Test
-    fun advancedIsOneLevelBelowSettingsAndBackStepsUpOneLevelAtATime() {
+    fun theScreensOpenedFromSettingsAreOneLevelBelowItAndBackStepsUpOneLevelAtATime() {
         ui.launch()
         compose.onNodeWithContentDescription("Settings").performClick()
-        compose.onNodeWithText("Advanced settings").clickVisible()
-        compose.onNodeWithText("Map link").assertIsDisplayed()
+        compose.onNodeWithText("Reply contents").clickVisible()
+        compose.onNodeWithText("Customize OpenStreetMap link").clickVisible()
+        compose.onNodeWithText("Link style").assertIsDisplayed()
         ui.back()
-        compose.onNodeWithText("General").assertIsDisplayed()
+        compose.onNodeWithText("General").assertExists()
         assertEquals(0, compose.countWithText("Use osm.org instead of openstreetmap.org"))
         ui.back()
         compose.onNodeWithContentDescription("Settings").assertIsDisplayed()

@@ -138,7 +138,7 @@ class ReplyContentTest {
         assertTrue(reply, Regex("""\[PhoneTrack] Last known \(\d+[smhd] ago\)\nBat: \d+%( \(charging\))?\n""" + Regex.escape(link)).matches(reply))
     }
 
-    // --- map link options (Advanced settings) -----------------------------------------
+    // --- map link options (Customize OpenStreetMap link) -----------------------------------------
 
     private fun linkPrefs(short: Boolean = false, encoded: Boolean = false, zoom: Int = 12) {
         TestState.prefs.edit()

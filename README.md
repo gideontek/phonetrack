@@ -111,19 +111,19 @@ geo:51.5074,-0.1278
 
 The text and the map link share one SMS whenever they fit (160 plain characters); otherwise the link goes in its own message. The `geo:` link is always its own message. The in-app preview shows exactly what will be sent. The settings are locked along with the rest when a PIN is set.
 
-#### Advanced settings
+#### Customizing the link and the movement
 
-**Settings → Advanced settings** changes how the map link and the movement in subscription updates are written. The defaults give the link shown above, and nothing changes until you opt in. Each option has a hint in the app, and the screen shows samples of a location reply and of a subscription update with the encoding and length of every message.
+Under **Settings → Replies → Reply contents**, the OpenStreetMap link has a **Customize OpenStreetMap link** row that opens a screen for how the link is written, and subscription updates have a **Movement in subscription updates** switch with a **Customize movement** row. The defaults give the link shown above, and nothing changes until you opt in. Each option has a hint in the app, and each screen shows a sample (a location reply, or a subscription update) with the encoding and length of every message.
 
 | Option | What it does |
 |--------|--------------|
 | osm.org instead of openstreetmap.org | `osm.org` instead of `www.openstreetmap.org` (14 characters shorter; it forwards to the same map) |
 | Compact code | A code instead of coordinates, e.g. `https://osm.org/go/TZHvSR7--?m`: about 50 characters shorter and it opens the same map with a marker. The coordinates can't be read from the link, and the pin can be off by up to 153 m (zoom 8 to 10), 19 m (11 to 13), 2.4 m (14 to 16) or under 1 m (17 and 18). Keep the coordinates if a message may be passed on to a dispatcher or rescue team: they can read out and enter latitude and longitude, but not a code, and a code needs a web browser (the Coordinates and geo: link options under Replies also send the coordinates) |
 | Zoom | 8 (a region) to 18 (a building); default 12. With a compact code, zoom 10, 13 and 16 give the shortest codes |
-| Show movement | On by default. Off drops the direction and distance from subscription updates, so they read like a location reply |
-| Compass letters | Off by default. Writes the direction as `N`, `NE`, `E`, `SE`, `S`, `SW`, `W` or `NW` (`NE395m`) instead of an arrow (`⇗395m`). The letters are in the standard SMS alphabet, so an update keeps the 160-character limit instead of 70 |
+| Movement in subscription updates (the switch in Replies) | On by default. Off drops the direction and distance from subscription updates, so they read like a location reply |
+| Compass letters (on the Customize movement screen) | Off by default. Writes the direction as `N`, `NE`, `E`, `SE`, `S`, `SW`, `W` or `NW` (`NE395m`) instead of an arrow (`⇗395m`). The letters are in the standard SMS alphabet, so an update keeps the 160-character limit instead of 70 |
 
-The screen also explains the two SMS encodings: GSM-7 (standard alphabet, 160 characters per SMS, 153 per part of a longer text; `[ ] { } \ ^ ~ |` and `€` count as 2) and UCS-2 (used for the whole text as soon as one character is outside GSM-7, such as an arrow or an emoji: 70 characters per SMS, 67 per part).
+**Settings → Help → FAQ** explains the two SMS encodings: GSM-7 (standard alphabet, 160 characters per SMS, 153 per part of a longer text; `[ ] { } \ ^ ~ |` and `€` count as 2) and UCS-2 (used for the whole text as soon as one character is outside GSM-7, such as an arrow or an emoji: 70 characters per SMS, 67 per part).
 
 Shorter links keep replies to fewer SMS. For example, a subscription update has to use the 70-character limit because of its movement arrow (compass letters or hiding the movement avoid that), so with the default link the link goes in a second SMS; with the short address and the compact code the whole update is 67 of 70 characters, one SMS (not while it also says "(charging)"):
 
@@ -188,7 +188,7 @@ The confirmation looks like:
 [PhoneTrack] Subscribed: update every 15 min, only if moved 200m+, for 4h (ends Sep 30 18:32Z). Text "phonetrack unsubscribe" to stop.
 ```
 
-Periodic updates use the same Reply contents settings (battery is included if you switch it on) and add a direction arrow and how far you moved since the previous update, e.g. `⇗120m` (or `NE120m`, or nothing, from Advanced settings) (shown in kilometers from 1 km: `⇗1.2km`, and whole kilometers from 10 km: `⇗12km`). The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
+Periodic updates use the same Reply contents settings (battery is included if you switch it on) and add a direction arrow and how far you moved since the previous update, e.g. `⇗120m` (or `NE120m`, or nothing, from Customize movement in Replies) (shown in kilometers from 1 km: `⇗1.2km`, and whole kilometers from 10 km: `⇗12km`). The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
 
 ### Unsubscribe
 

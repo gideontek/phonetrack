@@ -60,31 +60,46 @@ class AccessibilityTest {
         assertTargetsAreLabelledAndLargeEnough("Settings ($label)")
     }
 
-    private fun advancedScreen(label: String) {
+    private fun openedFromSettings(label: String, opener: String, marker: String, screen: String) {
         compose.onNodeWithContentDescription("Settings").performClick()
-        compose.onNodeWithText("Advanced settings").clickVisible()
-        compose.onNodeWithText("Map link").assertIsDisplayed()
-        assertTargetsAreLabelledAndLargeEnough("Advanced ($label)")
+        if (opener.startsWith("Customize")) compose.onNodeWithText("Reply contents").clickVisible()
+        compose.onNodeWithText(opener).clickVisible()
+        compose.onNodeWithText(marker, substring = true).assertIsDisplayed()
+        assertTargetsAreLabelledAndLargeEnough("$screen ($label)")
+    }
+
+    private fun linkScreen(label: String) = openedFromSettings(label, "Customize OpenStreetMap link", "Link style", "OpenStreetMap link")
+
+    private fun allThree(label: String) {
+        linkScreen(label)
+        ui.back()
+        compose.onNodeWithText("Customize movement").clickVisible()
+        compose.onNodeWithText("Direction").assertIsDisplayed()
+        assertTargetsAreLabelledAndLargeEnough("Movement ($label)")
+        ui.back()
+        compose.onNodeWithText("FAQ").clickVisible()
+        compose.onNodeWithText("How long can a text be?", substring = true).assertIsDisplayed()
+        assertTargetsAreLabelledAndLargeEnough("FAQ ($label)")
     }
 
     @Test
-    fun theAdvancedScreenIsLabelledAndLargeEnoughInTheLightTheme() {
+    fun theCustomizeAndFaqScreensAreLabelledAndLargeEnoughInTheLightTheme() {
         ui.launch()
-        advancedScreen("light")
+        allThree("light")
     }
 
     @Test
-    fun theAdvancedScreenIsLabelledAndLargeEnoughInTheDarkTheme() {
+    fun theCustomizeAndFaqScreensAreLabelledAndLargeEnoughInTheDarkTheme() {
         ui.setDarkMode(true)
         ui.launch()
-        advancedScreen("dark")
+        allThree("dark")
     }
 
     @Test
-    fun theAdvancedScreenIsLabelledAndLargeEnoughAtLargeTextSize() {
+    fun theCustomizeAndFaqScreensAreLabelledAndLargeEnoughAtLargeTextSize() {
         ui.setFontScale(1.3f)
         ui.launch()
-        advancedScreen("1.3x text")
+        allThree("1.3x text")
     }
 
     @Test
