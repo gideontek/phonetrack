@@ -94,4 +94,11 @@ class SettingsLogicTest {
         assertEquals("±2.4 m", MapLinkSummary.precision(14))
         assertEquals("±0.3 m", MapLinkSummary.precision(17))
     }
+
+    @Test fun `the movement summary names arrows, compass letters and off`() {
+        assertEquals("Arrows", MovementSummary.text(MovementOptions()))
+        assertEquals("Compass letters", MovementSummary.text(MovementOptions(cardinal = true)))
+        assertEquals("Off", MovementSummary.text(MovementOptions(show = false)))
+        assertEquals("Off", MovementSummary.text(MovementOptions(show = false, cardinal = true)))
+    }
 }

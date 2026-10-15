@@ -16,11 +16,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
@@ -39,9 +34,12 @@ import androidx.compose.ui.unit.dp
 fun ReplySettingsCard(
     options: ReplyOptions,
     isLocked: Boolean,
+    expanded: Boolean,
+    onExpandedChange: (Boolean) -> Unit,
+    onCustomizeLink: () -> Unit,
+    onCustomizeMovement: () -> Unit,
     onChange: (ReplyOptions) -> Unit
 ) {
-    var expanded by rememberSaveable { mutableStateOf(false) }
     val locationCount = options.locationCount
 
     @Composable
@@ -63,7 +61,7 @@ fun ReplySettingsCard(
                 .clickable(
                     onClickLabel = if (expanded) "Hide reply contents" else "Show reply contents",
                     role = Role.Button,
-                    onClick = { expanded = !expanded }
+                    onClick = { onExpandedChange(!expanded) }
                 )
                 .semantics(mergeDescendants = true) {
                     stateDescription = if (expanded) "Expanded" else "Collapsed"
@@ -94,6 +92,16 @@ fun ReplySettingsCard(
             Part("Time of fix (UTC)", options.time, isLocation = false) { options.copy(time = it) }
             Part("geo: link", options.geo, isLocation = true) { options.copy(geo = it) }
             Part("OpenStreetMap link", options.osm, isLocation = true) { options.copy(osm = it) }
+            NavigationRow("Customize OpenStreetMap link", MapLinkSummary.text(options.link), onCustomizeLink)
+            RowDivider()
+            ToggleRow(
+                label = "Movement in subscription updates",
+                supporting = "Direction and distance since the previous update",
+                checked = options.movement.show,
+                enabled = !isLocked,
+                onCheckedChange = { onChange(options.copy(movement = options.movement.copy(show = it))) }
+            )
+            NavigationRow("Customize movement", MovementSummary.text(options.movement), onCustomizeMovement)
             RowDivider()
             Column(
                 modifier = Modifier.padding(16.dp),
@@ -118,8 +126,7 @@ fun ReplySettingsCard(
                     }
                 }
                 Text(
-                    "At least one of Coordinates, geo: link and OpenStreetMap link must stay on. Subscription updates also show how far you moved " +
-                        "since the last one, and \"last\" shows how old its fix is.",
+                    "At least one of Coordinates, geo: link and OpenStreetMap link must stay on. \"last\" shows how old its fix is.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

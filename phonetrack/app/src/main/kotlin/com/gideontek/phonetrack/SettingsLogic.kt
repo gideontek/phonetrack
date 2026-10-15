@@ -62,6 +62,15 @@ object MapLinkSummary {
     }
 }
 
+object MovementSummary {
+    /** "Arrows" / "Compass letters" / "Off": the one-line state of the movement options. */
+    fun text(movement: MovementOptions): String = when {
+        !movement.show -> "Off"
+        movement.cardinal -> "Compass letters"
+        else -> "Arrows"
+    }
+}
+
 object ReplySummary {
     /** "Coordinates · Accuracy · Battery · Map link · 1 SMS" for the options as they will be used. */
     fun text(options: ReplyOptions): String {
