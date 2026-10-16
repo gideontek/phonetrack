@@ -60,6 +60,33 @@ class AccessibilityTest {
         assertTargetsAreLabelledAndLargeEnough("Settings ($label)")
     }
 
+    private fun faq(label: String) {
+        compose.onNodeWithContentDescription("Settings").performClick()
+        compose.onNodeWithText("FAQ").clickVisible()
+        compose.onNodeWithText("How long can a text be?", substring = true).assertIsDisplayed()
+        assertTargetsAreLabelledAndLargeEnough("FAQ ($label)")
+    }
+
+    @Test
+    fun theFaqIsLabelledAndLargeEnoughInTheLightTheme() {
+        ui.launch()
+        faq("light")
+    }
+
+    @Test
+    fun theFaqIsLabelledAndLargeEnoughInTheDarkTheme() {
+        ui.setDarkMode(true)
+        ui.launch()
+        faq("dark")
+    }
+
+    @Test
+    fun theFaqIsLabelledAndLargeEnoughAtLargeTextSize() {
+        ui.setFontScale(1.3f)
+        ui.launch()
+        faq("1.3x text")
+    }
+
     @Test
     fun targetsAreLabelledAndLargeEnoughInTheLightTheme() {
         ui.launch { RichData.seed() }
