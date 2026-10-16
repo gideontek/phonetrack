@@ -90,6 +90,13 @@ fun ReplySettingsCard(
             Part("Location accuracy", options.accuracy, isLocation = false) { options.copy(accuracy = it) }
             Part("Battery level", options.battery, isLocation = false) { options.copy(battery = it) }
             Part("Time of fix (UTC)", options.time, isLocation = false) { options.copy(time = it) }
+            RowDivider()
+            Text(
+                "At least one link is required",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 4.dp)
+            )
             Part("geo: link", options.geo, isLocation = true) { options.copy(geo = it) }
             Part("OpenStreetMap link", options.osm, isLocation = true) { options.copy(osm = it) }
             NavigationRow("Customize OpenStreetMap link", MapLinkSummary.text(options.link), onCustomizeLink)
@@ -126,7 +133,7 @@ fun ReplySettingsCard(
                     }
                 }
                 Text(
-                    "At least one of geo: link and OpenStreetMap link must stay on. \"last\" shows how old its fix is.",
+                    "\"last\" shows how old its fix is.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
