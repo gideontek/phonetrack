@@ -2,6 +2,7 @@ package com.gideontek.phonetrack.ui
 
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -63,6 +64,10 @@ class ScreenshotTour {
         compose.onNodeWithText("About").performScrollTo()
         compose.waitForIdle()
         save("settings-$tag-3")
+        compose.onNodeWithText("FAQ").clickVisible()
+        compose.onNodeWithText("How long can a text be?", substring = true).assertIsDisplayed()
+        compose.waitForIdle()
+        save("faq-$tag-1")
     }
 
     @Test fun lightNormal() = tour("light-1.0x", dark = false, scale = 1.0f)

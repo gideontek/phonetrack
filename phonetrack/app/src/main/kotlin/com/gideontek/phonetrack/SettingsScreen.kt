@@ -40,6 +40,7 @@ fun SettingsScreen(
     vm: HomeViewModel,
     permissions: PermissionsState,
     pinDialogs: PinDialogState,
+    onOpenFaq: () -> Unit,
     onBack: () -> Unit,
 ) {
     val enabled by vm.enabled.collectAsState()
@@ -194,6 +195,10 @@ fun SettingsScreen(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(16.dp)
                 )
+            }
+
+            SettingsSection("Help") {
+                NavigationRow("FAQ", "How long can a text be?", onOpenFaq)
             }
 
             AboutSection()

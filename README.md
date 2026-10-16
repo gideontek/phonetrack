@@ -190,6 +190,7 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 | Limits | Commands per number per hour, and most active subscriptions at once |
 | Permissions | SMS, location, background location and notifications, each with a Grant button |
 | PIN | Set, change or remove the PIN that guards Settings and approval changes (see below) |
+| Help → FAQ | How long can a text be? The two SMS encodings: GSM-7 (standard alphabet, 160 characters per SMS, 153 per part of a longer text; `[ ] { } \ ^ ~ |` and `€` count as 2) and UCS-2 (used for the whole text as soon as one character is outside GSM-7, such as an arrow or an emoji: 70 characters per SMS, 67 per part) |
 
 ### The main screen
 
