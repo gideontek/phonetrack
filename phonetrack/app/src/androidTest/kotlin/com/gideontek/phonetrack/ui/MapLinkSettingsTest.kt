@@ -120,7 +120,7 @@ class MapLinkSettingsTest {
     fun theCompactCodeHintSaysToKeepCoordinatesForEmergencyServices() {
         openMapLink()
         compose.onNodeWithText("passed on to a dispatcher or rescue team", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("geo: link options under Replies also send the coordinates", substring = true).assertExists()
+        compose.onNodeWithText("Coordinates option under Replies also sends them", substring = true).assertExists()
     }
 
     @Test
@@ -223,7 +223,7 @@ class MapLinkSettingsTest {
     fun aNoteExplainsWhenTheLinkIsSwitchedOffUnderReplies() {
         openMapLink {
             val e = prefs.edit()
-            for (k in listOf("coords", "accuracy", "battery", "time", "geo", "osm")) e.putBoolean("reply_$k", k == "coords")
+            for (k in listOf("coords", "accuracy", "battery", "time", "geo", "osm")) e.putBoolean("reply_$k", k == "geo")
             e.commit()
         }
         compose.onNodeWithText("The OpenStreetMap link is switched off under Replies", substring = true).assertIsDisplayed()

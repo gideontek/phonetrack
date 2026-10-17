@@ -14,7 +14,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
  * Top-level destinations. A few screens need no navigation library; Back goes one level up (the screens
  * opened from Settings go to Settings, Settings to Main).
  */
-enum class Screen { Main, Settings, MapLink, Movement, Faq }
+enum class Screen { Main, Settings, MapLink, Movement }
 
 /**
  * Owns everything the screens share: the view model, permission state (with its resume hook)
@@ -50,7 +50,6 @@ fun AppHost(vm: HomeViewModel = viewModel()) {
                 onRepliesExpandedChange = { repliesExpanded = it },
                 onOpenMapLink = { screen = Screen.MapLink },
                 onOpenMovement = { screen = Screen.Movement },
-                onOpenFaq = { screen = Screen.Faq },
                 onBack = { screen = Screen.Main },
             )
             Screen.MapLink -> MapLinkScreen(
@@ -63,7 +62,6 @@ fun AppHost(vm: HomeViewModel = viewModel()) {
                 pinDialogs = pinDialogs,
                 onBack = { screen = Screen.Settings },
             )
-            Screen.Faq -> FaqScreen(onBack = { screen = Screen.Settings })
         }
     }
 

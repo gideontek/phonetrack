@@ -80,10 +80,6 @@ class ScreenshotTour {
         compose.waitForIdle()
         save("movement-$tag-2")
         ui.back()
-        compose.onNodeWithText("FAQ").clickVisible()
-        compose.onNodeWithText("How long can a text be?", substring = true).assertIsDisplayed()
-        compose.waitForIdle()
-        save("faq-$tag-1")
     }
 
     @Test fun lightNormal() = tour("light-1.0x", dark = false, scale = 1.0f)
