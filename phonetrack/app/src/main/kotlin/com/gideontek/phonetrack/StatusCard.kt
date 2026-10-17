@@ -71,7 +71,8 @@ fun StatusCard(
                         // Debug builds only: tap the circle to step through the four stream states.
                         .then(if (BuildConfig.DEBUG) Modifier.clickable(onClick = onDebugCycle) else Modifier)
                         // Purely visual: the text beside it says the same thing, so screen readers skip it.
-                        .clearAndSetSemantics { },
+                        // The debug-only tap target does need a name, or it is an unlabelled clickable.
+                        .clearAndSetSemantics { if (BuildConfig.DEBUG) contentDescription = "Cycle stream state (debug)" },
                     circleRadius = 28.dp,
                     maxWaveRadius = 44.dp,
                     strokeWidth = 2.dp,
