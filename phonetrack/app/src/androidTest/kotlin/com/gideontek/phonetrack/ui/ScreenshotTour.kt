@@ -3,6 +3,7 @@ package com.gideontek.phonetrack.ui
 import android.graphics.Bitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -63,6 +64,22 @@ class ScreenshotTour {
         compose.onNodeWithText("About").performScrollTo()
         compose.waitForIdle()
         save("settings-$tag-3")
+        compose.onNodeWithText("Customize OpenStreetMap link").clickVisible()
+        compose.onNodeWithText("Link style").assertIsDisplayed()
+        compose.waitForIdle()
+        save("map-link-$tag-1")
+        compose.onNodeWithText("Location reply").performScrollTo()
+        compose.waitForIdle()
+        save("map-link-$tag-2")
+        ui.back()
+        compose.onNodeWithText("Customize movement").clickVisible()
+        compose.onNodeWithText("Direction").assertIsDisplayed()
+        compose.waitForIdle()
+        save("movement-$tag-1")
+        compose.onNodeWithText("Subscription update (moved 395 m north-east)").performScrollTo()
+        compose.waitForIdle()
+        save("movement-$tag-2")
+        ui.back()
     }
 
     @Test fun lightNormal() = tour("light-1.0x", dark = false, scale = 1.0f)

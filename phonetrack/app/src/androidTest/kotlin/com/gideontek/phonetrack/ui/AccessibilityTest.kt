@@ -60,6 +60,44 @@ class AccessibilityTest {
         assertTargetsAreLabelledAndLargeEnough("Settings ($label)")
     }
 
+    private fun openedFromSettings(label: String, opener: String, marker: String, screen: String) {
+        compose.onNodeWithContentDescription("Settings").performClick()
+        if (opener.startsWith("Customize")) compose.onNodeWithText("Reply contents").clickVisible()
+        compose.onNodeWithText(opener).clickVisible()
+        compose.onNodeWithText(marker, substring = true).assertIsDisplayed()
+        assertTargetsAreLabelledAndLargeEnough("$screen ($label)")
+    }
+
+    private fun linkScreen(label: String) = openedFromSettings(label, "Customize OpenStreetMap link", "Link style", "OpenStreetMap link")
+
+    private fun both(label: String) {
+        linkScreen(label)
+        ui.back()
+        compose.onNodeWithText("Customize movement").clickVisible()
+        compose.onNodeWithText("Direction").assertIsDisplayed()
+        assertTargetsAreLabelledAndLargeEnough("Movement ($label)")
+    }
+
+    @Test
+    fun theCustomizeScreensAreLabelledAndLargeEnoughInTheLightTheme() {
+        ui.launch()
+        both("light")
+    }
+
+    @Test
+    fun theCustomizeScreensAreLabelledAndLargeEnoughInTheDarkTheme() {
+        ui.setDarkMode(true)
+        ui.launch()
+        both("dark")
+    }
+
+    @Test
+    fun theCustomizeScreensAreLabelledAndLargeEnoughAtLargeTextSize() {
+        ui.setFontScale(1.3f)
+        ui.launch()
+        both("1.3x text")
+    }
+
     @Test
     fun targetsAreLabelledAndLargeEnoughInTheLightTheme() {
         ui.launch { RichData.seed() }

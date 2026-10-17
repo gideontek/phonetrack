@@ -1,5 +1,6 @@
 package com.gideontek.phonetrack
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -7,11 +8,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -159,6 +168,99 @@ fun PermissionRow(
             }
         } else {
             OutlinedButton(onClick = onGrant, enabled = grantEnabled) { Text("Grant") }
+        }
+    }
+}
+
+/**
+ * A row that opens another screen: label, an optional one-line summary of the current choice and a
+ * chevron. Read as a button.
+ */
+@Composable
+fun NavigationRow(label: String, summary: String?, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .defaultMinSize(minHeight = 56.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        RowText(label, summary, Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+    }
+}
+
+/**
+ * The frame of a screen one level below Settings: [back][title]----[trailing], then [content] in a
+ * scrolling column. [trailing] is where the lock button goes on screens that have controls.
+ */
+@Composable
+fun SubScreen(
+    title: String,
+    onBack: () -> Unit,
+    trailing: @Composable () -> Unit = {},
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .systemBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+                Text(title, style = MaterialTheme.typography.headlineMedium)
+                Spacer(modifier = Modifier.weight(1f))
+                trailing()
+            }
+            content()
+        }
+    }
+}
+
+/** One sample: how many SMS it is, then each message with its encoding and length. */
+@Composable
+fun SampleBlock(title: String, note: String, messages: List<String>) {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(title, style = MaterialTheme.typography.labelLarge)
+        Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val total = messages.sumOf { SmsLength.info(it).smsCount }
+        Text(
+            "$total SMS in total",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        messages.forEachIndexed { index, text ->
+            val info = SmsLength.info(text)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text("SMS ${index + 1} of ${messages.size}", style = MaterialTheme.typography.labelSmall)
+                    Text(text, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "${if (info.encoding == SmsLength.Encoding.GSM7) "GSM-7" else "UCS-2"} · " +
+                            "${info.units} of ${info.limit} characters" +
+                            if (info.smsCount > 1) " · sent as ${info.smsCount} parts" else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }

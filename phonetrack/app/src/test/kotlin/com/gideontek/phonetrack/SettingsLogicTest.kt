@@ -70,4 +70,35 @@ class SettingsLogicTest {
             "5 wrong PINs in a row lock unlocking for 1 minute, then 5, 15 and 60 minutes.",
             PinLockout.scheduleText()
         )
+
+    @Test fun `map link summary of the defaults`() =
+        assertEquals("openstreetmap.org · coordinates in link · zoom 12", MapLinkSummary.text(MapLinkOptions()))
+
+    @Test fun `map link summary of a compact link`() =
+        assertEquals(
+            "osm.org · compact code · zoom 13",
+            MapLinkSummary.text(MapLinkOptions(shortDomain = true, encoded = true, zoom = 13))
+        )
+
+    @Test fun `map link summary clamps the zoom`() =
+        assertEquals("openstreetmap.org · coordinates in link · zoom 18", MapLinkSummary.text(MapLinkOptions(zoom = 40)))
+
+    @Test fun `the sample previous position is a few hundred metres away`() {
+        val first = SmsComposer.composeLocation(SAMPLE_FIX, ReplyOptions.DEFAULT, SAMPLE_PREV_LAT, SAMPLE_PREV_LON).first()
+        assertTrue(first, first.contains("⇗395m"))
+    }
+
+    @Test fun `precision text is whole metres from 10 m up and one decimal below`() {
+        assertEquals("±153 m", MapLinkSummary.precision(8))
+        assertEquals("±19 m", MapLinkSummary.precision(12))
+        assertEquals("±2.4 m", MapLinkSummary.precision(14))
+        assertEquals("±0.3 m", MapLinkSummary.precision(17))
+    }
+
+    @Test fun `the movement summary names arrows, compass letters and off`() {
+        assertEquals("Arrows", MovementSummary.text(MovementOptions()))
+        assertEquals("Compass letters", MovementSummary.text(MovementOptions(cardinal = true)))
+        assertEquals("Off", MovementSummary.text(MovementOptions(show = false)))
+        assertEquals("Off", MovementSummary.text(MovementOptions(show = false, cardinal = true)))
+    }
 }

@@ -97,7 +97,7 @@ class SettingsTest {
     fun expandingRepliesShowsEachPartAndAPreview() {
         openSettings()
         compose.onNodeWithText("Reply contents").clickVisible()
-        for (part in listOf("Coordinates", "Accuracy", "Battery", "Time of fix (UTC)", "geo: link", "OpenStreetMap link")) {
+        for (part in listOf("Coordinates", "Location accuracy", "Battery level", "Time of fix (UTC)", "geo: link", "OpenStreetMap link")) {
             compose.onNode(hasText(part) and isToggleable()).performScrollTo().assertExists()
         }
         compose.onNodeWithText("SMS 1 of 1").performScrollTo().assertIsDisplayed()
@@ -136,8 +136,8 @@ class SettingsTest {
         }
         compose.onNodeWithText("Reply contents").clickVisible()
         compose.onNode(hasText("OpenStreetMap link") and isToggleable()).performScrollTo().assertIsOn().assertIsNotEnabled()
-        compose.onNode(hasText("Accuracy") and isToggleable()).performScrollTo().assertIsEnabled().performClick()
-        compose.onNode(hasText("Battery") and isToggleable()).performScrollTo().assertIsEnabled().performClick()
+        compose.onNode(hasText("Location accuracy") and isToggleable()).performScrollTo().assertIsEnabled().performClick()
+        compose.onNode(hasText("Battery level") and isToggleable()).performScrollTo().assertIsEnabled().performClick()
         ui.waitUntil { !TestState.prefs.getBoolean("reply_accuracy", true) && !TestState.prefs.getBoolean("reply_battery", true) }
         compose.onNodeWithText("Map link \u00B7 1\u00A0SMS").assertExists()
         compose.onNode(hasText("OpenStreetMap link") and isToggleable()).assertIsOn().assertIsNotEnabled()
@@ -175,8 +175,8 @@ class SettingsTest {
     fun limitsShowTheDefaults() {
         openSettings()
         compose.onNodeWithText("Commands per number").performScrollTo()
-        compose.onNodeWithText("20").assertIsDisplayed()
-        compose.onNodeWithText("10").assertIsDisplayed()
+        compose.onNodeWithText("20").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("10").performScrollTo().assertIsDisplayed()
     }
 
     @Test

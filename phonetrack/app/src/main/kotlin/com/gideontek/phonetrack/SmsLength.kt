@@ -26,6 +26,24 @@ object SmsLength {
         return septets
     }
 
+    enum class Encoding { GSM7, UCS2 }
+
+    /** How [text] is sent: its encoding, the units it uses, the one-SMS limit for that encoding, and how many SMS it takes. */
+    data class Info(val encoding: Encoding, val units: Int, val limit: Int, val smsCount: Int)
+
+    /** Each part of a multipart SMS loses 7 septets (GSM-7) or 3 characters (UCS-2) to the reassembly header. */
+    private const val GSM7_PART = 153
+    private const val UCS2_PART = 67
+
+    fun info(text: String): Info {
+        val septets = gsm7Septets(text)
+        val encoding = if (septets != null) Encoding.GSM7 else Encoding.UCS2
+        val units = septets ?: text.length
+        val limit = if (septets != null) GSM7_LIMIT else UCS2_LIMIT
+        val part = if (septets != null) GSM7_PART else UCS2_PART
+        return Info(encoding, units, limit, if (units <= limit) 1 else (units + part - 1) / part)
+    }
+
     fun fitsOneSms(text: String): Boolean {
         val septets = gsm7Septets(text)
         return if (septets != null) septets <= GSM7_LIMIT else text.length <= UCS2_LIMIT

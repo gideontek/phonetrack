@@ -55,9 +55,44 @@ class ReplyOptionsTest {
         )
     }
 
-    @Test fun `the location parts are coordinates, geo link and map link`() {
-        assertEquals(0, ReplyOptions(accuracy = true, battery = true, time = true).locationCount)
-        assertEquals(3, ReplyOptions(coords = true, geo = true, osm = true).locationCount)
+    @Test fun `coordinates alone are not a link, so the map link is added`() {
+        assertFalse(ReplyOptions(coords = true).hasLocation)
+        assertEquals(ReplyOptions(coords = true, osm = true), ReplyOptions(coords = true).normalized())
+    }
+
+    @Test fun `the link parts are geo link and map link`() {
+        assertEquals(0, ReplyOptions(coords = true, accuracy = true, battery = true, time = true).locationCount)
+        assertEquals(2, ReplyOptions(coords = true, geo = true, osm = true).locationCount)
         assertTrue(ReplyOptions(geo = true).hasLocation)
+    }
+
+    @Test fun `the default link options are the full readable url at zoom 12`() {
+        val l = ReplyOptions.DEFAULT.link
+        assertFalse(l.shortDomain); assertFalse(l.encoded); assertEquals(12, l.zoom)
+    }
+
+    @Test fun `building the six parts positionally keeps the default link options`() {
+        assertEquals(MapLinkOptions.DEFAULT, ReplyOptions(true, true, true, true, true, true).link)
+    }
+
+    @Test fun `normalized clamps the link zoom`() {
+        assertEquals(18, ReplyOptions.DEFAULT.copy(link = MapLinkOptions(zoom = 99)).normalized().link.zoom)
+        assertEquals(8, ReplyOptions.DEFAULT.copy(link = MapLinkOptions(zoom = 0)).normalized().link.zoom)
+    }
+
+    @Test fun `normalizing an all-off set keeps the chosen link options`() {
+        val link = MapLinkOptions(shortDomain = true, encoded = true, zoom = 13)
+        assertEquals(ReplyOptions.LINK_ONLY.copy(link = link), ReplyOptions(link = link).normalized())
+    }
+
+    @Test fun `movement shows an arrow by default`() {
+        assertEquals(MovementOptions(show = true, cardinal = false), ReplyOptions.DEFAULT.movement)
+        assertEquals(MovementOptions.DEFAULT, ReplyOptions().movement)
+    }
+
+    @Test fun `movement does not count as a reply part and survives normalizing`() {
+        val m = MovementOptions(show = false, cardinal = true)
+        assertEquals(ReplyOptions.DEFAULT.count, ReplyOptions.DEFAULT.copy(movement = m).count)
+        assertEquals(m, ReplyOptions().copy(movement = m).normalized().movement)
     }
 }

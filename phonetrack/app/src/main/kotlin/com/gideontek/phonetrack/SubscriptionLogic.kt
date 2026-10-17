@@ -43,6 +43,13 @@ object SubscriptionLogic {
     fun dueSubs(subs: List<Subscription>, now: Long): List<Subscription> =
         subs.filter { now - it.lastSentAt >= it.freqMinutes * 60_000L }
 
+    /** Snaps a compass bearing (0–360°) to the nearest of 8 compass letters: N, NE, E, SE, S, SW, W, NW. */
+    fun bearingToCompass(bearing: Float): String {
+        val b = ((bearing % 360) + 360) % 360
+        val index = ((b + 22.5f) / 45f).toInt() % 8
+        return arrayOf("N", "NE", "E", "SE", "S", "SW", "W", "NW")[index]
+    }
+
     /** Snaps a compass bearing (0–360°) to the nearest of 8 arrow glyphs. */
     fun bearingToArrow(bearing: Float): String {
         val b = ((bearing % 360) + 360) % 360
