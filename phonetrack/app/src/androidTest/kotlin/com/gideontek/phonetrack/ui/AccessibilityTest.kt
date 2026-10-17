@@ -70,36 +70,32 @@ class AccessibilityTest {
 
     private fun linkScreen(label: String) = openedFromSettings(label, "Customize OpenStreetMap link", "Link style", "OpenStreetMap link")
 
-    private fun allThree(label: String) {
+    private fun both(label: String) {
         linkScreen(label)
         ui.back()
         compose.onNodeWithText("Customize movement").clickVisible()
         compose.onNodeWithText("Direction").assertIsDisplayed()
         assertTargetsAreLabelledAndLargeEnough("Movement ($label)")
-        ui.back()
-        compose.onNodeWithText("FAQ").clickVisible()
-        compose.onNodeWithText("How long can a text be?", substring = true).assertIsDisplayed()
-        assertTargetsAreLabelledAndLargeEnough("FAQ ($label)")
     }
 
     @Test
-    fun theCustomizeAndFaqScreensAreLabelledAndLargeEnoughInTheLightTheme() {
+    fun theCustomizeScreensAreLabelledAndLargeEnoughInTheLightTheme() {
         ui.launch()
-        allThree("light")
+        both("light")
     }
 
     @Test
-    fun theCustomizeAndFaqScreensAreLabelledAndLargeEnoughInTheDarkTheme() {
+    fun theCustomizeScreensAreLabelledAndLargeEnoughInTheDarkTheme() {
         ui.setDarkMode(true)
         ui.launch()
-        allThree("dark")
+        both("dark")
     }
 
     @Test
-    fun theCustomizeAndFaqScreensAreLabelledAndLargeEnoughAtLargeTextSize() {
+    fun theCustomizeScreensAreLabelledAndLargeEnoughAtLargeTextSize() {
         ui.setFontScale(1.3f)
         ui.launch()
-        allThree("1.3x text")
+        both("1.3x text")
     }
 
     @Test

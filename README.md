@@ -123,8 +123,6 @@ Under **Settings → Replies → Reply contents**, the OpenStreetMap link has a 
 | Movement in subscription updates (the switch in Replies) | On by default. Off drops the direction and distance from subscription updates, so they read like a location reply |
 | Compass letters (on the Customize movement screen) | Off by default. Writes the direction as `N`, `NE`, `E`, `SE`, `S`, `SW`, `W` or `NW` (`NE395m`) instead of an arrow (`⇗395m`). The letters are in the standard SMS alphabet, so an update keeps the 160-character limit instead of 70 |
 
-**Settings → Help → FAQ** explains the two SMS encodings: GSM-7 (standard alphabet, 160 characters per SMS, 153 per part of a longer text; `[ ] { } \ ^ ~ |` and `€` count as 2) and UCS-2 (used for the whole text as soon as one character is outside GSM-7, such as an arrow or an emoji: 70 characters per SMS, 67 per part).
-
 Shorter links keep replies to fewer SMS. For example, a subscription update has to use the 70-character limit because of its movement arrow (compass letters or hiding the movement avoid that), so with the default link the link goes in a second SMS; with the short address and the compact code the whole update is 67 of 70 characters, one SMS (not while it also says "(charging)"):
 
 ```
