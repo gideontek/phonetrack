@@ -3,3 +3,6 @@
 * New "last" command: last known location, no GPS wake-up
 * Stronger security: hashed PIN, lockout after wrong PINs, request limits
 * Fixes for background location and resumed subscriptions
+* Replies show the map link by default; coordinates are now opt-in
+* Long distances shown in km
+* Now requires Android 8.1 or newer
