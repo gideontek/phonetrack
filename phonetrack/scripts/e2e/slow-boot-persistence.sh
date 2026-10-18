@@ -13,6 +13,9 @@ sub() { echo '{"number":"'$1'","distMeters":200,"freqMinutes":15,"durationHours"
 SUBS="[$(sub +15550009001 $((NOW_MS + 4 * 3600000))),$(sub +15550009002 $((NOW_MS - 60000)))]"
 
 reboot_and_wait() {
+  # The system writes "no longer stopped" (set by launch) to disk after a delay of a few seconds. Rebooting
+  # sooner brings the app back as stopped, and a stopped app gets no BOOT_COMPLETED.
+  sleep 20
   "${ADB[@]}" reboot
   "${ADB[@]}" wait-for-device
   until [ "$("${ADB[@]}" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; do sleep 2; done
