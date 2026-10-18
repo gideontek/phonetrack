@@ -43,7 +43,10 @@ start() {
 
 case "$cmd" in
   start) start "$@" ;;
-  stop)  "$ADB" -s "emulator-${1:-5556}" emu kill ;;
+  stop)  serial="emulator-${1:-5556}"
+         "$ADB" -s "$serial" emu kill || true
+         # emu kill returns before the emulator is gone; a start that sees the dying one hangs forever
+         for _ in $(seq 60); do "$ADB" devices | grep -q "^${serial}" || break; sleep 1; done ;;
   list)  "$EMULATOR" -list-avds ;;
   *) sed -n '2,7p' "$0"; exit 2 ;;
 esac
