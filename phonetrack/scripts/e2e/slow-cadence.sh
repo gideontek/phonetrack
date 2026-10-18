@@ -19,7 +19,7 @@ seed_prefs "sms_enabled=b:true" "prefs_schema_version=i:2" "approvals_list=s:$AP
 launch
 BASE=$(sms_max_id)
 sent() { sms_rows_since "$BASE" | grep '^2|'; }
-lat_count() { sent | grep -c 'Lat:'; }
+lat_count() { sent | grep -c 'Acc:'; }
 send() { "${ADB[@]}" emu sms send "$ME" "$1" >/dev/null; }
 geo() { "${ADB[@]}" emu geo fix "$1" "$HOME_LAT" >/dev/null; }
 has() { local f="$1"; shift; sent | grep -q "$f"; }
@@ -29,7 +29,7 @@ wait_sent() { local t="$1" pattern="$2"; wait_for "$t" bash -c "source '$(dirnam
 geo $HOME_LON
 send "phonetrack subscribe --dist 0 --freq 1 --time 1"
 wait_sent 30 "Subscribed: update every 1 min, regardless of movement" && pass "acknowledged" || fail "no acknowledgement: $(sent | head -3)"
-wait_sent 40 "Lat: 37.77" && pass "an immediate fix follows the acknowledgement" || fail "no immediate fix"
+wait_sent 40 "Acc: 5m" && pass "an immediate fix follows the acknowledgement" || fail "no immediate fix"
 N0=$(lat_count)
 for i in 1 2 3; do geo $HOME_LON; sleep 55; done
 sleep 20
@@ -39,7 +39,7 @@ N1=$(lat_count)
 # --- 2. moving shows the arrow and the distance ---
 geo $FAR_LON
 N2=$(lat_count)
-if wait_for 90 bash -c "source '$(dirname "$0")/lib.sh'; [ \$(sms_rows_since '$BASE' | grep '^2|' | grep -c 'Lat:') -gt $N2 ]"; then
+if wait_for 90 bash -c "source '$(dirname "$0")/lib.sh'; [ \$(sms_rows_since '$BASE' | grep '^2|' | grep -c 'Acc:') -gt $N2 ]"; then
   # Message bodies span several output lines, so look at the whole new output for a non-zero move.
   sms_rows_since "$BASE" | python3 -c 'import re,sys; sys.exit(0 if re.search(r"[\u2190-\u21FF][1-9]\d*m", sys.stdin.read()) else 1)' \
     && pass "the update after moving carries the arrow and a non-zero distance" || fail "no movement arrow in: $(sms_rows_since "$BASE" | head -6)"
@@ -63,7 +63,7 @@ N4=$(lat_count)
 sleep 135
 [ "$(lat_count)" = "$N4" ] && pass "no update while standing still" || fail "an update was sent without moving"
 geo $FARTHER_LON
-if wait_for 90 bash -c "source '$(dirname "$0")/lib.sh'; [ \$(sms_rows_since '$BASE' | grep '^2|' | grep -c 'Lat:') -gt $N4 ]"; then pass "moving past the threshold triggers an update"; else fail "no update after moving 1.8 km"; fi
+if wait_for 90 bash -c "source '$(dirname "$0")/lib.sh'; [ \$(sms_rows_since '$BASE' | grep '^2|' | grep -c 'Acc:') -gt $N4 ]"; then pass "moving past the threshold triggers an update"; else fail "no update after moving 1.8 km"; fi
 send "phonetrack unsubscribe"; sleep 5
 
 # --- 5. expiry ---
