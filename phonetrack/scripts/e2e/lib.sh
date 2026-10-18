@@ -64,7 +64,7 @@ wake() {
 # The screen is "up" when it shows the title PhoneTrack; LAUNCH_READY="" launch (an older release with a
 # different screen) only waits for the app window.
 launch() {
-  local attempt ready="${LAUNCH_READY-PhoneTrack}"
+  local attempt ready="${LAUNCH_READY-PhoneTrack SMS}"
   for attempt in 1 2 3; do
     wake
     "${ADB[@]}" shell am start -n "$PKG/.MainActivity" >/dev/null
