@@ -77,6 +77,8 @@ for api in apis:
         lines += ["", "**UNEXPECTED skips (fail the gate):**"] + [f"- {s}" for s in unexpected]
     if missing:
         lines += ["", "Expected skips that ran this time (update the baseline if intended):"] + [f"- {s}" for s in missing]
+    if os.path.exists(os.path.join(d, "instrumented-logcat.txt")):
+        lines += ["", f"Device log of the failed instrumented run: `api-{api}/instrumented-logcat.txt`."]
     shots = glob.glob(os.path.join(d, "screens", "*.png"))
     if shots:
         lines += ["", f"Screenshots to look through: `{os.path.relpath(os.path.join(d, 'screens'), report)}/` ({len(shots)} images)."]
