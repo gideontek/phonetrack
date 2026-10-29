@@ -59,6 +59,10 @@ Do these on real hardware where noted. Tick each one and write what you saw.
 - [ ] **Upgrade over the previous release** on a real device with real data (the gate checks this on the
   emulator): install the signed release APK over the previous version; approvals, keyword, subscriptions
   and the PIN survive.
+- [ ] **Event log, read once for real:** switch it on, use the app for a while (subscribe, wait a tick or two,
+  switch location off and on), open Settings > Diagnostics > View event log, tap Copy and paste it somewhere.
+  Read every line: no phone number, no coordinates, no message text. The header and the lines make sense to
+  someone who has never seen the app.
 - [ ] **F-Droid build** of the release commit, if the tooling is available (`fdroid build` with the
   metadata in `metadata/`), or a note that the check was skipped: ____
 

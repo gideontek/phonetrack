@@ -107,8 +107,10 @@ object SmsSender {
         }
         // A send failure (permission revoked, malformed number, etc.) must not crash the
         // receiver or service that called us, so log it and skip the last_send_at update.
+        var partCount = 1
         try {
             val parts = smsManager.divideMessage(text)
+            partCount = parts.size
             if (parts.size > 1) {
                 smsManager.sendMultipartTextMessage(to, null, parts, null, null)
             } else {
@@ -116,6 +118,7 @@ object SmsSender {
             }
         } catch (e: RuntimeException) {
             Log.w("SmsSender", "Failed to send SMS", e)
+            EventLog.sendFailed(ctx, to, partCount, e)
             return
         }
         ctx.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
