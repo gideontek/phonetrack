@@ -65,7 +65,7 @@ class ScreenshotTour {
         compose.waitForIdle()
         save("settings-$tag-3")
         compose.onNodeWithText("FAQ").clickVisible()
-        compose.onNodeWithText("How long can a text be?", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Why did my first text get no reply?").assertIsDisplayed()
         compose.waitForIdle()
         save("faq-$tag-1")
     }

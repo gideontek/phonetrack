@@ -176,6 +176,16 @@ phonetrack unsubscribe
 
 Cancels your active subscription. The phone replies to confirm cancellation, or tells you there was nothing to cancel.
 
+### Message length and cost
+
+One SMS holds 160 characters, or only 70 if the text contains a special character such as an arrow or an emoji. A longer text is split into parts and sent as several SMS.
+
+Technically there are two encodings. GSM-7 is the standard SMS alphabet: letters, digits, common punctuation and a few accented letters. One SMS holds 160 characters, and the characters `[ ] { } \ ^ ~ |` and `€` count as 2. If even one character is outside GSM-7, the whole text switches to UCS-2, which holds 70 characters per SMS (an emoji uses 2 of them).
+
+A split text is divided into parts of 153 (GSM-7) or 67 (UCS-2) characters, and each part is usually billed as one SMS. A reply with several parts can take longer to arrive.
+
+Each reply is sent from the tracked phone, so it counts against that phone's SMS plan. A one-time reply is one SMS by default. Automatic updates after the first are usually two, because their direction arrow makes the text UCS-2 and the map link is then sent in its own message.
+
 ---
 
 ## App settings
@@ -190,7 +200,7 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 | Limits | Commands per number per hour, and most active subscriptions at once |
 | Permissions | SMS, location, background location and notifications, each with a Grant button |
 | PIN | Set, change or remove the PIN that guards Settings and approval changes (see below) |
-| Help → FAQ | How long can a text be? The two SMS encodings: GSM-7 (standard alphabet, 160 characters per SMS, 153 per part of a longer text; `[ ] { } \ ^ ~ |` and `€` count as 2) and UCS-2 (used for the whole text as soon as one character is outside GSM-7, such as an arrow or an emoji: 70 characters per SMS, 67 per part) |
+| Help → FAQ | Answers to the questions people ask most: why a text gets no reply (approval, RCS, a keyword typo, the hourly limit), the *Location permission not granted* and *Location unavailable* messages, `last` vs a fresh request, how subscriptions work, and how secure it is |
 
 ### The main screen
 

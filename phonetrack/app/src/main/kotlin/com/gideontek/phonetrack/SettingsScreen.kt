@@ -198,7 +198,7 @@ fun SettingsScreen(
             }
 
             SettingsSection("Help") {
-                NavigationRow("FAQ", "How long can a text be?", onOpenFaq)
+                NavigationRow("FAQ", "No reply, errors, updates and security", onOpenFaq)
             }
 
             AboutSection()

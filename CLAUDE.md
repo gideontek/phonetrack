@@ -40,7 +40,7 @@ phonetrack-android-2026/
             │   ├── DecisionsSection.kt    # Pending numbers: tap-to-reveal Approve/Block (no swiping)
             │   ├── SubscriptionsSection.kt # Active subscriptions with Send now / Cancel
             │   ├── KnownNumbersSection.kt # Collapsed approved + blocked list
-            │   ├── FaqScreen.kt           # FAQ (from Settings → Help): GSM-7 vs UCS-2 and the SMS length limits
+            │   ├── FaqScreen.kt           # FAQ (from Settings → Help): seven questions, troubleshooting first; limits come from SmsLimits
             │   ├── SettingsScreen.kt      # Settings screen: General, Replies, Limits, Permissions, Security, Help (FAQ row), About
             │   ├── SettingsComponents.kt  # Section/row building blocks (ToggleRow, StepperRow, PermissionRow, NavigationRow, SubScreen)
             │   ├── SettingsLogic.kt       # Pure: limit-stepper rules (LimitSteps), reply summary, sample fix

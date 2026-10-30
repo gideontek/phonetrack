@@ -34,9 +34,9 @@ object SmsCommandParser {
      * accepted too. Out-of-range values are rejected, never clamped.
      */
     fun parseSubscribeDetailed(tokens: List<String>): SubscribeResult {
-        var dist = 200
-        var freq = 15
-        var hours = 4
+        var dist = SmsLimits.DEFAULT_DIST
+        var freq = SmsLimits.DEFAULT_FREQ
+        var hours = SmsLimits.DEFAULT_TIME
         val seen = mutableSetOf<String>()
 
         var i = 0

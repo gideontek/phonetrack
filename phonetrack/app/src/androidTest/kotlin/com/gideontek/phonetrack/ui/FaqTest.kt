@@ -26,7 +26,7 @@ class FaqTest {
         ui.launch(seed = seed)
         compose.onNodeWithContentDescription("Settings").performClick()
         compose.onNodeWithText("FAQ").clickVisible()
-        compose.onNodeWithText("How long can a text be?", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Why did my first text get no reply?").assertIsDisplayed()
     }
 
     @Test
@@ -38,13 +38,37 @@ class FaqTest {
     }
 
     @Test
-    fun theAnswerExplainsGsm7AndUcs2WithTheLimits() {
+    fun everyQuestionIsThereInOrder() {
         openFaq()
-        compose.onNodeWithText("GSM-7 is the standard SMS alphabet", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("holds 160 characters", substring = true).assertExists()
-        compose.onNodeWithText("UCS-2 is used for the whole text", substring = true).assertExists()
-        compose.onNodeWithText("holds only 70 characters", substring = true).assertExists()
-        compose.onNodeWithText("153 (GSM-7) or 67 (UCS-2)", substring = true).assertExists()
+        for (question in listOf(
+            "Why did my first text get no reply?",
+            "I'm approved but still get no reply. Why?",
+            "What does \u201CLocation permission not granted\u201D mean?",
+            "What does \u201CLocation unavailable\u201D mean?",
+            "What is the difference between a request and \u201Clast\u201D?",
+            "How do automatic updates work?",
+            "How secure is it?"
+        )) {
+            compose.onNodeWithText(question).performScrollTo().assertIsDisplayed()
+        }
+    }
+
+    @Test
+    fun theTroubleshootingAnswersNameTheRealCauses() {
+        openFaq()
+        compose.onNodeWithText("RCS chats are on.", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("longer than 320 characters", substring = true).assertExists()
+        compose.onNodeWithText("Allow all the time", substring = true).assertExists()
+        compose.onNodeWithText("60-second countdown", substring = true).assertExists()
+    }
+
+    @Test
+    fun theSubscribeAnswerQuotesTheRealRanges() {
+        openFaq()
+        compose.onNodeWithText("--dist M", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("(0\u201350000, default 200;", substring = true).assertExists()
+        compose.onNodeWithText("(1\u20131440, default 15)", substring = true).assertExists()
+        compose.onNodeWithText("(1\u2013168, default 4)", substring = true).assertExists()
     }
 
     @Test
@@ -67,7 +91,7 @@ class FaqTest {
         compose.onNode(hasSetTextAction()).performTextInput("1234")
         compose.onNodeWithText("Unlock").performClick()
         compose.onNodeWithText("FAQ").clickVisible()
-        compose.onNodeWithText("How long can a text be?", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Why did my first text get no reply?").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithContentDescription("Lock settings").fetchSemanticsNodes().size)
     }
 }
