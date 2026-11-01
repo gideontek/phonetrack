@@ -59,9 +59,9 @@ fun MapLinkScreen(
                     "shorter, which can keep a reply to a single SMS. The map and marker open the same, " +
                     "but the coordinates can't be read from the compact code, and the pin can be off by up to " +
                     "${MapLinkSummary.precision(link.zoom)} at zoom ${link.zoom} (more zoomed out, less precise). " +
-                    "Keep the coordinates if a message may be passed on to an emergency dispatcher or rescue team, who can " +
-                    "read out and enter latitude and longitude but not a code; a code also needs a web browser. " +
-                    "The Coordinates option under Replies also sends them.",
+                    "Keep the coordinates if a message may be passed on to an emergency dispatcher or rescue team, who " +
+                    "can read out the latitude and longitude straight from the standard link, or from the plain " +
+                    "text coordinates if enabled in the Reply settings.",
                 checked = link.encoded,
                 enabled = !isLocked,
                 onCheckedChange = { setLink(link.copy(encoded = it)) }
