@@ -12,10 +12,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +42,11 @@ fun SettingsScreen(
     permissions: PermissionsState,
     pinDialogs: PinDialogState,
     onOpenFaq: () -> Unit,
+    scroll: ScrollState,
+    repliesExpanded: Boolean,
+    onRepliesExpandedChange: (Boolean) -> Unit,
+    onOpenMapLink: () -> Unit,
+    onOpenMovement: () -> Unit,
     onBack: () -> Unit,
 ) {
     val enabled by vm.enabled.collectAsState()
@@ -58,7 +64,7 @@ fun SettingsScreen(
             modifier = Modifier
                 .fillMaxWidth()
                 .systemBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -111,6 +117,10 @@ fun SettingsScreen(
             ReplySettingsCard(
                 options = replyOptions,
                 isLocked = isLocked,
+                expanded = repliesExpanded,
+                onExpandedChange = onRepliesExpandedChange,
+                onCustomizeLink = onOpenMapLink,
+                onCustomizeMovement = onOpenMovement,
                 onChange = { vm.setReplyOptions(it) }
             )
 

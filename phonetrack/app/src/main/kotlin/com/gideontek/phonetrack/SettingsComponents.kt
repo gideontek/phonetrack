@@ -15,11 +15,19 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -223,6 +231,43 @@ fun SubScreen(
                 trailing()
             }
             content()
+        }
+    }
+}
+
+/** One sample: how many SMS it is, then each message with its encoding and length. */
+@Composable
+fun SampleBlock(title: String, note: String, messages: List<String>) {
+    Column(
+        modifier = Modifier.padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(title, style = MaterialTheme.typography.labelLarge)
+        Text(note, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        val total = messages.sumOf { SmsLength.info(it).smsCount }
+        Text(
+            "$total SMS in total",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        messages.forEachIndexed { index, text ->
+            val info = SmsLength.info(text)
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    Text("SMS ${index + 1} of ${messages.size}", style = MaterialTheme.typography.labelSmall)
+                    Text(text, style = MaterialTheme.typography.bodySmall)
+                    Text(
+                        "${if (info.encoding == SmsLength.Encoding.GSM7) "GSM-7" else "UCS-2"} · " +
+                            "${info.units} of ${info.limit} characters" +
+                            if (info.smsCount > 1) " · sent as ${info.smsCount} parts" else "",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
         }
     }
 }

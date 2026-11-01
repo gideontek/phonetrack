@@ -67,9 +67,9 @@ class ReplyContentTest {
     }
 
     @Test
-    fun coordinatesOnly() {
+    fun coordinatesGetTheMapLinkBecauseTheyAreNotALink() {
         parts("coords")
-        assertEquals("[PhoneTrack] Lat: 37.7749, Lon: -122.4194", assertOneReply(oneShot()))
+        assertEquals("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\n$link", assertOneReply(oneShot()))
     }
 
     @Test
@@ -136,5 +136,57 @@ class ReplyContentTest {
         parts("battery")
         val reply = assertOneReply(Scenario().ready().ask("phonetrack last"))
         assertTrue(reply, Regex("""\[PhoneTrack] Last known \(\d+[smhd] ago\)\nBat: \d+%( \(charging\))?\n""" + Regex.escape(link)).matches(reply))
+    }
+
+    // --- map link options (Customize OpenStreetMap link) -----------------------------------------
+
+    private fun linkPrefs(short: Boolean = false, encoded: Boolean = false, zoom: Int = 12) {
+        TestState.prefs.edit()
+            .putBoolean("reply_osm_short", short).putBoolean("reply_osm_encoded", encoded).putInt("reply_osm_zoom", zoom)
+            .commit()
+    }
+
+    @Test
+    fun theShortAddressShortensTheLinkInARealReply() {
+        linkPrefs(short = true)
+        val reply = assertOneReply(oneShot())
+        assertTrue(reply, reply.endsWith("\nhttps://osm.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194"))
+    }
+
+    @Test
+    fun aCompactShortLinkIsAReplyWithoutCoordinatesInTheLink() {
+        linkPrefs(short = true, encoded = true)
+        val reply = assertOneReply(oneShot())
+        assertTrue(reply, reply.startsWith("[PhoneTrack] Acc: 5m, Bat: "))
+        assertTrue(reply, reply.endsWith("\nhttps://osm.org/go/TZHvSR7--?m"))
+        assertTrue(reply, !reply.contains("mlat"))
+    }
+
+    @Test
+    fun aCompactLinkOnTheFullAddressUsesTheLongHost() {
+        linkPrefs(encoded = true, zoom = 16)
+        val reply = assertOneReply(oneShot())
+        assertTrue(reply, reply.endsWith("\nhttps://www.openstreetmap.org/go/TZHvSR7N?m"))
+    }
+
+    @Test
+    fun theZoomOptionChangesTheReadableLink() {
+        linkPrefs(zoom = 16)
+        val reply = assertOneReply(oneShot())
+        assertTrue(reply, reply.endsWith("#map=16/37.7749/-122.4194"))
+    }
+
+    @Test
+    fun theLinkOptionsApplyToTheLastKnownReply() {
+        linkPrefs(short = true, encoded = true)
+        val all = Scenario().ready().ask("phonetrack last", expect = 1).joinToString("\n")
+        assertTrue(all, all.contains("https://osm.org/go/"))
+    }
+
+    @Test
+    fun anOutOfRangeStoredZoomIsClamped() {
+        linkPrefs(zoom = 99)
+        val reply = assertOneReply(oneShot())
+        assertTrue(reply, reply.endsWith("#map=18/37.7749/-122.4194"))
     }
 }
