@@ -86,7 +86,7 @@ fun ReplySettingsCard(
 
         if (expanded) {
             RowDivider()
-            Part("Coordinates", options.coords, isLocation = true) { options.copy(coords = it) }
+            Part("Coordinates", options.coords, isLocation = false) { options.copy(coords = it) }
             Part("Location accuracy", options.accuracy, isLocation = false) { options.copy(accuracy = it) }
             Part("Battery level", options.battery, isLocation = false) { options.copy(battery = it) }
             Part("Time of fix (UTC)", options.time, isLocation = false) { options.copy(time = it) }

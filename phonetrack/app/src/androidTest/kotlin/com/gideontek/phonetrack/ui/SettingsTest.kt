@@ -128,6 +128,19 @@ class SettingsTest {
     }
 
     @Test
+    fun coordinatesCanBeSwitchedOffEvenWhenOneLinkIsOn() {
+        openSettings {
+            val e = TestState.prefs.edit()
+            for (k in listOf("coords", "accuracy", "battery", "time", "geo", "osm")) e.putBoolean("reply_$k", k in listOf("coords", "osm"))
+            e.commit()
+        }
+        compose.onNodeWithText("Reply contents").clickVisible()
+        compose.onNode(hasText("Coordinates") and isToggleable()).performScrollTo().assertIsOn().assertIsEnabled().performClick()
+        ui.waitUntil { !TestState.prefs.getBoolean("reply_coords", true) }
+        compose.onNode(hasText("OpenStreetMap link") and isToggleable()).assertIsOn().assertIsNotEnabled()
+    }
+
+    @Test
     fun theLastLocationPartStaysOnWhileDetailPartsCanAllBeSwitchedOff() {
         openSettings {
             val e = TestState.prefs.edit()
