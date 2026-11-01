@@ -56,11 +56,11 @@ fun MapLinkScreen(
             ToggleRow(
                 label = "Compact code instead of coordinates",
                 supporting = "Writes the position as a short code (osm.org/go/TZHvSR7N?m), about 50 characters " +
-                    "shorter, which can keep a reply to 1 SMS instead of 2 or 3. The map and marker open the same, " +
-                    "but the coordinates can't be read from the link, and the pin can be off by up to " +
+                    "shorter, which can keep a reply to a single SMS. The map and marker open the same, " +
+                    "but the coordinates can't be read from the compact code, and the pin can be off by up to " +
                     "${MapLinkSummary.precision(link.zoom)} at zoom ${link.zoom} (more zoomed out, less precise). " +
-                    "Keep the coordinates if a message may be passed on to a dispatcher or rescue team: they can " +
-                    "read out and enter latitude and longitude, but not a code, and a code needs a web browser. " +
+                    "Keep the coordinates if a message may be passed on to an emergency dispatcher or rescue team, who can " +
+                    "read out and enter latitude and longitude but not a code; a code also needs a web browser. " +
                     "The Coordinates option under Replies also sends them.",
                 checked = link.encoded,
                 enabled = !isLocked,

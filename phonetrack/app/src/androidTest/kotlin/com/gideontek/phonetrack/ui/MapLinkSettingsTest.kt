@@ -119,7 +119,7 @@ class MapLinkSettingsTest {
     @Test
     fun theCompactCodeHintSaysToKeepCoordinatesForEmergencyServices() {
         openMapLink()
-        compose.onNodeWithText("passed on to a dispatcher or rescue team", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("passed on to an emergency dispatcher or rescue team", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Coordinates option under Replies also sends them", substring = true).assertExists()
     }
 
