@@ -113,7 +113,7 @@ The text and the map link share one SMS whenever they fit (160 plain characters)
 
 #### Customizing the link and the movement
 
-A reply is split into several SMS when it is longer than 160 characters, or longer than 70 if it contains a special character such as the direction arrow in a subscription update. Each part is usually billed as an SMS. That is why you can shorten the OpenStreetMap link and change how a subscription update shows the distance moved since the last update: shorter replies cost fewer SMS.
+A reply is split into several SMS when it is longer than 160 characters, or longer than 70 if it contains a special character such as the direction arrow in a subscription update (see [Message length and cost](#message-length-and-cost)). Each part is usually billed as an SMS. That is why you can shorten the OpenStreetMap link and change how a subscription update shows the distance moved since the last update: shorter replies cost fewer SMS.
 
 Under **Settings → Replies → Reply contents**, the OpenStreetMap link has a **Customize OpenStreetMap link** row that opens a screen for how the link is written, and subscription updates have a **Movement in subscription updates** switch with a **Customize movement** row. The defaults give the link shown above, and nothing changes until you opt in. Each option has a hint in the app, and each screen shows a sample (a location reply, or a subscription update) with the encoding and length of every message.
 
@@ -207,6 +207,8 @@ Technically there are two encodings. GSM-7 is the standard SMS alphabet: letters
 A split text is divided into parts of 153 (GSM-7) or 67 (UCS-2) characters, and each part is usually billed as one SMS. A reply with several parts can take longer to arrive.
 
 Each reply is sent from the tracked phone, so it counts against that phone's SMS plan. A one-time reply is one SMS by default. Automatic updates after the first are usually two, because their direction arrow makes the text UCS-2 and the map link is then sent in its own message.
+
+To keep replies short, you can shorten the OpenStreetMap link and change how a subscription update shows the distance moved since the last update: see [Customizing the link and the movement](#customizing-the-link-and-the-movement).
 
 ---
 
