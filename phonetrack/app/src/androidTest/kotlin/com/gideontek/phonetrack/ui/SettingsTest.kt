@@ -51,7 +51,7 @@ class SettingsTest {
     @Test
     fun everySectionIsThere() {
         openSettings()
-        for (title in listOf("General", "Replies", "Limits", "Permissions", "Security", "About")) {
+        for (title in listOf("General", "Replies", "Limits", "Permissions", "Security", "Help", "About")) {
             compose.onNodeWithText(title).performScrollTo().assertIsDisplayed()
         }
     }

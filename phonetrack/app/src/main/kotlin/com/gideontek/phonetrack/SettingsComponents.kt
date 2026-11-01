@@ -1,5 +1,13 @@
 package com.gideontek.phonetrack
 
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.systemBarsPadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -159,6 +167,62 @@ fun PermissionRow(
             }
         } else {
             OutlinedButton(onClick = onGrant, enabled = grantEnabled) { Text("Grant") }
+        }
+    }
+}
+
+/**
+ * A row that opens another screen: label, an optional one-line summary of the current choice and a
+ * chevron. Read as a button.
+ */
+@Composable
+fun NavigationRow(label: String, summary: String?, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .defaultMinSize(minHeight = 56.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        RowText(label, summary, Modifier.weight(1f))
+        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
+    }
+}
+
+/**
+ * The frame of a screen one level below Settings: [back][title]----[trailing], then [content] in a
+ * scrolling column. [trailing] is where the lock button goes on screens that have controls.
+ */
+@Composable
+fun SubScreen(
+    title: String,
+    onBack: () -> Unit,
+    trailing: @Composable () -> Unit = {},
+    content: @Composable ColumnScope.() -> Unit
+) {
+    Surface(modifier = Modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .systemBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
+        ) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
+                Text(title, style = MaterialTheme.typography.headlineMedium)
+                Spacer(modifier = Modifier.weight(1f))
+                trailing()
+            }
+            content()
         }
     }
 }

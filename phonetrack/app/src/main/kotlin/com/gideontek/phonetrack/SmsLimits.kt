@@ -9,6 +9,11 @@ object SmsLimits {
     const val MIN_TIME = 1          // hours
     const val MAX_TIME = 168
 
+    // Subscribe defaults, used when an option is left out.
+    const val DEFAULT_DIST = 200    // metres
+    const val DEFAULT_FREQ = 15     // minutes
+    const val DEFAULT_TIME = 4      // hours
+
     /** Inbound messages longer than this are ignored (cheap guard against abuse). */
     const val MAX_BODY = 320
 
