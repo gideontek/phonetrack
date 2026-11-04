@@ -93,7 +93,7 @@ class ReplyContentTest {
     }
 
     @Test
-    fun geoLinkIsAMessageOfItsOwn() {
+    fun geoLinkAloneIsABareMessage() {
         parts("geo")
         assertEquals("geo:37.7749,-122.4194", assertOneReply(oneShot()))
     }
@@ -111,7 +111,7 @@ class ReplyContentTest {
     }
 
     @Test
-    fun everythingOnSplitsIntoTextGeoAndLinkWithEveryPartPresent() {
+    fun everythingOnSharesTheFirstMessageBetweenTextAndGeoWithEveryPartPresent() {
         parts("coords", "accuracy", "battery", "time", "geo", "osm")
         val s = Scenario().ready()
         val replies = s.ask("phonetrack", expect = 2)
@@ -119,8 +119,9 @@ class ReplyContentTest {
         for (part in listOf("Lat: 37.7749, Lon: -122.4194", "Acc: 5m", "Bat: ", "Time: ", link)) {
             assertTrue("missing '$part' in $replies", all.contains(part))
         }
-        assertEquals("the geo URI is a bare message", 1, replies.count { it == "geo:37.7749,-122.4194" })
-        assertTrue(replies.toString(), replies.size in 2..3)
+        assertTrue("the geo URI follows the text", replies[0].endsWith("\ngeo:37.7749,-122.4194"))
+        assertEquals("the map link is its own message", link, replies[1])
+        assertEquals(replies.toString(), 2, replies.size)
     }
 
     @Test

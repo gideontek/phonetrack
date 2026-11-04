@@ -133,23 +133,50 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `with everything on and the text plus link fitting, they share one SMS`() {
+    fun `with everything on the geo link stays with the text and the long map link is its own message`() {
         val msgs = SmsComposer.composeLocation(fix(), all)
         assertEquals(2, msgs.size)
         assertEquals(
-            "[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85%, Time: 18:32Z\n$url",
+            "[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85%, Time: 18:32Z\ngeo:37.7749,-122.4194",
             msgs[0]
         )
-        assertEquals("geo:37.7749,-122.4194", msgs[1])
+        assertEquals(url, msgs[1])
     }
 
     @Test
-    fun `when the text plus link would not fit one SMS the link is its own message`() {
+    fun `when everything would not fit one SMS the link is its own message`() {
         val msgs = SmsComposer.composeLocation(fix(charging = true), all)
-        assertEquals(3, msgs.size)
-        assertEquals("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85% (charging), Time: 18:32Z", msgs[0])
-        assertEquals("geo:37.7749,-122.4194", msgs[1])
-        assertEquals(url, msgs[2])
+        assertEquals(2, msgs.size)
+        assertEquals(
+            "[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85% (charging), Time: 18:32Z\ngeo:37.7749,-122.4194",
+            msgs[0]
+        )
+        assertEquals(url, msgs[1])
+    }
+
+    @Test
+    fun `the geo link on its own line shares the one SMS with the text and a short link`() {
+        val short = ReplyOptions(accuracy = true, battery = true, geo = true, osm = true)
+        assertEquals(
+            listOf("[PhoneTrack] Acc: 5m, Bat: 85%\ngeo:37.7749,-122.4194\n$url"),
+            SmsComposer.composeLocation(fix(), short)
+        )
+    }
+
+    @Test
+    fun `the geo link follows the prefix directly when there is no text`() {
+        assertEquals(
+            listOf("[PhoneTrack] geo:37.7749,-122.4194\n$url"),
+            SmsComposer.composeLocation(fix(), ReplyOptions(geo = true, osm = true))
+        )
+    }
+
+    @Test
+    fun `the geo link joins the text when the map link is off`() {
+        assertEquals(
+            listOf("[PhoneTrack] Acc: 5m\ngeo:37.7749,-122.4194"),
+            SmsComposer.composeLocation(fix(), ReplyOptions(accuracy = true, geo = true, osm = false))
+        )
     }
 
     @Test
@@ -164,9 +191,8 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `the geo message is never prefixed`() {
-        val msgs = SmsComposer.composeLocation(fix(), ReplyOptions(geo = true, osm = true))
-        assertTrue(msgs.contains("geo:37.7749,-122.4194"))
+    fun `a geo link with nothing to join is a bare message`() {
+        assertEquals(listOf("geo:37.7749,-122.4194"), SmsComposer.composeLocation(fix(), ReplyOptions(geo = true, osm = false)))
     }
 
     // --- periodic movement ---
@@ -241,7 +267,7 @@ class SmsComposerTest {
         val msgs = SmsComposer.composeLocation(
             LocationFix(37.774929123456, -122.419415987654, 5, 0L), ReplyOptions(geo = true, osm = true)
         )
-        assertTrue(msgs.contains("geo:37.77493,-122.41942"))
+        assertTrue(msgs.any { it.contains("geo:37.77493,-122.41942") })
         assertTrue(msgs.any { it.contains("mlat=37.77493&mlon=-122.41942#map=12/37.77493/-122.41942") })
     }
 
@@ -367,10 +393,10 @@ class SmsComposerTest {
         val opts = ReplyOptions(coords = true, accuracy = true, geo = true, osm = true)
         val msgs = SmsComposer.composeLastKnown(fix(), opts, 12 * 60_000L)
         assertEquals(
-            "[PhoneTrack] Last known (12m ago)\nLat: 37.7749, Lon: -122.4194\nAcc: 5m\n$url",
+            "[PhoneTrack] Last known (12m ago)\nLat: 37.7749, Lon: -122.4194\nAcc: 5m\ngeo:37.7749,-122.4194",
             msgs[0]
         )
-        assertEquals("geo:37.7749,-122.4194", msgs[1])
+        assertEquals(url, msgs[1])
     }
 
     @Test
@@ -481,12 +507,11 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `a compact link shortens the first message when every part is on`() {
+    fun `a compact link brings every part into one message`() {
         val plain = SmsComposer.composeLocation(fix(), all)
         val compact = SmsComposer.composeLocation(fix(), all.copy(link = MapLinkOptions(shortDomain = true, encoded = true)))
-        assertEquals(plain.toString(), 2, plain.size)          // text + link merged, geo: on its own
-        assertEquals(compact.toString(), 2, compact.size)
-        assertTrue("${plain[0].length} vs ${compact[0].length}", compact[0].length <= plain[0].length - 50)
+        assertEquals(plain.toString(), 2, plain.size)          // text + geo: together, the long link on its own
+        assertEquals(compact.toString(), 1, compact.size)
         assertTrue(compact.toString(), compact.all { SmsLength.fitsOneSms(it) })
     }
 

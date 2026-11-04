@@ -90,9 +90,10 @@ object SmsComposer {
     }
 
     /**
-     * Lays the parts out as SMS. The text (if any) carries the "[PhoneTrack]" prefix; the map link
-     * rides in the same message when that still fits one SMS, otherwise it is its own message. The
-     * `geo:` URI is always its own bare message. Order: text, geo, link (the link leads when merged).
+     * Lays the parts out as SMS, in the order text, `geo:` URI, map link, one per line. The text (if any)
+     * carries the "[PhoneTrack]" prefix. Everything goes in one SMS when it fits. If not, the `geo:` URI
+     * stays with the text and the map link is its own message; failing that, each part is its own message. A `geo:`
+     * URI with nothing else to join is a bare message, without the prefix.
      */
     private fun assemble(lines: List<String>, fix: LocationFix, o: ReplyOptions): List<String> {
         val la = fmt(fix.lat)
@@ -101,22 +102,19 @@ object SmsComposer {
         val osm = if (o.osm) OsmLink.url(fix.lat, fix.lon, o.link) else null
         val body = lines.joinToString("\n")
 
-        val out = mutableListOf<String>()
-        if (osm != null) {
-            val merged = if (body.isEmpty()) "$PREFIX$osm" else "$PREFIX$body\n$osm"
-            if (SmsLength.fitsOneSms(merged)) {
-                out += merged
-                geo?.let { out += it }
-            } else {
-                if (body.isNotEmpty()) out += "$PREFIX$body"
-                geo?.let { out += it }
-                out += osm
-            }
-        } else {
-            if (body.isNotEmpty()) out += "$PREFIX$body"
-            geo?.let { out += it }
+        fun joined(vararg parts: String?): String? {
+            val text = parts.filter { !it.isNullOrEmpty() }.joinToString("\n")
+            return if (text.isEmpty()) null else "$PREFIX$text"
         }
-        return out
+
+        if (body.isEmpty() && osm == null) return listOfNotNull(geo)
+        joined(body, geo, osm)?.takeIf { SmsLength.fitsOneSms(it) }?.let { return listOf(it) }
+
+        val textAndGeo = joined(body, geo)
+        if (osm != null && textAndGeo != null && SmsLength.fitsOneSms(textAndGeo)) {
+            return listOf(textAndGeo, osm)
+        }
+        return listOfNotNull(joined(body), geo, osm)
     }
 
     /** "14:32Z": the UTC clock time, so the receiver's time zone doesn't matter. */
