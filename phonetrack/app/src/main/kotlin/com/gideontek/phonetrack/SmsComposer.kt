@@ -90,10 +90,9 @@ object SmsComposer {
     }
 
     /**
-     * Lays the parts out as SMS, in the order text, `geo:` URI, map link, one per line. The text (if any)
+     * Lays the parts out as SMS, in the order text, `geo:` URI, map link, one per line. Every message
      * carries the "[PhoneTrack]" prefix. Everything goes in one SMS when it fits. If not, the `geo:` URI
-     * stays with the text and the map link is its own message; failing that, each part is its own message. A `geo:`
-     * URI with nothing else to join is a bare message, without the prefix.
+     * stays with the text and the map link is its own message; failing that, each part is its own message.
      */
     private fun assemble(lines: List<String>, fix: LocationFix, o: ReplyOptions): List<String> {
         val la = fmt(fix.lat)
@@ -107,14 +106,12 @@ object SmsComposer {
             return if (text.isEmpty()) null else "$PREFIX$text"
         }
 
-        if (body.isEmpty() && osm == null) return listOfNotNull(geo)
         joined(body, geo, osm)?.takeIf { SmsLength.fitsOneSms(it) }?.let { return listOf(it) }
-
         val textAndGeo = joined(body, geo)
         if (osm != null && textAndGeo != null && SmsLength.fitsOneSms(textAndGeo)) {
-            return listOf(textAndGeo, osm)
+            return listOf(textAndGeo, "$PREFIX$osm")
         }
-        return listOfNotNull(joined(body), geo, osm)
+        return listOfNotNull(joined(body), joined(geo), joined(osm))
     }
 
     /** "14:32Z": the UTC clock time, so the receiver's time zone doesn't matter. */

@@ -93,9 +93,9 @@ class ReplyContentTest {
     }
 
     @Test
-    fun geoLinkAloneIsABareMessage() {
+    fun geoLinkAloneCarriesThePrefix() {
         parts("geo")
-        assertEquals("geo:37.7749,-122.4194", assertOneReply(oneShot()))
+        assertEquals("[PhoneTrack] geo:37.7749,-122.4194", assertOneReply(oneShot()))
     }
 
     @Test
@@ -120,7 +120,7 @@ class ReplyContentTest {
             assertTrue("missing '$part' in $replies", all.contains(part))
         }
         assertTrue("the geo URI follows the text", replies[0].endsWith("\ngeo:37.7749,-122.4194"))
-        assertEquals("the map link is its own message", link, replies[1])
+        assertEquals("the map link is its own message", "[PhoneTrack] $link", replies[1])
         assertEquals(replies.toString(), 2, replies.size)
     }
 

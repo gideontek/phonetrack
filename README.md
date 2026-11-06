@@ -106,10 +106,10 @@ With everything on, a reply looks like this (two SMS, because the standard map l
 Acc: 8m, Bat: 73%, Time: 14:32Z
 geo:51.5074,-0.1278
 
-https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
+[PhoneTrack] https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
-Each part is on its own line, in the same SMS whenever everything fits (160 plain characters). If not, the map link goes in its own message. A `geo:` link with nothing else to join is a bare message. The in-app preview shows exactly what will be sent. The settings are locked along with the rest when a PIN is set.
+Each part is on its own line, in the same SMS whenever everything fits (160 plain characters). If not, the map link goes in its own message. Every message starts with `[PhoneTrack]`, so a message that arrives on its own is still recognizable. The in-app preview shows exactly what will be sent. The settings are locked along with the rest when a PIN is set.
 
 #### Customizing the link and the movement
 

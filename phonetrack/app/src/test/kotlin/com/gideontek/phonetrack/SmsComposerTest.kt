@@ -43,7 +43,7 @@ class SmsComposerTest {
             listOf("[PhoneTrack] Lat: 37.7749, Lon: -122.4194\n$url"),
             SmsComposer.composeLocation(fix(), only("coords"))
         )
-        assertEquals(listOf("geo:37.7749,-122.4194"), SmsComposer.composeLocation(fix(), only("geo")))
+        assertEquals(listOf("[PhoneTrack] geo:37.7749,-122.4194"), SmsComposer.composeLocation(fix(), only("geo")))
         assertEquals(listOf("[PhoneTrack] $url"), SmsComposer.composeLocation(fix(), only("osm")))
     }
 
@@ -140,7 +140,7 @@ class SmsComposerTest {
             "[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85%, Time: 18:32Z\ngeo:37.7749,-122.4194",
             msgs[0]
         )
-        assertEquals(url, msgs[1])
+        assertEquals("[PhoneTrack] $url", msgs[1])
     }
 
     @Test
@@ -151,7 +151,7 @@ class SmsComposerTest {
             "[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85% (charging), Time: 18:32Z\ngeo:37.7749,-122.4194",
             msgs[0]
         )
-        assertEquals(url, msgs[1])
+        assertEquals("[PhoneTrack] $url", msgs[1])
     }
 
     @Test
@@ -191,8 +191,8 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `a geo link with nothing to join is a bare message`() {
-        assertEquals(listOf("geo:37.7749,-122.4194"), SmsComposer.composeLocation(fix(), ReplyOptions(geo = true, osm = false)))
+    fun `a geo link with nothing to join still carries the prefix`() {
+        assertEquals(listOf("[PhoneTrack] geo:37.7749,-122.4194"), SmsComposer.composeLocation(fix(), ReplyOptions(geo = true, osm = false)))
     }
 
     // --- periodic movement ---
@@ -234,7 +234,7 @@ class SmsComposerTest {
         assertEquals(2, msgs.size)
         assertTrue(msgs[0].startsWith("[PhoneTrack] "))
         assertTrue(msgs[0].contains("⇑"))
-        assertEquals(url, msgs[1])
+        assertEquals("[PhoneTrack] $url", msgs[1])
     }
 
     // -------------------------------------------------------------------------
@@ -396,7 +396,7 @@ class SmsComposerTest {
             "[PhoneTrack] Last known (12m ago)\nLat: 37.7749, Lon: -122.4194\nAcc: 5m\ngeo:37.7749,-122.4194",
             msgs[0]
         )
-        assertEquals(url, msgs[1])
+        assertEquals("[PhoneTrack] $url", msgs[1])
     }
 
     @Test
@@ -528,7 +528,7 @@ class SmsComposerTest {
             val messages = SmsComposer.composeLocation(fix(), ReplyOptions.DEFAULT.copy(link = link), SAMPLE_PREV_LAT, SAMPLE_PREV_LON)
             assertEquals(messages.toString(), 2, messages.size)
             assertEquals(SmsLength.Encoding.UCS2, SmsLength.info(messages[0]).encoding)
-            assertTrue(messages[1], messages[1].startsWith("https://"))
+            assertTrue(messages[1], messages[1].startsWith("[PhoneTrack] https://"))
         }
     }
 
