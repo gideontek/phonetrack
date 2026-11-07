@@ -41,7 +41,7 @@ phonetrack-android-2026/
             │   ├── SubscriptionsSection.kt # Active subscriptions with Send now / Cancel
             │   ├── KnownNumbersSection.kt # Collapsed approved + blocked list
             │   ├── FaqScreen.kt           # FAQ (from Settings → Help): seven questions, troubleshooting first; limits come from SmsLimits
-            │   ├── SettingsScreen.kt      # Settings screen: General, Replies, Limits, Permissions, Security, Help (FAQ row), About
+            │   ├── SettingsScreen.kt      # Settings screen: General, Replies, Limits, Permissions, Security, Reset (confirmed Reset to defaults), Help (FAQ row), About
             │   ├── SettingsComponents.kt  # Section/row building blocks (ToggleRow, StepperRow, PermissionRow, NavigationRow, SubScreen, SampleBlock)
             │   ├── SettingsLogic.kt       # Pure: limit-stepper rules (LimitSteps), reply, map link and movement summaries, sample fix
             │   ├── HomeViewModel.kt       # Activity-scoped ViewModel shared by both screens

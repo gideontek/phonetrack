@@ -167,22 +167,4 @@ class MovementSettingsTest {
         openMovement()
         assertEquals(0, compose.countWithText("switched off under Replies", substring = true))
     }
-
-    // --- reset ------------------------------------------------------------------------
-
-    @Test
-    fun resetIsOffAtTheDefault() {
-        openMovement()
-        compose.onNodeWithText("Reset to defaults").performScrollTo().assertIsNotEnabled()
-    }
-
-    @Test
-    fun resetRestoresArrowsAndLeavesTheLinkAlone() {
-        openMovement { seedMovement(cardinal = true); seedLink(encoded = true) }
-        compose.onNodeWithText("Reset to defaults").performScrollTo().assertIsEnabled().performClick()
-        ui.waitUntil { !prefs.getBoolean("reply_move_cardinal", true) }
-        assertTrue(prefs.getBoolean("reply_osm_encoded", false))
-        assertFalse(prefs.getBoolean("reply_move_cardinal", true))
-        compose.onNodeWithText("Reset to defaults").assertIsNotEnabled()
-    }
 }

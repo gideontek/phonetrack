@@ -159,37 +159,6 @@ class MapLinkSettingsTest {
         assertEquals(1, compose.countWithText("#map=16/37.7749/-122.4194", substring = true))
     }
 
-    // --- reset ------------------------------------------------------------------------
-
-    @Test
-    fun resetIsOffWhileEverythingIsAtItsDefault() {
-        openMapLink()
-        compose.onNodeWithText("Reset to defaults").performScrollTo().assertIsNotEnabled()
-    }
-
-    @Test
-    fun resetRestoresTheDefaults() {
-        openMapLink { seedLink(short = true, encoded = true, zoom = 15) }
-        compose.onNodeWithText("Reset to defaults").performScrollTo().assertIsEnabled().performClick()
-        ui.waitUntil {
-            !prefs.getBoolean("reply_osm_short", true) && !prefs.getBoolean("reply_osm_encoded", true) &&
-                prefs.getInt("reply_osm_zoom", 0) == 12
-        }
-        compose.onNodeWithText("Reset to defaults").assertIsNotEnabled()
-        assertEquals(1, compose.countWithText("https://www.openstreetmap.org/?mlat", substring = true))
-    }
-
-    @Test
-    fun resetLeavesTheMovementChoicesAlone() {
-        openMapLink {
-            seedLink(encoded = true)
-            prefs.edit().putBoolean("reply_move_cardinal", true).commit()
-        }
-        compose.onNodeWithText("Reset to defaults").performScrollTo().performClick()
-        ui.waitUntil { !prefs.getBoolean("reply_osm_encoded", true) }
-        assertTrue(prefs.getBoolean("reply_move_cardinal", false))
-    }
-
     // --- the sample -------------------------------------------------------------------
 
     @Test

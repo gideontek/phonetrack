@@ -70,12 +70,5 @@ fun MovementScreen(
                 )
             )
         }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            OutlinedButton(
-                onClick = { setMovement(movement.copy(cardinal = MovementOptions.DEFAULT.cardinal)) },
-                enabled = !isLocked && movement.cardinal != MovementOptions.DEFAULT.cardinal
-            ) { Text("Reset to defaults") }
-        }
     }
 }

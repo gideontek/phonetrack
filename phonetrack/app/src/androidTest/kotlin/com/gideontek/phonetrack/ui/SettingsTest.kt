@@ -8,6 +8,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
@@ -27,6 +28,7 @@ import com.gideontek.phonetrack.support.clickVisible
 import com.gideontek.phonetrack.support.activityContext
 import com.gideontek.phonetrack.support.countWithText
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -51,7 +53,7 @@ class SettingsTest {
     @Test
     fun everySectionIsThere() {
         openSettings()
-        for (title in listOf("General", "Replies", "Limits", "Permissions", "Security", "Help", "About")) {
+        for (title in listOf("General", "Replies", "Limits", "Permissions", "Security", "Reset", "Help", "About")) {
             compose.onNodeWithText(title).performScrollTo().assertIsDisplayed()
         }
     }
@@ -309,5 +311,78 @@ class SettingsTest {
         openSettings()
         compose.onNodeWithText("5 wrong PINs in a row lock unlocking for 1 minute, then 5, 15 and 60 minutes.")
             .performScrollTo().assertIsDisplayed()
+    }
+
+    // --- reset to defaults -------------------------------------------------------------
+
+    private fun seedChanged() {
+        TestState.prefs.edit()
+            .putString("sms_keyword", "where")
+            .putInt("rate_limit_per_hour", 5)
+            .putInt("max_subscriptions", 3)
+            .putBoolean("reply_coords", true).putBoolean("reply_time", true).putBoolean("reply_geo", true)
+            .putBoolean("reply_osm_short", true).putBoolean("reply_osm_encoded", true).putInt("reply_osm_zoom", 15)
+            .putBoolean("reply_move_cardinal", true).putBoolean("reply_move_show", false)
+            .commit()
+    }
+
+    private fun confirmReset() {
+        compose.onNodeWithText("Reset to defaults").performScrollTo().performClick()
+        compose.onNodeWithText("Reset to defaults?").assertIsDisplayed()
+        compose.onAllNodesWithText("Reset").onLast().performClick()
+    }
+
+    @Test
+    fun resetNeedsConfirmingAndCancelChangesNothing() {
+        openSettings { seedChanged() }
+        compose.onNodeWithText("Reset to defaults").performScrollTo().performClick()
+        compose.onNodeWithText("Reset to defaults?").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+        compose.onAllNodesWithText("Reset to defaults?").assertCountEquals(0)
+        assertEquals("where", TestState.prefs.getString("sms_keyword", ""))
+        assertEquals(5, rate())
+    }
+
+    @Test
+    fun resetRestoresTheKeywordTheRepliesAndTheLimits() {
+        openSettings { seedChanged() }
+        confirmReset()
+        ui.waitUntil { TestState.prefs.getString("sms_keyword", "") == "phonetrack" }
+        val p = TestState.prefs
+        ui.waitUntil { rate() == 20 }
+        assertEquals(10, p.getInt("max_subscriptions", -1))
+        assertFalse(p.getBoolean("reply_coords", true))
+        assertFalse(p.getBoolean("reply_time", true))
+        assertFalse(p.getBoolean("reply_geo", true))
+        assertTrue(p.getBoolean("reply_accuracy", false))
+        assertTrue(p.getBoolean("reply_battery", false))
+        assertTrue(p.getBoolean("reply_osm", false))
+        assertFalse(p.getBoolean("reply_osm_short", true))
+        assertFalse(p.getBoolean("reply_osm_encoded", true))
+        assertEquals(12, p.getInt("reply_osm_zoom", 0))
+        assertFalse(p.getBoolean("reply_move_cardinal", true))
+        assertTrue(p.getBoolean("reply_move_show", false))
+        keywordField.assertTextContains("phonetrack")
+    }
+
+    @Test
+    fun resetKeepsThePinListeningApprovalsAndSubscriptions() {
+        ui.launch {
+            TestState.seedPin("1234")
+            TestState.enableListening()
+            TestState.seedApprovals(Triple("+15550000001", "APPROVED", 1_000L))
+            TestState.seedSubscriptions(TestState.subscription("+15550000001"))
+            seedChanged()
+        }
+        compose.onNodeWithContentDescription("Unlock settings").performClick()
+        compose.onNode(hasSetTextAction()).performTextInput("1234")
+        compose.onNodeWithText("Unlock").performClick()
+        compose.onNodeWithContentDescription("Settings").performClick()
+        confirmReset()
+        ui.waitUntil { rate() == 20 }
+        assertEquals(PinResult.Success, PinStore.verify(compose.activityContext(), "1234"))
+        assertTrue(TestState.prefs.getBoolean("sms_enabled", false))
+        assertEquals(1, TestState.approvals().size)
+        assertEquals(1, TestState.subscriptions().size)
     }
 }

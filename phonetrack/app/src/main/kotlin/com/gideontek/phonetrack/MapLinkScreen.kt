@@ -86,12 +86,5 @@ fun MapLinkScreen(
                 messages = SmsComposer.composeLocation(SAMPLE_FIX, options.normalized())
             )
         }
-
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            OutlinedButton(
-                onClick = { setLink(MapLinkOptions.DEFAULT) },
-                enabled = !isLocked && link != MapLinkOptions.DEFAULT
-            ) { Text("Reset to defaults") }
-        }
     }
 }
