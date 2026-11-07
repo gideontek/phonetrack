@@ -33,17 +33,14 @@ object SmsComposer {
      * '.' separator. Raw Double.toString() can print 17 digits or scientific notation ("1.0E-4").
      * DecimalFormat isn't thread-safe, so a new one is built per call.
      */
-    private fun fmt(d: Double): String =
+    internal fun fmt(d: Double): String =
         DecimalFormat("0.#####", DecimalFormatSymbols(Locale.US)).format(d)
 
     private const val PREFIX = "[PhoneTrack] "
 
-    /** OpenStreetMap zoom for the link: 12 shows the surrounding city/district rather than one street. */
-    private const val OSM_ZOOM = 12
-
     /**
      * One-shot or periodic location reply, containing what [options] select. [prevLat] / [prevLon]
-     * (0.0/0.0 = none) add the movement arrow and distance since the previous update.
+     * (0.0/0.0 = none) add the direction and distance since the previous update, unless [ReplyOptions.movement] hides it.
      */
     fun composeLocation(
         fix: LocationFix,
@@ -51,12 +48,14 @@ object SmsComposer {
         prevLat: Double = 0.0,
         prevLon: Double = 0.0
     ): List<String> {
-        val movement = if (prevLat != 0.0 || prevLon != 0.0) {
-            val distM = haversineMeters(prevLat, prevLon, fix.lat, fix.lon)
-            val bearing = initialBearing(prevLat, prevLon, fix.lat, fix.lon)
-            "${SubscriptionLogic.bearingToArrow(bearing.toFloat())}${DistanceFormat.compact(distM)}"
-        } else null
         val opts = options.normalized()
+        val movement = if (opts.movement.show && (prevLat != 0.0 || prevLon != 0.0)) {
+            val distM = haversineMeters(prevLat, prevLon, fix.lat, fix.lon)
+            val bearing = initialBearing(prevLat, prevLon, fix.lat, fix.lon).toFloat()
+            val direction = if (opts.movement.cardinal) SubscriptionLogic.bearingToCompass(bearing)
+            else SubscriptionLogic.bearingToArrow(bearing)
+            "$direction${DistanceFormat.compact(distM)}"
+        } else null
         val lines = textLines(fix, opts, header = null, movement = movement)
         // Selected parts that have nothing to show (battery only, but no battery reading) must
         // not leave the requester with an empty reply: fall back to the map link.
@@ -91,33 +90,28 @@ object SmsComposer {
     }
 
     /**
-     * Lays the parts out as SMS. The text (if any) carries the "[PhoneTrack]" prefix; the map link
-     * rides in the same message when that still fits one SMS, otherwise it is its own message. The
-     * `geo:` URI is always its own bare message. Order: text, geo, link (the link leads when merged).
+     * Lays the parts out as SMS, in the order text, `geo:` URI, map link, one per line. Every message
+     * carries the "[PhoneTrack]" prefix. Everything goes in one SMS when it fits. If not, the `geo:` URI
+     * stays with the text and the map link is its own message; failing that, each part is its own message.
      */
     private fun assemble(lines: List<String>, fix: LocationFix, o: ReplyOptions): List<String> {
         val la = fmt(fix.lat)
         val lo = fmt(fix.lon)
         val geo = if (o.geo) "geo:$la,$lo" else null
-        val osm = if (o.osm) "https://www.openstreetmap.org/?mlat=$la&mlon=$lo#map=$OSM_ZOOM/$la/$lo" else null
+        val osm = if (o.osm) OsmLink.url(fix.lat, fix.lon, o.link) else null
         val body = lines.joinToString("\n")
 
-        val out = mutableListOf<String>()
-        if (osm != null) {
-            val merged = if (body.isEmpty()) "$PREFIX$osm" else "$PREFIX$body\n$osm"
-            if (SmsLength.fitsOneSms(merged)) {
-                out += merged
-                geo?.let { out += it }
-            } else {
-                if (body.isNotEmpty()) out += "$PREFIX$body"
-                geo?.let { out += it }
-                out += osm
-            }
-        } else {
-            if (body.isNotEmpty()) out += "$PREFIX$body"
-            geo?.let { out += it }
+        fun joined(vararg parts: String?): String? {
+            val text = parts.filter { !it.isNullOrEmpty() }.joinToString("\n")
+            return if (text.isEmpty()) null else "$PREFIX$text"
         }
-        return out
+
+        joined(body, geo, osm)?.takeIf { SmsLength.fitsOneSms(it) }?.let { return listOf(it) }
+        val textAndGeo = joined(body, geo)
+        if (osm != null && textAndGeo != null && SmsLength.fitsOneSms(textAndGeo)) {
+            return listOf(textAndGeo, "$PREFIX$osm")
+        }
+        return listOfNotNull(joined(body), joined(geo), joined(osm))
     }
 
     /** "14:32Z": the UTC clock time, so the receiver's time zone doesn't matter. */

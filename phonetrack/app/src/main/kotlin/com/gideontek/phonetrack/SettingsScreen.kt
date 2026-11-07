@@ -12,10 +12,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +29,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -41,6 +46,11 @@ fun SettingsScreen(
     permissions: PermissionsState,
     pinDialogs: PinDialogState,
     onOpenFaq: () -> Unit,
+    scroll: ScrollState,
+    repliesExpanded: Boolean,
+    onRepliesExpandedChange: (Boolean) -> Unit,
+    onOpenMapLink: () -> Unit,
+    onOpenMovement: () -> Unit,
     onBack: () -> Unit,
 ) {
     val enabled by vm.enabled.collectAsState()
@@ -52,13 +62,14 @@ fun SettingsScreen(
     val maxSubscriptions by vm.maxSubscriptions.collectAsState()
 
     val context = LocalContext.current
+    var confirmReset by remember { mutableStateOf(false) }
 
     Surface(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .systemBarsPadding()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scroll)
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
@@ -111,6 +122,10 @@ fun SettingsScreen(
             ReplySettingsCard(
                 options = replyOptions,
                 isLocked = isLocked,
+                expanded = repliesExpanded,
+                onExpandedChange = onRepliesExpandedChange,
+                onCustomizeLink = onOpenMapLink,
+                onCustomizeMovement = onOpenMovement,
                 onChange = { vm.setReplyOptions(it) }
             )
 
@@ -197,12 +212,59 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsSection("Reset") {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(enabled = !isLocked, role = Role.Button) { confirmReset = true }
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                        .defaultMinSize(minHeight = 56.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "Reset to defaults",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (isLocked) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.error
+                        )
+                        Text(
+                            "Keyword, reply contents, link and movement choices, and limits. " +
+                                "Not the PIN, approvals or subscriptions.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
             SettingsSection("Help") {
                 NavigationRow("FAQ", "No reply, errors, updates and security", onOpenFaq)
             }
 
             AboutSection()
         }
+    }
+
+    if (confirmReset) {
+        AlertDialog(
+            onDismissRequest = { confirmReset = false },
+            title = { Text("Reset to defaults?") },
+            text = {
+                Text(
+                    "The keyword, reply contents, link and movement choices, and limits go back to " +
+                        "their defaults. The PIN, SMS listening, approved numbers and subscriptions stay as they are."
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.resetSettings()
+                    confirmReset = false
+                    Toast.makeText(context, "Settings reset", Toast.LENGTH_SHORT).show()
+                }) { Text("Reset", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } }
+        )
     }
 }
 
