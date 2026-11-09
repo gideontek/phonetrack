@@ -50,4 +50,40 @@ class SmsLengthTest {
     @Test fun `a long plain-ASCII message is not rescued by the UCS-2 limit logic`() {
         assertFalse(SmsLength.fitsOneSms("a".repeat(100) + "⇗"))
     }
+
+    @Test fun `info for a short GSM-7 text`() {
+        val i = SmsLength.info("hello")
+        assertEquals(SmsLength.Encoding.GSM7, i.encoding)
+        assertEquals(5, i.units); assertEquals(160, i.limit); assertEquals(1, i.smsCount)
+    }
+
+    @Test fun `info counts extension characters as two units`() {
+        assertEquals(5, SmsLength.info("[a]").units)
+    }
+
+    @Test fun `info for a UCS-2 text`() {
+        val i = SmsLength.info("⇗395m")
+        assertEquals(SmsLength.Encoding.UCS2, i.encoding)
+        assertEquals(5, i.units); assertEquals(70, i.limit); assertEquals(1, i.smsCount)
+    }
+
+    @Test fun `a long GSM-7 text splits into 153-unit parts`() {
+        assertEquals(1, SmsLength.info("a".repeat(160)).smsCount)
+        assertEquals(2, SmsLength.info("a".repeat(161)).smsCount)
+        assertEquals(2, SmsLength.info("a".repeat(306)).smsCount)
+        assertEquals(3, SmsLength.info("a".repeat(307)).smsCount)
+    }
+
+    @Test fun `a long UCS-2 text splits into 67-unit parts`() {
+        assertEquals(1, SmsLength.info("⇗" + "a".repeat(69)).smsCount)
+        assertEquals(2, SmsLength.info("⇗" + "a".repeat(70)).smsCount)
+        assertEquals(2, SmsLength.info("⇗" + "a".repeat(133)).smsCount)
+        assertEquals(3, SmsLength.info("⇗" + "a".repeat(134)).smsCount)
+    }
+
+    @Test fun `info agrees with fitsOneSms`() {
+        for (s in listOf("", "a".repeat(160), "a".repeat(161), "⇗", "⇗" + "a".repeat(70), "[".repeat(80), "[".repeat(81))) {
+            assertEquals(s, SmsLength.fitsOneSms(s), SmsLength.info(s).smsCount <= 1)
+        }
+    }
 }

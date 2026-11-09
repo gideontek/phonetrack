@@ -17,6 +17,9 @@ object SmsLimits {
     /** Inbound messages longer than this are ignored (cheap guard against abuse). */
     const val MAX_BODY = 320
 
+    /** The keyword out of the box; pref `sms_keyword`. */
+    const val DEFAULT_KEYWORD = "phonetrack"
+
     // --- Abuse limits -------------------------------------------------------
 
     /** Commands one approved sender may send per [RATE_WINDOW_MS]; pref `rate_limit_per_hour`. */

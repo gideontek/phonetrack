@@ -126,6 +126,17 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         _replyOptions.value = options.normalized()
     }
 
+    /**
+     * Puts the keyword, the reply contents (with the link style and the movement choices) and both
+     * limits back to their defaults. The PIN, SMS listening, approvals and subscriptions are untouched.
+     */
+    fun resetSettings() {
+        setKeyword(SmsLimits.DEFAULT_KEYWORD)
+        setReplyOptions(ReplyOptions.DEFAULT)
+        setRateLimitPerHour(SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR)
+        setMaxSubscriptions(SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
+    }
+
     /** Save a new PIN and leave the session unlocked. */
     fun setPin(pin: String) {
         PinStore.set(getApplication(), pin)

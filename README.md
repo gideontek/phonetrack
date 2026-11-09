@@ -88,28 +88,50 @@ The phone acquires a GPS fix and replies with what you've chosen under **Reply c
 https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
-You can switch any of these parts on or off (at least one of Coordinates, the `geo:` link and the OpenStreetMap link must stay on; coordinates, the time of fix and the `geo:` link are off by default):
+You can switch any of these parts on or off (at least one of the `geo:` link and the OpenStreetMap link must stay on; coordinates, the time of fix and the `geo:` link are off by default):
 
 | Part | Looks like |
 |------|------------|
 | Coordinates | `Lat: 51.5074, Lon: -0.1278` |
-| Accuracy | `Acc: 8m` (GPS accuracy radius in metres) |
-| Battery | `Bat: 73%`, with `(charging)` while charging |
+| Location accuracy | `Acc: 8m` (GPS accuracy radius in metres) |
+| Battery level | `Bat: 73%`, with `(charging)` while charging |
 | Time of fix | `Time: 14:32Z` (UTC) |
 | `geo:` link | `geo:51.5074,-0.1278`, which opens in any maps app |
 | OpenStreetMap link | as above |
 
-With everything on, a reply looks like this (two SMS, because the text and the map link fit together in one):
+With everything on, a reply looks like this (two SMS, because the standard map link is too long to share an SMS with all the rest):
 
 ```
 [PhoneTrack] Lat: 51.5074, Lon: -0.1278
 Acc: 8m, Bat: 73%, Time: 14:32Z
-https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
-
 geo:51.5074,-0.1278
+
+[PhoneTrack] https://www.openstreetmap.org/?mlat=51.5074&mlon=-0.1278#map=12/51.5074/-0.1278
 ```
 
-The text and the map link share one SMS whenever they fit (160 plain characters); otherwise the link goes in its own message. The `geo:` link is always its own message. The in-app preview shows exactly what will be sent. The settings are locked along with the rest when a PIN is set.
+Each part is on its own line, in the same SMS whenever everything fits (160 plain characters). If not, the map link goes in its own message. Every message starts with `[PhoneTrack]`, so a message that arrives on its own is still recognizable. The in-app preview shows exactly what will be sent. The settings are locked along with the rest when a PIN is set.
+
+#### Customizing the link and the movement
+
+A reply is split into several SMS when it is longer than 160 characters, or longer than 70 if it contains a special character such as the direction arrow in a subscription update (see [Message length and cost](#message-length-and-cost)). Each part is usually billed as an SMS. That is why you can shorten the OpenStreetMap link and change how a subscription update shows the distance moved since the last update: shorter replies cost fewer SMS.
+
+Under **Settings → Replies → Reply contents**, the OpenStreetMap link has a **Customize OpenStreetMap link** row that opens a screen for how the link is written, and subscription updates have a **Movement in subscription updates** switch with a **Customize movement** row. The defaults give the link shown above, and nothing changes until you opt in. Each option has a hint in the app, and each screen shows a sample (a location reply, or a subscription update) with the encoding and length of every message.
+
+| Option | What it does |
+|--------|--------------|
+| osm.org instead of openstreetmap.org | `osm.org` instead of `www.openstreetmap.org` (14 characters shorter; it forwards to the same map) |
+| Compact code | A code instead of coordinates, e.g. `https://osm.org/go/TZHvSR7--?m`: about 50 characters shorter and it opens the same map with a marker. The coordinates can't be read from the compact code, and the pin can be off by up to 153 m (zoom 8 to 10), 19 m (11 to 13), 2.4 m (14 to 16) or under 1 m (17 and 18). Keep the coordinates if a message may be passed on to an emergency dispatcher or rescue team, who can read out the latitude and longitude straight from the standard link, or from the plain text coordinates if enabled in the Reply settings (the geo: link option also carries them) |
+| Zoom | 8 (a region) to 18 (a building); default 12. With a compact code, zoom 10, 13 and 16 give the shortest codes |
+| Movement in subscription updates (the switch in Replies) | On by default. Off drops the direction and distance from subscription updates, so they read like a location reply |
+| Compass letters (on the Customize movement screen) | Off by default. Writes the direction as `N`, `NE`, `E`, `SE`, `S`, `SW`, `W` or `NW` (`NE395m`) instead of an arrow (`⇗395m`). The letters are in the standard SMS alphabet, so an update keeps the 160-character limit instead of 70 |
+
+Shorter links keep replies to fewer SMS. For example, a subscription update has to use the 70-character limit because of its movement arrow (compass letters or hiding the movement avoid that), so with the default link the link goes in a second SMS; with the short address and the compact code the whole update is 67 of 70 characters, one SMS (not while it also says "(charging)"):
+
+```
+[PhoneTrack] Acc: 5m, Bat: 85%
+⇗395m
+https://osm.org/go/TZHvSR7--?m
+```
 
 If location services are turned off when the request arrives, the phone posts a high-priority notification with a 60-second countdown. If you re-enable location services within that window, the fix is sent automatically.
 
@@ -166,7 +188,7 @@ The confirmation looks like:
 [PhoneTrack] Subscribed: update every 15 min, only if moved 200m+, for 4h (ends Sep 30 18:32Z). Text "phonetrack unsubscribe" to stop.
 ```
 
-Periodic updates use the same Reply contents settings (battery is included if you switch it on) and add a direction arrow and how far you moved since the previous update, e.g. `⇗120m` (shown in kilometers from 1 km: `⇗1.2km`, and whole kilometers from 10 km: `⇗12km`). The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
+Periodic updates use the same Reply contents settings (battery is included if you switch it on) and add a direction arrow and how far you moved since the previous update, e.g. `⇗120m` (or `NE120m`, or nothing, from Customize movement in Replies) (shown in kilometers from 1 km: `⇗1.2km`, and whole kilometers from 10 km: `⇗12km`). The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
 
 ### Unsubscribe
 
@@ -186,6 +208,8 @@ A split text is divided into parts of 153 (GSM-7) or 67 (UCS-2) characters, and 
 
 Each reply is sent from the tracked phone, so it counts against that phone's SMS plan. A one-time reply is one SMS by default. Automatic updates after the first are usually two, because their direction arrow makes the text UCS-2 and the map link is then sent in its own message.
 
+To keep replies short, you can shorten the OpenStreetMap link and change how a subscription update shows the distance moved since the last update: see [Customizing the link and the movement](#customizing-the-link-and-the-movement).
+
 ---
 
 ## App settings
@@ -200,6 +224,7 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 | Limits | Commands per number per hour, and most active subscriptions at once |
 | Permissions | SMS, location, background location and notifications, each with a Grant button |
 | PIN | Set, change or remove the PIN that guards Settings and approval changes (see below) |
+| Reset → Reset to defaults | Puts the keyword, the reply contents (with the link style and the movement choices) and the limits back to their defaults, after a confirmation. The PIN, SMS listening, approved numbers and subscriptions are not touched |
 | Help → FAQ | Answers to the questions people ask most: why a text gets no reply (approval, RCS, a keyword typo, the hourly limit), the *Location permission not granted* and *Location unavailable* messages, `last` vs a fresh request, how subscriptions work, and how secure it is |
 
 ### The main screen

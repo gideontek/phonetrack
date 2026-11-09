@@ -40,6 +40,37 @@ internal val SAMPLE_FIX = LocationFix(
     charging = false
 )
 
+/** Where the preview's "previous" fix is, so a subscription update shows a movement arrow: about 395 m to the north-east. */
+internal const val SAMPLE_PREV_LAT = 37.7720
+internal const val SAMPLE_PREV_LON = -122.4220
+
+object MapLinkSummary {
+    /** "osm.org · compact code · zoom 13": the one-line state of the map link options. */
+    fun text(options: MapLinkOptions): String {
+        val o = options.normalized()
+        return listOf(
+            if (o.shortDomain) "osm.org" else "openstreetmap.org",
+            if (o.encoded) "compact code" else "coordinates in link",
+            "zoom ${o.zoom}"
+        ).joinToString(" · ")
+    }
+
+    /** How far off a compact code can put the pin at [zoom]: "±153 m", "±19 m", "±2.4 m", "±0.3 m". */
+    fun precision(zoom: Int): String {
+        val m = OsmLink.precisionMeters(zoom.coerceIn(MapLinkOptions.MIN_ZOOM, MapLinkOptions.MAX_ZOOM))
+        return if (m >= 10) "±${Math.round(m)} m" else "±${String.format(java.util.Locale.US, "%.1f", m)} m"
+    }
+}
+
+object MovementSummary {
+    /** "Arrows" / "Compass letters" / "Off": the one-line state of the movement options. */
+    fun text(movement: MovementOptions): String = when {
+        !movement.show -> "Off"
+        movement.cardinal -> "Compass letters"
+        else -> "Arrows"
+    }
+}
+
 object ReplySummary {
     /** "Coordinates · Accuracy · Battery · Map link · 1 SMS" for the options as they will be used. */
     fun text(options: ReplyOptions): String {
