@@ -180,8 +180,9 @@ class EventLogUiTest {
         openSettings { TestState.seedEventLog() }
         openViewer()
         ui.back()
-        compose.onNodeWithText("General").assertIsDisplayed()
-        compose.onNodeWithContentDescription("Back").performClick()
+        // Settings keeps its scroll position, so it comes back showing the row that opened the viewer.
+        compose.onNodeWithText("View event log").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Back").performScrollTo().performClick()
         compose.onNodeWithContentDescription("Settings").assertIsDisplayed()
     }
 
