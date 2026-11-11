@@ -80,7 +80,7 @@ class ScreenshotTour {
         compose.waitForIdle()
         save("movement-$tag-2")
         ui.back()
-        compose.onNodeWithText("FAQ").clickVisible()
+        compose.onNodeWithText("Troubleshooting & FAQ").clickVisible()
         compose.onNodeWithText("Why did my first text get no reply?").assertIsDisplayed()
         compose.waitForIdle()
         save("faq-$tag-1")

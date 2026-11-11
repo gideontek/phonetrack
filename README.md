@@ -224,8 +224,8 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 | Limits | Commands per number per hour, and most active subscriptions at once |
 | Permissions | SMS, location, background location and notifications, each with a Grant button |
 | PIN | Set, change or remove the PIN that guards Settings and approval changes (see below) |
-| Reset → Reset to defaults | Puts the keyword, the reply contents (with the link style and the movement choices) and the limits back to their defaults, after a confirmation. The PIN, SMS listening, approved numbers and subscriptions are not touched |
-| Help → FAQ | Answers to the questions people ask most: why a text gets no reply (approval, RCS, a keyword typo, the hourly limit), the *Location permission not granted* and *Location unavailable* messages, `last` vs a fresh request, how subscriptions work, and how secure it is |
+| Reset → Restore default settings | Puts the keyword, the reply contents (with the link style and the movement choices) and the limits back to their defaults, after a confirmation. The PIN, SMS listening, approved numbers and subscriptions are not touched |
+| Help → Troubleshooting & FAQ | Answers to the questions people ask most: why a text gets no reply (approval, RCS, a keyword typo, the hourly limit), the *Location permission not granted* and *Location unavailable* messages, `last` vs a fresh request, how subscriptions work, and how secure it is |
 
 ### The main screen
 

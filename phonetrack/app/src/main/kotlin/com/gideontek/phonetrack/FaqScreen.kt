@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
  */
 @Composable
 fun FaqScreen(onBack: () -> Unit) {
-    SubScreen(title = "FAQ", onBack = onBack) {
+    SubScreen(title = "Troubleshooting & FAQ", onBack = onBack) {
         FaqEntry(
             "Why did my first text get no reply?",
             "A number that texts the keyword for the first time waits for the phone's owner to approve it, and gets " +

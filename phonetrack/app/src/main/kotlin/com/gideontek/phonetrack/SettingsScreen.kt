@@ -223,23 +223,17 @@ fun SettingsScreen(
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            "Reset to defaults",
+                            "Restore default settings",
                             style = MaterialTheme.typography.bodyLarge,
                             color = if (isLocked) MaterialTheme.colorScheme.onSurfaceVariant
                             else MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            "Keyword, reply contents, link and movement choices, and limits. " +
-                                "Not the PIN, approvals or subscriptions.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
             }
 
             SettingsSection("Help") {
-                NavigationRow("FAQ", "No reply, errors, updates and security", onOpenFaq)
+                NavigationRow("Troubleshooting & FAQ", null, onOpenFaq)
             }
 
             AboutSection()
@@ -249,7 +243,7 @@ fun SettingsScreen(
     if (confirmReset) {
         AlertDialog(
             onDismissRequest = { confirmReset = false },
-            title = { Text("Reset to defaults?") },
+            title = { Text("Restore default settings?") },
             text = {
                 Text(
                     "The keyword, reply contents, link and movement choices, and limits go back to " +

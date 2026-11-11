@@ -25,7 +25,7 @@ class FaqTest {
     private fun openFaq(seed: () -> Unit = {}) {
         ui.launch(seed = seed)
         compose.onNodeWithContentDescription("Settings").performClick()
-        compose.onNodeWithText("FAQ").clickVisible()
+        compose.onNodeWithText("Troubleshooting & FAQ").clickVisible()
         compose.onNodeWithText("Why did my first text get no reply?").assertIsDisplayed()
     }
 
@@ -34,7 +34,7 @@ class FaqTest {
         ui.launch()
         compose.onNodeWithContentDescription("Settings").performClick()
         compose.onNodeWithText("Help").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("FAQ").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Troubleshooting & FAQ").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -76,7 +76,7 @@ class FaqTest {
         openFaq()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("General").assertExists()
-        compose.onNodeWithText("FAQ").clickVisible()
+        compose.onNodeWithText("Troubleshooting & FAQ").clickVisible()
         ui.back()
         compose.onNodeWithText("General").assertExists()
         ui.back()
@@ -90,7 +90,7 @@ class FaqTest {
         compose.onNodeWithContentDescription("Settings").performClick()
         compose.onNode(hasSetTextAction()).performTextInput("1234")
         compose.onNodeWithText("Unlock").performClick()
-        compose.onNodeWithText("FAQ").clickVisible()
+        compose.onNodeWithText("Troubleshooting & FAQ").clickVisible()
         compose.onNodeWithText("Why did my first text get no reply?").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithContentDescription("Lock settings").fetchSemanticsNodes().size)
     }
