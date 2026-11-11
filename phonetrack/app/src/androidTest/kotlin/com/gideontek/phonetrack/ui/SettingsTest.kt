@@ -327,18 +327,18 @@ class SettingsTest {
     }
 
     private fun confirmReset() {
-        compose.onNodeWithText("Reset to defaults").performScrollTo().performClick()
-        compose.onNodeWithText("Reset to defaults?").assertIsDisplayed()
+        compose.onNodeWithText("Restore default settings").performScrollTo().performClick()
+        compose.onNodeWithText("Restore default settings?").assertIsDisplayed()
         compose.onAllNodesWithText("Reset").onLast().performClick()
     }
 
     @Test
     fun resetNeedsConfirmingAndCancelChangesNothing() {
         openSettings { seedChanged() }
-        compose.onNodeWithText("Reset to defaults").performScrollTo().performClick()
-        compose.onNodeWithText("Reset to defaults?").assertIsDisplayed()
+        compose.onNodeWithText("Restore default settings").performScrollTo().performClick()
+        compose.onNodeWithText("Restore default settings?").assertIsDisplayed()
         compose.onNodeWithText("Cancel").performClick()
-        compose.onAllNodesWithText("Reset to defaults?").assertCountEquals(0)
+        compose.onAllNodesWithText("Restore default settings?").assertCountEquals(0)
         assertEquals("where", TestState.prefs.getString("sms_keyword", ""))
         assertEquals(5, rate())
     }

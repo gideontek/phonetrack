@@ -62,7 +62,7 @@ class AccessibilityTest {
 
     private fun faq(label: String) {
         compose.onNodeWithContentDescription("Settings").performClick()
-        compose.onNodeWithText("FAQ").clickVisible()
+        compose.onNodeWithText("Troubleshooting & FAQ").clickVisible()
         compose.onNodeWithText("Why did my first text get no reply?").assertIsDisplayed()
         assertTargetsAreLabelledAndLargeEnough("FAQ ($label)")
     }
