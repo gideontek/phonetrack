@@ -14,8 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * How a subscription update writes the direction it moved (opened from "Customize" on the movement row in
- * Replies; whether movement is shown at all is the switch there). The sample is built by the real
+ * Movement in subscription updates (opened from the movement row in Replies): the switch for showing it at
+ * all and how the direction is written. The sample is built by the real
  * [SmsComposer]. Controls are disabled while settings are PIN-locked. Back returns to Settings.
  */
 @Composable
@@ -35,15 +35,14 @@ fun MovementScreen(
         trailing = { LockButton(vm, pinDialogs, onLocked = onBack) }
     ) {
         SettingsSection("Direction") {
-            if (!movement.show) {
-                Text(
-                    "Movement is switched off under Replies, so updates don't show a direction yet.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.padding(16.dp)
-                )
-                RowDivider()
-            }
+            ToggleRow(
+                label = "Movement in subscription updates",
+                supporting = "Direction and distance since the previous update",
+                checked = movement.show,
+                enabled = !isLocked,
+                onCheckedChange = { setMovement(movement.copy(show = it)) }
+            )
+            RowDivider()
             ToggleRow(
                 label = "Compass letters instead of arrows",
                 supporting = "Writes the direction as N, NE, E, SE, S, SW, W or NW instead of an arrow (\u21D7). " +
@@ -55,7 +54,7 @@ fun MovementScreen(
             )
             RowDivider()
             SampleBlock(
-                title = if (movement.show) "Subscription update (moved 395 m north-east)"
+                title = if (movement.show) "Subscription update (moved 395m north-east)"
                 else "Subscription update (movement hidden)",
                 note = when {
                     !movement.show -> "Movement is hidden, so an update is the same as a location reply."

@@ -45,12 +45,12 @@ internal const val SAMPLE_PREV_LAT = 37.7720
 internal const val SAMPLE_PREV_LON = -122.4220
 
 object MapLinkSummary {
-    /** "osm.org · compact code · zoom 13": the one-line state of the map link options. */
+    /** "osm.org · compact code · zoom 13" (or "coordinates" instead of the code): the one-line state of the map link options. */
     fun text(options: MapLinkOptions): String {
         val o = options.normalized()
         return listOf(
             if (o.shortDomain) "osm.org" else "openstreetmap.org",
-            if (o.encoded) "compact code" else "coordinates in link",
+            if (o.encoded) "compact code" else "coordinates",
             "zoom ${o.zoom}"
         ).joinToString(" · ")
     }
@@ -63,11 +63,11 @@ object MapLinkSummary {
 }
 
 object MovementSummary {
-    /** "Arrows" / "Compass letters" / "Off": the one-line state of the movement options. */
+    /** "On · ⇗395m" / "On · NE395m" / "Off": the chosen style shown on the sample move ([SAMPLE_PREV_LAT]), or off. */
     fun text(movement: MovementOptions): String = when {
         !movement.show -> "Off"
-        movement.cardinal -> "Compass letters"
-        else -> "Arrows"
+        movement.cardinal -> "On · NE395m"
+        else -> "On · \u21D7395m"
     }
 }
 
@@ -79,7 +79,7 @@ object ReplySummary {
             if (o.coords) add("Coordinates")
             if (o.accuracy) add("Accuracy")
             if (o.battery) add("Battery")
-            if (o.time) add("Time of fix")
+            if (o.time) add("Time")
             if (o.geo) add("geo: link")
             if (o.osm) add("Map link")
         }

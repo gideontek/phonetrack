@@ -16,7 +16,7 @@ data class MapLinkOptions(
     }
 }
 
-/** Builds the OpenStreetMap link for a reply. Pure: no Android imports. */
+/** Builds the OpenStreetMap link for a reply (no `#map=` part at the default zoom). Pure: no Android imports. */
 object OsmLink {
     private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_~"
     private const val FULL_HOST = "www.openstreetmap.org"
@@ -56,7 +56,9 @@ object OsmLink {
         } else {
             val la = SmsComposer.fmt(lat)
             val lo = SmsComposer.fmt(lon)
-            "https://$host/?mlat=$la&mlon=$lo#map=${o.zoom}/$la/$lo"
+            // OSM opens the marker at zoom 12 on its own, so the default needs no #map= part.
+            val base = "https://$host/?mlat=$la&mlon=$lo"
+            if (o.zoom == MapLinkOptions.DEFAULT_ZOOM) base else "$base#map=${o.zoom}/$la/$lo"
         }
     }
 }

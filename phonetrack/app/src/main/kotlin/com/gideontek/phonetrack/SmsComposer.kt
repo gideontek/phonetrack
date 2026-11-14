@@ -85,7 +85,8 @@ object SmsComposer {
         }
         if (o.time) details += "Time: ${utcClock(fix.timeMs)}"
         if (details.isNotEmpty()) lines += details.joinToString(", ")
-        movement?.let { lines += it }
+        // The movement follows the last line on the same line (a space, as long as the newline it replaces).
+        movement?.let { if (lines.isEmpty()) lines += it else lines[lines.lastIndex] = "${lines.last()} $it" }
         return lines
     }
 
