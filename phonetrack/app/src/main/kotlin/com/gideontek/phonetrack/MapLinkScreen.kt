@@ -69,8 +69,9 @@ fun MapLinkScreen(
             RowDivider()
             StepperRow(
                 label = "Map zoom level",
-                supporting = "Higher is zoomed in. 8 is a region, 12 a district, 16 a street. Levels 10, 13 and 16 " +
-                    "give the shortest compact codes.",
+                supporting = "Higher is zoomed in. 8 is a region, 12 (the default) a district, 16 a street. The standard " +
+                    "link leaves the zoom out at 12, which makes it shorter. Levels 10, 13 and 16 give the " +
+                    "shortest compact codes.",
                 valueText = link.zoom.toString(),
                 lessDescription = "Zoom out",
                 moreDescription = "Zoom in",

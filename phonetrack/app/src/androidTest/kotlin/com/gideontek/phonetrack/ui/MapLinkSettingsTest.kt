@@ -166,7 +166,7 @@ class MapLinkSettingsTest {
         openMapLink()
         compose.onNodeWithText("Location reply").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("1 SMS in total").assertExists()
-        compose.onNodeWithText("GSM-7 · 116 of 160 characters").assertExists()
+        compose.onNodeWithText("GSM-7 · 91 of 160 characters").assertExists()
         assertEquals(0, compose.countWithText("Subscription update", substring = true))
     }
 

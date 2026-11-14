@@ -9,8 +9,11 @@ class SmsComposerTest {
     // composeLocation (one-shot and periodic)
     // -------------------------------------------------------------------------
 
-    private val url = "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194"
+    private val url = "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194"
     private val all = ReplyOptions(coords = true, accuracy = true, battery = true, time = true, geo = true, osm = true)
+    // A zoom other than 12 adds "#map=16/lat/lon" to the standard link, which is what makes it long enough to split off.
+    private val zoom16 = MapLinkOptions(zoom = 16)
+    private val longUrl = "$url#map=16/37.7749/-122.4194"
 
     // 2026-09-30 18:32:00 UTC
     private fun fix(charging: Boolean = false, battery: Int = 85) = LocationFix(
@@ -133,14 +136,21 @@ class SmsComposerTest {
     }
 
     @Test
-    fun `with everything on the geo link stays with the text and the long map link is its own message`() {
+    fun `with everything on at the default zoom the whole reply is one message`() {
         val msgs = SmsComposer.composeLocation(fix(), all)
+        assertEquals(msgs.toString(), 1, msgs.size)
+        assertTrue(msgs[0], msgs[0].endsWith("\n$url"))
+    }
+
+    @Test
+    fun `with everything on the geo link stays with the text and the long map link is its own message`() {
+        val msgs = SmsComposer.composeLocation(fix(), all.copy(link = zoom16))
         assertEquals(2, msgs.size)
         assertEquals(
             "[PhoneTrack] Lat: 37.7749, Lon: -122.4194\nAcc: 5m, Bat: 85%, Time: 18:32Z\ngeo:37.7749,-122.4194",
             msgs[0]
         )
-        assertEquals("[PhoneTrack] $url", msgs[1])
+        assertEquals("[PhoneTrack] $longUrl", msgs[1])
     }
 
     @Test
@@ -268,7 +278,7 @@ class SmsComposerTest {
             LocationFix(37.774929123456, -122.419415987654, 5, 0L), ReplyOptions(geo = true, osm = true)
         )
         assertTrue(msgs.any { it.contains("geo:37.77493,-122.41942") })
-        assertTrue(msgs.any { it.contains("mlat=37.77493&mlon=-122.41942#map=12/37.77493/-122.41942") })
+        assertTrue(msgs.any { it.contains("mlat=37.77493&mlon=-122.41942") })
     }
 
     @Test
@@ -390,13 +400,13 @@ class SmsComposerTest {
 
     @Test
     fun `last known honours the selected parts`() {
-        val opts = ReplyOptions(coords = true, accuracy = true, geo = true, osm = true)
+        val opts = ReplyOptions(coords = true, accuracy = true, geo = true, osm = true, link = zoom16)
         val msgs = SmsComposer.composeLastKnown(fix(), opts, 12 * 60_000L)
         assertEquals(
             "[PhoneTrack] Last known (12m ago)\nLat: 37.7749, Lon: -122.4194\nAcc: 5m\ngeo:37.7749,-122.4194",
             msgs[0]
         )
-        assertEquals("[PhoneTrack] $url", msgs[1])
+        assertEquals("[PhoneTrack] $longUrl", msgs[1])
     }
 
     @Test
@@ -483,7 +493,7 @@ class SmsComposerTest {
     // map link options
     // -------------------------------------------------------------------------
 
-    private val shortUrl = "https://osm.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194"
+    private val shortUrl = "https://osm.org/?mlat=37.7749&mlon=-122.4194"
 
     @Test
     fun `the short domain shortens the link in a reply`() {
@@ -508,7 +518,7 @@ class SmsComposerTest {
 
     @Test
     fun `a compact link brings every part into one message`() {
-        val plain = SmsComposer.composeLocation(fix(), all)
+        val plain = SmsComposer.composeLocation(fix(), all.copy(link = zoom16))
         val compact = SmsComposer.composeLocation(fix(), all.copy(link = MapLinkOptions(shortDomain = true, encoded = true)))
         assertEquals(plain.toString(), 2, plain.size)          // text + geo: together, the long link on its own
         assertEquals(compact.toString(), 1, compact.size)
@@ -540,7 +550,7 @@ class SmsComposerTest {
         val info = SmsLength.info(messages[0])
         assertEquals(SmsLength.Encoding.UCS2, info.encoding)
         assertTrue("${info.units} of ${info.limit}", info.units <= info.limit)
-        assertTrue(messages[0], messages[0].contains("⇗395m\nhttps://osm.org/go/"))
+        assertTrue(messages[0], messages[0].contains("Bat: 85% ⇗395m\nhttps://osm.org/go/"))
     }
 
     @Test
@@ -578,7 +588,7 @@ class SmsComposerTest {
     @Test
     fun `compass letters replace the arrow`() {
         val text = update(MovementOptions(cardinal = true)).joinToString("\n")
-        assertTrue(text, text.contains("\nNE395m\n"))
+        assertTrue(text, text.contains("Bat: 85% NE395m\n"))
         assertFalse(text, arrows.any { text.contains(it) })
     }
 
@@ -634,7 +644,7 @@ class SmsComposerTest {
                 f, ReplyOptions.DEFAULT.copy(movement = MovementOptions(cardinal = true)),
                 f.lat - d.first * 0.005, f.lon - d.second * 0.005
             ).joinToString("\n")
-            assertTrue("$name: $text", Regex("\\n$name\\d").containsMatchIn(text))
+            assertTrue("$name: $text", Regex("% $name\\d").containsMatchIn(text))
         }
     }
 

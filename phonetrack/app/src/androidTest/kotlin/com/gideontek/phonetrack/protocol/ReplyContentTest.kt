@@ -13,7 +13,7 @@ class ReplyContentTest {
     @get:Rule
     val rules = Scenario.rules(mockLocation = true)
 
-    private val link = "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194"
+    private val link = "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194"
 
     /** Stores exactly these reply parts (everything else off). */
     private fun parts(vararg on: String) {
@@ -151,7 +151,7 @@ class ReplyContentTest {
     fun theShortAddressShortensTheLinkInARealReply() {
         linkPrefs(short = true)
         val reply = assertOneReply(oneShot())
-        assertTrue(reply, reply.endsWith("\nhttps://osm.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194"))
+        assertTrue(reply, reply.endsWith("\nhttps://osm.org/?mlat=37.7749&mlon=-122.4194"))
     }
 
     @Test

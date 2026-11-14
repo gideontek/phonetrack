@@ -58,8 +58,11 @@ class SettingsLogicTest {
     @Test fun summaryForEmptyOptionsShowsWhatIsActuallySent() =
         assertEquals("Map link · 1\u00A0SMS", ReplySummary.text(ReplyOptions()))
 
-    @Test fun summaryForEverythingIsMoreThanOneSms() {
-        val all = ReplyOptions(coords = true, accuracy = true, battery = true, time = true, geo = true, osm = true)
+    @Test fun summaryForEverythingWithALongLinkIsMoreThanOneSms() {
+        val all = ReplyOptions(
+            coords = true, accuracy = true, battery = true, time = true, geo = true, osm = true,
+            link = MapLinkOptions(zoom = 16) // a zoom other than 12 adds #map=..., which pushes it over one SMS
+        )
         val text = ReplySummary.text(all)
         assertTrue(text, text.startsWith("Coordinates · Accuracy · Battery · Time of fix · geo: link · Map link · "))
         assertTrue(text, !text.endsWith("· 1\u00A0SMS"))

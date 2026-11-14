@@ -131,7 +131,7 @@ class MovementSettingsTest {
         compose.onNodeWithText("NE395m", substring = true).performScrollTo().assertIsDisplayed()
         assertEquals(0, compose.countWithText("⇗395m", substring = true))
         compose.onNodeWithText("1${nbsp}SMS in total").assertExists()
-        compose.onNodeWithText("GSM-7 · 123 of 160 characters").assertExists()
+        compose.onNodeWithText("GSM-7 · 98 of 160 characters").assertExists()
     }
 
     @Test

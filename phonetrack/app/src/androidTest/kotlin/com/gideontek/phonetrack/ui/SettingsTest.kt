@@ -169,10 +169,11 @@ class SettingsTest {
     }
 
     @Test
-    fun everyPartOnSplitsThePreviewIntoSeveralMessages() {
+    fun everyPartOnWithALongLinkSplitsThePreviewIntoSeveralMessages() {
         openSettings {
             val e = TestState.prefs.edit()
             for (k in listOf("coords", "accuracy", "battery", "time", "geo", "osm")) e.putBoolean("reply_$k", true)
+            e.putInt("reply_osm_zoom", 16) // the default zoom leaves #map= out and the whole reply fits one SMS
             e.commit()
         }
         compose.onNodeWithText("Reply contents").clickVisible()
