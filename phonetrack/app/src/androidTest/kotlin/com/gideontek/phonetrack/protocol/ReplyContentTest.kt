@@ -112,6 +112,7 @@ class ReplyContentTest {
 
     @Test
     fun everythingOnSharesTheFirstMessageBetweenTextAndGeoWithEveryPartPresent() {
+        // The emulator reports "(charging)", which with every part on pushes the link out of the first message.
         parts("coords", "accuracy", "battery", "time", "geo", "osm")
         val s = Scenario().ready()
         val replies = s.ask("phonetrack", expect = 2)
@@ -119,7 +120,7 @@ class ReplyContentTest {
         for (part in listOf("Lat: 37.7749, Lon: -122.4194", "Acc: 5m", "Bat: ", "Time: ", link)) {
             assertTrue("missing '$part' in $replies", all.contains(part))
         }
-        assertTrue("the geo URI follows the text", replies[0].endsWith("\ngeo:37.7749,-122.4194"))
+        assertTrue("the geo URI follows the text: $replies", replies[0].endsWith("\ngeo:37.7749,-122.4194"))
         assertEquals("the map link is its own message", "[PhoneTrack] $link", replies[1])
         assertEquals(replies.toString(), 2, replies.size)
     }
@@ -139,7 +140,7 @@ class ReplyContentTest {
         assertTrue(reply, Regex("""\[PhoneTrack] Last known \(\d+[smhd] ago\)\nBat: \d+%( \(charging\))?\n""" + Regex.escape(link)).matches(reply))
     }
 
-    // --- map link options (Customize OpenStreetMap link) -----------------------------------------
+    // --- map link options (Customize map link) -----------------------------------------
 
     private fun linkPrefs(short: Boolean = false, encoded: Boolean = false, zoom: Int = 12) {
         TestState.prefs.edit()

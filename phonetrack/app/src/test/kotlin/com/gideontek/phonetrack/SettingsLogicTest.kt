@@ -64,7 +64,7 @@ class SettingsLogicTest {
             link = MapLinkOptions(zoom = 16) // a zoom other than 12 adds #map=..., which pushes it over one SMS
         )
         val text = ReplySummary.text(all)
-        assertTrue(text, text.startsWith("Coordinates · Accuracy · Battery · Time of fix · geo: link · Map link · "))
+        assertTrue(text, text.startsWith("Coordinates · Accuracy · Battery · Time · geo: link · Map link · "))
         assertTrue(text, !text.endsWith("· 1\u00A0SMS"))
     }
 
@@ -75,7 +75,7 @@ class SettingsLogicTest {
         )
 
     @Test fun `map link summary of the defaults`() =
-        assertEquals("openstreetmap.org · coordinates in link · zoom 12", MapLinkSummary.text(MapLinkOptions()))
+        assertEquals("openstreetmap.org · coordinates · zoom 12", MapLinkSummary.text(MapLinkOptions()))
 
     @Test fun `map link summary of a compact link`() =
         assertEquals(
@@ -84,7 +84,7 @@ class SettingsLogicTest {
         )
 
     @Test fun `map link summary clamps the zoom`() =
-        assertEquals("openstreetmap.org · coordinates in link · zoom 18", MapLinkSummary.text(MapLinkOptions(zoom = 40)))
+        assertEquals("openstreetmap.org · coordinates · zoom 18", MapLinkSummary.text(MapLinkOptions(zoom = 40)))
 
     @Test fun `the sample previous position is a few hundred metres away`() {
         val first = SmsComposer.composeLocation(SAMPLE_FIX, ReplyOptions.DEFAULT, SAMPLE_PREV_LAT, SAMPLE_PREV_LON).first()
@@ -99,8 +99,8 @@ class SettingsLogicTest {
     }
 
     @Test fun `the movement summary names arrows, compass letters and off`() {
-        assertEquals("Arrows", MovementSummary.text(MovementOptions()))
-        assertEquals("Compass letters", MovementSummary.text(MovementOptions(cardinal = true)))
+        assertEquals("On · \u21D7395m", MovementSummary.text(MovementOptions()))
+        assertEquals("On · NE395m", MovementSummary.text(MovementOptions(cardinal = true)))
         assertEquals("Off", MovementSummary.text(MovementOptions(show = false)))
         assertEquals("Off", MovementSummary.text(MovementOptions(show = false, cardinal = true)))
     }

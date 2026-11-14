@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * How the OpenStreetMap link in a reply is written (opened from "Customize" on the OpenStreetMap link in
+ * How the map link in a reply is written (opened from "Customize map link" in
  * Replies). The sample is built by the same [SmsComposer] that composes real replies, so what is shown is
  * what is sent. Controls are disabled while settings are PIN-locked. Back returns to Settings.
  */
@@ -30,14 +30,14 @@ fun MapLinkScreen(
     val setLink = { new: MapLinkOptions -> vm.setReplyOptions(options.copy(link = new)) }
 
     SubScreen(
-        title = "OpenStreetMap link",
+        title = "Map link",
         onBack = onBack,
         trailing = { LockButton(vm, pinDialogs, onLocked = onBack) }
     ) {
         SettingsSection("Link style") {
             if (!options.osm) {
                 Text(
-                    "The OpenStreetMap link is switched off under Replies, so these settings don't change anything yet.",
+                    "The map link is switched off under Replies, so these settings don't change anything yet.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(16.dp)

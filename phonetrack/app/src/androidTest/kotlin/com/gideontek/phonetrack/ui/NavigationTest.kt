@@ -67,7 +67,7 @@ class NavigationTest {
         ui.launch()
         compose.onNodeWithContentDescription("Settings").performClick()
         compose.onNodeWithText("Reply contents").clickVisible()
-        compose.onNodeWithText("Customize OpenStreetMap link").clickVisible()
+        compose.onNodeWithText("Customize map link").clickVisible()
         compose.onNodeWithText("Link style").assertIsDisplayed()
         ui.back()
         compose.onNodeWithText("General").assertExists()

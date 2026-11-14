@@ -8,9 +8,11 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isSelectable
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onLast
@@ -89,6 +91,9 @@ class SettingsTest {
 
     // --- replies -----------------------------------------------------------------------
 
+    /** A reply-part chip: found by its label and selected state, as a screen reader would. */
+    private fun chip(label: String) = compose.onNode(hasText(label) and isSelectable())
+
     @Test
     fun replyContentsSummarisesTheDefault() {
         openSettings()
@@ -99,8 +104,8 @@ class SettingsTest {
     fun expandingRepliesShowsEachPartAndAPreview() {
         openSettings()
         compose.onNodeWithText("Reply contents").clickVisible()
-        for (part in listOf("Coordinates", "Location accuracy", "Battery level", "Time of fix (UTC)", "geo: link", "OpenStreetMap link")) {
-            compose.onNode(hasText(part) and isToggleable()).performScrollTo().assertExists()
+        for (part in listOf("Coordinates", "Accuracy", "Battery", "Time (UTC)", "geo: link", "Map link")) {
+            chip(part).performScrollTo().assertExists()
         }
         compose.onNodeWithText("SMS 1 of 1").performScrollTo().assertIsDisplayed()
     }
@@ -109,12 +114,12 @@ class SettingsTest {
     fun switchingAPartUpdatesTheSummaryAndStoresIt() {
         openSettings()
         compose.onNodeWithText("Reply contents").clickVisible()
-        compose.onNode(hasText("Coordinates") and isToggleable()).performScrollTo().performClick()
+        chip("Coordinates").performScrollTo().performClick()
         ui.waitUntil { TestState.prefs.getBoolean("reply_coords", false) }
         compose.onNodeWithText("Coordinates · Accuracy · Battery · Map link · 1\u00A0SMS").assertExists()
-        compose.onNode(hasText("Time of fix (UTC)") and isToggleable()).performScrollTo().performClick()
+        chip("Time (UTC)").performScrollTo().performClick()
         ui.waitUntil { TestState.prefs.getBoolean("reply_time", false) }
-        compose.onNodeWithText("Coordinates · Accuracy · Battery · Time of fix · Map link · 1\u00A0SMS").assertExists()
+        compose.onNodeWithText("Coordinates · Accuracy · Battery · Time · Map link · 1\u00A0SMS").assertExists()
     }
 
     @Test
@@ -125,8 +130,12 @@ class SettingsTest {
             e.commit()
         }
         compose.onNodeWithText("Reply contents").clickVisible()
-        compose.onNode(hasText("OpenStreetMap link") and isToggleable()).performScrollTo().assertIsOn().assertIsNotEnabled()
-        compose.onNode(hasText("Coordinates") and isToggleable()).assertIsEnabled()
+        chip("Map link").performScrollTo().assertIsSelected().performClick()
+        compose.waitForIdle()
+        // Tapping the last link changes nothing (a toast says why).
+        assertTrue(TestState.prefs.getBoolean("reply_osm", false))
+        chip("Map link").assertIsSelected()
+        chip("Coordinates").assertIsEnabled()
     }
 
     @Test
@@ -137,9 +146,11 @@ class SettingsTest {
             e.commit()
         }
         compose.onNodeWithText("Reply contents").clickVisible()
-        compose.onNode(hasText("Coordinates") and isToggleable()).performScrollTo().assertIsOn().assertIsEnabled().performClick()
+        chip("Coordinates").performScrollTo().assertIsSelected().assertIsEnabled().performClick()
         ui.waitUntil { !TestState.prefs.getBoolean("reply_coords", true) }
-        compose.onNode(hasText("OpenStreetMap link") and isToggleable()).assertIsOn().assertIsNotEnabled()
+        chip("Map link").assertIsSelected().performClick()
+        compose.waitForIdle()
+        assertTrue(TestState.prefs.getBoolean("reply_osm", false))
     }
 
     @Test
@@ -150,12 +161,14 @@ class SettingsTest {
             e.commit()
         }
         compose.onNodeWithText("Reply contents").clickVisible()
-        compose.onNode(hasText("OpenStreetMap link") and isToggleable()).performScrollTo().assertIsOn().assertIsNotEnabled()
-        compose.onNode(hasText("Location accuracy") and isToggleable()).performScrollTo().assertIsEnabled().performClick()
-        compose.onNode(hasText("Battery level") and isToggleable()).performScrollTo().assertIsEnabled().performClick()
+        chip("Map link").performScrollTo().assertIsSelected()
+        chip("Accuracy").performScrollTo().assertIsEnabled().performClick()
+        chip("Battery").performScrollTo().assertIsEnabled().performClick()
         ui.waitUntil { !TestState.prefs.getBoolean("reply_accuracy", true) && !TestState.prefs.getBoolean("reply_battery", true) }
         compose.onNodeWithText("Map link \u00B7 1\u00A0SMS").assertExists()
-        compose.onNode(hasText("OpenStreetMap link") and isToggleable()).assertIsOn().assertIsNotEnabled()
+        chip("Map link").performScrollTo().assertIsSelected().performClick()
+        compose.waitForIdle()
+        assertTrue(TestState.prefs.getBoolean("reply_osm", false))
     }
 
     @Test

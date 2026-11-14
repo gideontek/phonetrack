@@ -23,7 +23,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The OpenStreetMap link screen, opened from "Customize OpenStreetMap link" in Replies: the options, their
+ * The map link screen, opened from "Customize map link" in Replies: the options, their
  * hints, the sample built by the real composer, reset and the lock.
  */
 class MapLinkSettingsTest {
@@ -42,7 +42,7 @@ class MapLinkSettingsTest {
 
     private fun openMapLink(seed: () -> Unit = {}) {
         openReplies(seed)
-        compose.onNodeWithText("Customize OpenStreetMap link").clickVisible()
+        compose.onNodeWithText("Customize map link").clickVisible()
         compose.onNodeWithText("Link style").assertIsDisplayed()
     }
 
@@ -59,8 +59,8 @@ class MapLinkSettingsTest {
     @Test
     fun theCustomizeRowSitsUnderTheLinkSwitchAndShowsTheCurrentStyle() {
         openReplies()
-        compose.onNodeWithText("Customize OpenStreetMap link").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("openstreetmap.org · coordinates in link · zoom 12").assertIsDisplayed()
+        compose.onNodeWithText("Customize map link").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("openstreetmap.org · coordinates · zoom 12").assertIsDisplayed()
     }
 
     @Test
@@ -74,11 +74,11 @@ class MapLinkSettingsTest {
         openMapLink()
         compose.onNodeWithContentDescription("Back").performClick()
         // Settings comes back as it was left: scrolled to the same place, the Replies card still open.
-        compose.onNodeWithText("Customize OpenStreetMap link").assertIsDisplayed()
-        compose.onNodeWithText("Customize OpenStreetMap link").performClick()
+        compose.onNodeWithText("Customize map link").assertIsDisplayed()
+        compose.onNodeWithText("Customize map link").performClick()
         compose.onNodeWithText("Link style").assertIsDisplayed()
         ui.back()
-        compose.onNodeWithText("Customize OpenStreetMap link").assertIsDisplayed()
+        compose.onNodeWithText("Customize map link").assertIsDisplayed()
         compose.onNodeWithText("General").assertExists()
     }
 
@@ -195,7 +195,7 @@ class MapLinkSettingsTest {
             for (k in listOf("coords", "accuracy", "battery", "time", "geo", "osm")) e.putBoolean("reply_$k", k == "geo")
             e.commit()
         }
-        compose.onNodeWithText("The OpenStreetMap link is switched off under Replies", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("The map link is switched off under Replies", substring = true).assertIsDisplayed()
     }
 
     @Test
@@ -213,7 +213,7 @@ class MapLinkSettingsTest {
         compose.onNode(hasSetTextAction()).performTextInput("1234")
         compose.onNodeWithText("Unlock").performClick()
         compose.onNodeWithText("Reply contents").clickVisible()
-        compose.onNodeWithText("Customize OpenStreetMap link").clickVisible()
+        compose.onNodeWithText("Customize map link").clickVisible()
         compose.onNodeWithText("Link style").assertIsDisplayed()
         compose.onNodeWithContentDescription("Lock settings").performClick()
         compose.onNodeWithText("General").assertExists()

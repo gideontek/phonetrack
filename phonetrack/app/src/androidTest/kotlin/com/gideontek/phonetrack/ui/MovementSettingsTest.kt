@@ -3,6 +3,8 @@ package com.gideontek.phonetrack.ui
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isToggleable
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -20,7 +22,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Movement in subscription updates: the switch in Replies, and the screen opened from "Customize movement"
+ * Movement in subscription updates: the row in Replies, and the screen it opens with the switch
  * (compass letters or arrows, with the sample built by the real composer).
  */
 class MovementSettingsTest {
@@ -40,7 +42,7 @@ class MovementSettingsTest {
 
     private fun openMovement(seed: () -> Unit = {}) {
         openReplies(seed)
-        compose.onNodeWithText("Customize movement").clickVisible()
+        compose.onNodeWithText("Movement in subscription updates").clickVisible()
         compose.onNodeWithText("Direction").assertIsDisplayed()
     }
 
@@ -58,38 +60,42 @@ class MovementSettingsTest {
         e.commit()
     }
 
-    // --- the switch in Replies -------------------------------------------------------
+    // --- the row in Replies and the switch on the screen ---------------------------------
 
     @Test
-    fun theMovementSwitchIsOnByDefaultWithItsCustomizeRow() {
+    fun theMovementRowShowsTheCurrentChoiceAndTheSwitchIsOnByDefault() {
         openReplies()
-        toggle("Movement in subscription updates").performScrollTo().assertIsDisplayed().assertIsEnabled()
-        compose.onNodeWithText("Customize movement").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Arrows").assertIsDisplayed()
+        compose.onNodeWithText("Movement in subscription updates").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("On · \u21D7395m").assertIsDisplayed()
         assertTrue(prefs.getBoolean("reply_move_show", true))
+        compose.onNodeWithText("Movement in subscription updates").performClick()
+        toggle("Movement in subscription updates").assertIsOn().assertIsEnabled()
     }
 
     @Test
-    fun theSwitchStoresItAndTheSummaryReadsOff() {
-        openReplies()
-        toggle("Movement in subscription updates").performScrollTo().performClick()
+    fun theSwitchStoresItAndTheRowReadsOff() {
+        openMovement()
+        toggle("Movement in subscription updates").performClick()
         ui.waitUntil { !prefs.getBoolean("reply_move_show", true) }
+        compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("Off").performScrollTo().assertIsDisplayed()
     }
 
     @Test
-    fun theSummaryNamesCompassLetters() {
+    fun theRowPreviewsCompassLetters() {
         openReplies { seedMovement(cardinal = true) }
-        compose.onNodeWithText("Compass letters").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("On · NE395m").performScrollTo().assertIsDisplayed()
     }
 
     @Test
     fun theSwitchIsNotAReplyPartSoTheSummaryLineIsUnchanged() {
         openReplies()
-        val before = compose.countWithText("Accuracy · Battery · OpenStreetMap link", substring = true)
-        toggle("Movement in subscription updates").performScrollTo().performClick()
+        val before = compose.countWithText("Accuracy · Battery · Map link", substring = true)
+        compose.onNodeWithText("Movement in subscription updates").performScrollTo().performClick()
+        toggle("Movement in subscription updates").performClick()
         ui.waitUntil { !prefs.getBoolean("reply_move_show", true) }
-        assertEquals(before, compose.countWithText("Accuracy · Battery · OpenStreetMap link", substring = true))
+        compose.onNodeWithContentDescription("Back").performClick()
+        assertEquals(before, compose.countWithText("Accuracy · Battery · Map link", substring = true))
     }
 
     // --- the screen -------------------------------------------------------------------
@@ -98,11 +104,11 @@ class MovementSettingsTest {
     fun bothBackActionsReturnToSettingsWithTheRepliesCardStillOpen() {
         openMovement()
         compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithText("Customize movement").assertIsDisplayed()
-        compose.onNodeWithText("Customize movement").performClick()
+        compose.onNodeWithText("Movement in subscription updates").assertIsDisplayed()
+        compose.onNodeWithText("Movement in subscription updates").performClick()
         compose.onNodeWithText("Direction").assertIsDisplayed()
         ui.back()
-        compose.onNodeWithText("Customize movement").assertIsDisplayed()
+        compose.onNodeWithText("Movement in subscription updates").assertIsDisplayed()
         compose.onNodeWithText("General").assertExists()
     }
 
@@ -116,7 +122,7 @@ class MovementSettingsTest {
     @Test
     fun theDefaultSampleShowsTheArrowAndAFollowUpMessage() {
         openMovement()
-        compose.onNodeWithText("Subscription update (moved 395 m north-east)").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Subscription update (moved 395m north-east)").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("⇗395m", substring = true).assertIsDisplayed()
         compose.onNodeWithText("2${nbsp}SMS in total").assertExists()
         compose.onNodeWithText("SMS 2 of 2").assertExists()
@@ -154,17 +160,11 @@ class MovementSettingsTest {
     }
 
     @Test
-    fun hiddenMovementShowsANoteAndTheSampleHasNoDirection() {
+    fun hiddenMovementShowsTheSwitchOffAndTheSampleHasNoDirection() {
         openMovement { seedMovement(show = false) }
-        compose.onNodeWithText("Movement is switched off under Replies", substring = true).assertIsDisplayed()
+        toggle("Movement in subscription updates").assertIsOff()
         compose.onNodeWithText("Subscription update (movement hidden)").performScrollTo().assertIsDisplayed()
         assertEquals(0, compose.countWithText("395m", substring = true))
         compose.onNodeWithText("1${nbsp}SMS in total").assertExists()
-    }
-
-    @Test
-    fun noNoteWhileMovementIsOn() {
-        openMovement()
-        assertEquals(0, compose.countWithText("switched off under Replies", substring = true))
     }
 }
