@@ -33,14 +33,14 @@ class OsmLinkTest {
 
     @Test fun `the default is the full readable URL used before this option existed`() {
         assertEquals(
-            "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194",
+            "https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194",
             OsmLink.url(37.7749, -122.4194, MapLinkOptions())
         )
     }
 
     @Test fun `short domain readable`() {
         assertEquals(
-            "https://osm.org/?mlat=37.7749&mlon=-122.4194#map=12/37.7749/-122.4194",
+            "https://osm.org/?mlat=37.7749&mlon=-122.4194",
             OsmLink.url(37.7749, -122.4194, MapLinkOptions(shortDomain = true))
         )
     }
@@ -52,7 +52,7 @@ class OsmLinkTest {
 
     @Test fun `coordinates are trimmed like the rest of the reply`() {
         assertEquals(
-            "https://osm.org/?mlat=41.52962&mlon=-81.459#map=12/41.52962/-81.459",
+            "https://osm.org/?mlat=41.52962&mlon=-81.459",
             OsmLink.url(41.52962, -81.459, MapLinkOptions(shortDomain = true))
         )
     }

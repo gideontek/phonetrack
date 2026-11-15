@@ -95,12 +95,12 @@ class AccessibilityTest {
         assertTargetsAreLabelledAndLargeEnough("$screen ($label)")
     }
 
-    private fun linkScreen(label: String) = openedFromSettings(label, "Customize OpenStreetMap link", "Link style", "OpenStreetMap link")
+    private fun linkScreen(label: String) = openedFromSettings(label, "Customize map link", "Link style", "Map link")
 
     private fun both(label: String) {
         linkScreen(label)
         ui.back()
-        compose.onNodeWithText("Customize movement").clickVisible()
+        compose.onNodeWithText("Movement in subscription updates").clickVisible()
         compose.onNodeWithText("Direction").assertIsDisplayed()
         assertTargetsAreLabelledAndLargeEnough("Movement ($label)")
     }

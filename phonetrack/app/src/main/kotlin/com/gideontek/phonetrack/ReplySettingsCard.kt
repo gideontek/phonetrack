@@ -1,23 +1,31 @@
 package com.gideontek.phonetrack
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
@@ -26,10 +34,12 @@ import androidx.compose.ui.unit.dp
 
 /**
  * The "Replies" section: one row summarising what a location reply contains; tapping it reveals a
- * switch per part and a live preview built by the same [SmsComposer] code that composes the real
- * messages. The last link that is on can't be turned off (a reply always carries a link); everything
+ * live preview (built by the same [SmsComposer] code that composes the real messages) and a chip
+ * per part. The last link that is on can't be turned off (a reply always carries a link; tapping it
+ * says so in a toast); everything
  * is disabled while settings are PIN-locked.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ReplySettingsCard(
     options: ReplyOptions,
@@ -41,16 +51,26 @@ fun ReplySettingsCard(
     onChange: (ReplyOptions) -> Unit
 ) {
     val locationCount = options.locationCount
+    val context = LocalContext.current
 
     @Composable
     fun Part(label: String, checked: Boolean, isLocation: Boolean, update: (Boolean) -> ReplyOptions) {
-        ToggleRow(
-            label = label,
-            supporting = null,
-            checked = checked,
-            // The last of geo: link / OpenStreetMap link must stay on.
-            enabled = !isLocked && (!checked || !isLocation || locationCount > 1),
-            onCheckedChange = { onChange(update(it)) }
+        FilterChip(
+            selected = checked,
+            onClick = {
+                // The last of geo: link / OpenStreetMap link must stay on. The chip stays tappable
+                // (a disabled one would explain nothing), so say why it didn't change.
+                if (checked && isLocation && locationCount <= 1) {
+                    Toast.makeText(context, "At least one link is required", Toast.LENGTH_SHORT).show()
+                } else {
+                    onChange(update(!checked))
+                }
+            },
+            label = { Text(label) },
+            enabled = !isLocked,
+            leadingIcon = if (checked) {
+                { Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+            } else null
         )
     }
 
@@ -86,30 +106,6 @@ fun ReplySettingsCard(
 
         if (expanded) {
             RowDivider()
-            Part("Coordinates", options.coords, isLocation = false) { options.copy(coords = it) }
-            Part("Location accuracy", options.accuracy, isLocation = false) { options.copy(accuracy = it) }
-            Part("Battery level", options.battery, isLocation = false) { options.copy(battery = it) }
-            Part("Time of fix (UTC)", options.time, isLocation = false) { options.copy(time = it) }
-            RowDivider()
-            Text(
-                "At least one link is required",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 4.dp)
-            )
-            Part("geo: link", options.geo, isLocation = true) { options.copy(geo = it) }
-            Part("OpenStreetMap link", options.osm, isLocation = true) { options.copy(osm = it) }
-            NavigationRow("Customize OpenStreetMap link", MapLinkSummary.text(options.link), onCustomizeLink)
-            RowDivider()
-            ToggleRow(
-                label = "Movement in subscription updates",
-                supporting = "Direction and distance since the previous update",
-                checked = options.movement.show,
-                enabled = !isLocked,
-                onCheckedChange = { onChange(options.copy(movement = options.movement.copy(show = it))) }
-            )
-            NavigationRow("Customize movement", MovementSummary.text(options.movement), onCustomizeMovement)
-            RowDivider()
             Column(
                 modifier = Modifier.padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -132,12 +128,26 @@ fun ReplySettingsCard(
                         }
                     }
                 }
-                Text(
-                    "\"last\" shows how old its fix is.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
+            RowDivider()
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Include in each reply", style = MaterialTheme.typography.labelLarge)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Part("Coordinates", options.coords, isLocation = false) { options.copy(coords = it) }
+                    Part("Accuracy", options.accuracy, isLocation = false) { options.copy(accuracy = it) }
+                    Part("Battery", options.battery, isLocation = false) { options.copy(battery = it) }
+                    Part("Time (UTC)", options.time, isLocation = false) { options.copy(time = it) }
+                    Part("geo: link", options.geo, isLocation = true) { options.copy(geo = it) }
+                    Part("Map link", options.osm, isLocation = true) { options.copy(osm = it) }
+                }
+            }
+            RowDivider()
+            NavigationRow("Customize map link", MapLinkSummary.text(options.link), onCustomizeLink)
+            RowDivider()
+            NavigationRow("Movement in subscription updates", MovementSummary.text(options.movement), onCustomizeMovement)
         }
     }
 }
