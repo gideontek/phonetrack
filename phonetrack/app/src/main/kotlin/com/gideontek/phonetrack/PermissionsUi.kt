@@ -26,7 +26,7 @@ fun PermissionsSection(permissions: PermissionsState, isLocked: Boolean) {
             RowDivider()
             PermissionRow(
                 label = "Background location",
-                supporting = "Needed so a text can start a location reply. Grant it after Location.",
+                supporting = "Allows a text to start a reply while the app is closed. Grant it after Location.",
                 granted = permissions.bgLocationGranted,
                 grantEnabled = !isLocked,
                 onGrant = permissions::requestBgLocation

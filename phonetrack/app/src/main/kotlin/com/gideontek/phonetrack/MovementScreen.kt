@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 
 /**
- * Movement in subscription updates (opened from the movement row in Replies): the switch for showing it at
+ * Movement in updates (opened from the movement row in Replies): the switch for showing it at
  * all and how the direction is written. The sample is built by the real
  * [SmsComposer]. Controls are disabled while settings are PIN-locked. Back returns to Settings.
  */
@@ -36,18 +36,16 @@ fun MovementScreen(
     ) {
         SettingsSection("Direction") {
             ToggleRow(
-                label = "Movement in subscription updates",
-                supporting = "Direction and distance since the previous update",
+                label = "Show movement",
+                supporting = "Direction and distance since the last update",
                 checked = movement.show,
                 enabled = !isLocked,
                 onCheckedChange = { setMovement(movement.copy(show = it)) }
             )
             RowDivider()
             ToggleRow(
-                label = "Compass letters instead of arrows",
-                supporting = "Writes the direction as N, NE, E, SE, S, SW, W or NW instead of an arrow (\u21D7). " +
-                    "The letters are in the standard alphabet, so an update can use the 160-character limit " +
-                    "instead of 70, which keeps more updates to one SMS.",
+                label = "Compass letters",
+                supporting = "N, NE, E\u2026 instead of arrows. Letters allow 160 characters per SMS, arrows only 70.",
                 checked = movement.cardinal,
                 enabled = !isLocked,
                 onCheckedChange = { setMovement(movement.copy(cardinal = it)) }

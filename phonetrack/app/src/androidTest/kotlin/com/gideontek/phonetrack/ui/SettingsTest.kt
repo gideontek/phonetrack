@@ -48,7 +48,7 @@ class SettingsTest {
     }
 
     private fun toggle(label: String) = compose.onNode(hasText(label) and isToggleable())
-    private val keywordField get() = compose.onNode(hasSetTextAction() and hasText("Keyword (first word of an incoming SMS)"))
+    private val keywordField get() = compose.onNode(hasSetTextAction() and hasText("Keyword"))
 
     // --- structure ---------------------------------------------------------------------
 
@@ -73,10 +73,10 @@ class SettingsTest {
     @Test
     fun theListeningSwitchTogglesThePrefAndMainFollows() {
         openSettings()
-        toggle("SMS listening").assertIsOff()
-        toggle("SMS listening").performClick()
+        toggle("Listening").assertIsOff()
+        toggle("Listening").performClick()
         ui.waitUntil { TestState.prefs.getBoolean("sms_enabled", false) }
-        toggle("SMS listening").assertIsOn()
+        toggle("Listening").assertIsOn()
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("Listening").assertIsDisplayed()
     }
@@ -196,14 +196,14 @@ class SettingsTest {
 
     // --- limits ------------------------------------------------------------------------
 
-    private fun rateUp() = compose.onNodeWithContentDescription("More commands per hour").performScrollTo().performClick()
-    private fun rateDown() = compose.onNodeWithContentDescription("Fewer commands per hour").performScrollTo().performClick()
+    private fun rateUp() = compose.onNodeWithContentDescription("More requests per hour").performScrollTo().performClick()
+    private fun rateDown() = compose.onNodeWithContentDescription("Fewer requests per hour").performScrollTo().performClick()
     private fun rate() = TestState.prefs.getInt("rate_limit_per_hour", -1)
 
     @Test
     fun limitsShowTheDefaults() {
         openSettings()
-        compose.onNodeWithText("Commands per number").performScrollTo()
+        compose.onNodeWithText("Max requests per hour").performScrollTo()
         compose.onNodeWithText("20").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("10").performScrollTo().assertIsDisplayed()
     }
@@ -220,32 +220,32 @@ class SettingsTest {
     @Test
     fun theRateStepperStopsAtOneAndOneHundred() {
         openSettings { TestState.prefs.edit().putInt("rate_limit_per_hour", 1).commit() }
-        compose.onNodeWithContentDescription("Fewer commands per hour").performScrollTo().assertIsNotEnabled()
-        compose.onNodeWithContentDescription("More commands per hour").assertIsEnabled()
+        compose.onNodeWithContentDescription("Fewer requests per hour").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("More requests per hour").assertIsEnabled()
     }
 
     @Test
     fun theRateStepperStopsAtTheTop() {
         openSettings { TestState.prefs.edit().putInt("rate_limit_per_hour", 100).commit() }
-        compose.onNodeWithContentDescription("More commands per hour").performScrollTo().assertIsNotEnabled()
-        compose.onNodeWithContentDescription("Fewer commands per hour").assertIsEnabled()
+        compose.onNodeWithContentDescription("More requests per hour").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("Fewer requests per hour").assertIsEnabled()
     }
 
     @Test
     fun theSubscriptionStepperMovesByOneAndStopsAtItsBounds() {
         val subs = { TestState.prefs.getInt("max_subscriptions", -1) }
         openSettings { TestState.prefs.edit().putInt("max_subscriptions", 2).commit() }
-        compose.onNodeWithContentDescription("Fewer active subscriptions").performScrollTo().performClick()
+        compose.onNodeWithContentDescription("Fewer subscriptions").performScrollTo().performClick()
         ui.waitUntil { subs() == 1 }
-        compose.onNodeWithContentDescription("Fewer active subscriptions").assertIsNotEnabled()
-        compose.onNodeWithContentDescription("More active subscriptions").performClick()
+        compose.onNodeWithContentDescription("Fewer subscriptions").assertIsNotEnabled()
+        compose.onNodeWithContentDescription("More subscriptions").performClick()
         ui.waitUntil { subs() == 2 }
     }
 
     @Test
     fun theSubscriptionStepperStopsAtTwenty() {
         openSettings { TestState.prefs.edit().putInt("max_subscriptions", 20).commit() }
-        compose.onNodeWithContentDescription("More active subscriptions").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithContentDescription("More subscriptions").performScrollTo().assertIsNotEnabled()
     }
 
     @Test
@@ -253,7 +253,7 @@ class SettingsTest {
         openSettings { TestState.prefs.edit().putInt("rate_limit_per_hour", 10).commit() }
         rateUp(); ui.waitUntil { rate() == 15 }
         ui.recreate()
-        compose.onNodeWithText("Commands per number").performScrollTo()
+        compose.onNodeWithText("Max requests per hour").performScrollTo()
         compose.onNodeWithText("15").assertIsDisplayed()
     }
 
@@ -323,7 +323,7 @@ class SettingsTest {
     @Test
     fun theLockoutScheduleIsExplained() {
         openSettings()
-        compose.onNodeWithText("5 wrong PINs in a row lock unlocking for 1 minute, then 5, 15 and 60 minutes.")
+        compose.onNodeWithText("After 5 wrong PINs, unlocking is blocked for 1 minute, then 5, 15 and 60 minutes.")
             .performScrollTo().assertIsDisplayed()
     }
 
@@ -343,7 +343,7 @@ class SettingsTest {
     private fun confirmReset() {
         compose.onNodeWithText("Restore default settings").performScrollTo().performClick()
         compose.onNodeWithText("Restore default settings?").assertIsDisplayed()
-        compose.onAllNodesWithText("Reset").onLast().performClick()
+        compose.onAllNodesWithText("Restore").onLast().performClick()
     }
 
     @Test

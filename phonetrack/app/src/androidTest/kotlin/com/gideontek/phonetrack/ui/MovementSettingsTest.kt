@@ -22,7 +22,7 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * Movement in subscription updates: the row in Replies, and the screen it opens with the switch
+ * Movement in updates: the row in Replies, and the screen it opens with the switch
  * (compass letters or arrows, with the sample built by the real composer).
  */
 class MovementSettingsTest {
@@ -42,7 +42,7 @@ class MovementSettingsTest {
 
     private fun openMovement(seed: () -> Unit = {}) {
         openReplies(seed)
-        compose.onNodeWithText("Movement in subscription updates").clickVisible()
+        compose.onNodeWithText("Movement in updates").clickVisible()
         compose.onNodeWithText("Direction").assertIsDisplayed()
     }
 
@@ -65,17 +65,17 @@ class MovementSettingsTest {
     @Test
     fun theMovementRowShowsTheCurrentChoiceAndTheSwitchIsOnByDefault() {
         openReplies()
-        compose.onNodeWithText("Movement in subscription updates").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Movement in updates").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("On · \u21D7395m").assertIsDisplayed()
         assertTrue(prefs.getBoolean("reply_move_show", true))
-        compose.onNodeWithText("Movement in subscription updates").performClick()
-        toggle("Movement in subscription updates").assertIsOn().assertIsEnabled()
+        compose.onNodeWithText("Movement in updates").performClick()
+        toggle("Show movement").assertIsOn().assertIsEnabled()
     }
 
     @Test
     fun theSwitchStoresItAndTheRowReadsOff() {
         openMovement()
-        toggle("Movement in subscription updates").performClick()
+        toggle("Show movement").performClick()
         ui.waitUntil { !prefs.getBoolean("reply_move_show", true) }
         compose.onNodeWithContentDescription("Back").performClick()
         compose.onNodeWithText("Off").performScrollTo().assertIsDisplayed()
@@ -91,8 +91,8 @@ class MovementSettingsTest {
     fun theSwitchIsNotAReplyPartSoTheSummaryLineIsUnchanged() {
         openReplies()
         val before = compose.countWithText("Accuracy · Battery · Map link", substring = true)
-        compose.onNodeWithText("Movement in subscription updates").performScrollTo().performClick()
-        toggle("Movement in subscription updates").performClick()
+        compose.onNodeWithText("Movement in updates").performScrollTo().performClick()
+        toggle("Show movement").performClick()
         ui.waitUntil { !prefs.getBoolean("reply_move_show", true) }
         compose.onNodeWithContentDescription("Back").performClick()
         assertEquals(before, compose.countWithText("Accuracy · Battery · Map link", substring = true))
@@ -104,19 +104,19 @@ class MovementSettingsTest {
     fun bothBackActionsReturnToSettingsWithTheRepliesCardStillOpen() {
         openMovement()
         compose.onNodeWithContentDescription("Back").performClick()
-        compose.onNodeWithText("Movement in subscription updates").assertIsDisplayed()
-        compose.onNodeWithText("Movement in subscription updates").performClick()
+        compose.onNodeWithText("Movement in updates").assertIsDisplayed()
+        compose.onNodeWithText("Movement in updates").performClick()
         compose.onNodeWithText("Direction").assertIsDisplayed()
         ui.back()
-        compose.onNodeWithText("Movement in subscription updates").assertIsDisplayed()
+        compose.onNodeWithText("Movement in updates").assertIsDisplayed()
         compose.onNodeWithText("General").assertExists()
     }
 
     @Test
     fun theCompassOptionIsThereWithItsHint() {
         openMovement()
-        toggle("Compass letters instead of arrows").performScrollTo().assertIsDisplayed().assertIsEnabled()
-        compose.onNodeWithText("160-character limit instead of 70", substring = true).performScrollTo().assertIsDisplayed()
+        toggle("Compass letters").performScrollTo().assertIsDisplayed().assertIsEnabled()
+        compose.onNodeWithText("Letters allow 160 characters per SMS", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -132,7 +132,7 @@ class MovementSettingsTest {
     @Test
     fun compassLettersReplaceTheArrowAndKeepTheUpdateToOneMessage() {
         openMovement()
-        toggle("Compass letters instead of arrows").performScrollTo().performClick()
+        toggle("Compass letters").performScrollTo().performClick()
         ui.waitUntil { prefs.getBoolean("reply_move_cardinal", false) }
         compose.onNodeWithText("NE395m", substring = true).performScrollTo().assertIsDisplayed()
         assertEquals(0, compose.countWithText("⇗395m", substring = true))
@@ -162,7 +162,7 @@ class MovementSettingsTest {
     @Test
     fun hiddenMovementShowsTheSwitchOffAndTheSampleHasNoDirection() {
         openMovement { seedMovement(show = false) }
-        toggle("Movement in subscription updates").assertIsOff()
+        toggle("Show movement").assertIsOff()
         compose.onNodeWithText("Subscription update (movement hidden)").performScrollTo().assertIsDisplayed()
         assertEquals(0, compose.countWithText("395m", substring = true))
         compose.onNodeWithText("1${nbsp}SMS in total").assertExists()

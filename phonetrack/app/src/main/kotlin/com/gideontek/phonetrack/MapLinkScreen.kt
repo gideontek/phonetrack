@@ -37,7 +37,7 @@ fun MapLinkScreen(
         SettingsSection("Link style") {
             if (!options.osm) {
                 Text(
-                    "The map link is switched off under Replies, so these settings don't change anything yet.",
+                    "The map link is off, so these settings have no effect yet.",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(16.dp)
@@ -68,10 +68,9 @@ fun MapLinkScreen(
             )
             RowDivider()
             StepperRow(
-                label = "Map zoom level",
-                supporting = "Higher is zoomed in. 8 is a region, 12 (the default) a district, 16 a street. The standard " +
-                    "link leaves the zoom out at 12, which makes it shorter. Levels 10, 13 and 16 give the " +
-                    "shortest compact codes.",
+                label = "Zoom",
+                supporting = "Higher is closer. 8 is a region, 12 (default) a district, 16 a street. Level 12 also " +
+                    "makes the link shorter. Compact codes are shortest at 10, 13 and 16.",
                 valueText = link.zoom.toString(),
                 lessDescription = "Zoom out",
                 moreDescription = "Zoom in",
