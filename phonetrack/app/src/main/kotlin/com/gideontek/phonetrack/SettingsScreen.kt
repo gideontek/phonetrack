@@ -144,7 +144,7 @@ fun SettingsScreen(
                 RowDivider()
                 StepperRow(
                     label = "Max subscriptions",
-                    supporting = "Running at once, across all numbers",
+                    supporting = "Total running at once",
                     valueText = maxSubscriptions.toString(),
                     lessDescription = "Fewer subscriptions",
                     moreDescription = "More subscriptions",
