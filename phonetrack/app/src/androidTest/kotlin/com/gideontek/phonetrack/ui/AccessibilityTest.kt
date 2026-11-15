@@ -100,7 +100,7 @@ class AccessibilityTest {
     private fun both(label: String) {
         linkScreen(label)
         ui.back()
-        compose.onNodeWithText("Movement in subscription updates").clickVisible()
+        compose.onNodeWithText("Movement in updates").clickVisible()
         compose.onNodeWithText("Direction").assertIsDisplayed()
         assertTargetsAreLabelledAndLargeEnough("Movement ($label)")
     }
@@ -177,8 +177,8 @@ class AccessibilityTest {
             compose.onNodeWithContentDescription(description).assertIsDisplayed()
         }
         compose.onNodeWithContentDescription("Settings").performClick()
-        for (description in listOf("Back", "Lock settings", "Fewer commands per hour", "More commands per hour",
-            "Fewer active subscriptions", "More active subscriptions")) {
+        for (description in listOf("Back", "Lock settings", "Fewer requests per hour", "More requests per hour",
+            "Fewer subscriptions", "More subscriptions")) {
             compose.onNodeWithContentDescription(description).performScrollTo().assertExists()
         }
     }

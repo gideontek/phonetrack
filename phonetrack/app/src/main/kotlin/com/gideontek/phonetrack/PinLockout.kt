@@ -45,7 +45,7 @@ object PinLockout {
         val rest = minutes.drop(1)
         val restText = if (rest.size > 1) rest.dropLast(1).joinToString(", ") + " and " + rest.last()
                        else rest.joinToString()
-        return "$ATTEMPTS_PER_ROUND wrong PINs in a row lock unlocking for ${minutes.first()} " +
+        return "After $ATTEMPTS_PER_ROUND wrong PINs, unlocking is blocked for ${minutes.first()} " +
             "${unit(minutes.first())}, then $restText minutes."
     }
 

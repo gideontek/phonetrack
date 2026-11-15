@@ -29,9 +29,8 @@ fun FaqScreen(onBack: () -> Unit) {
             "• Listening is off. The switch is on the main screen.",
             "• The keyword is wrong, or the text is longer than ${SmsLimits.MAX_BODY} characters. Such " +
                 "texts are ignored. Any other word after the keyword gets the help reply, not a location.",
-            "• The number has already sent ${SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR} commands this hour " +
-                "(the default; Settings → Limits changes it). It gets one “Too many requests” " +
-                "reply, then nothing until the hour is up.",
+            "• The number has used up its hourly limit (${SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR} requests by " +
+                "default). It gets one “Too many requests” reply, then nothing until the hour is up.",
             "• The number is blocked."
         )
         FaqEntry(
@@ -70,6 +69,20 @@ fun FaqScreen(onBack: () -> Unit) {
             "An option that is unknown, repeated or out of range is rejected with a message, never adjusted. " +
                 "Each update shows an arrow and the distance moved since the previous one, such as " +
                 "⇗120m. The owner can also cancel a subscription from the main screen."
+        )
+        FaqEntry(
+            "What do the limits in Settings do?",
+            "They protect the phone, and your SMS bill, from a number that sends too much. Both are in " +
+                "Settings → Limits.",
+            "• Max requests per hour (default ${SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR}): how many texts one " +
+                "approved number can send per hour. Every kind counts, including “help” and unknown words. " +
+                "Past the limit, that number gets one “Too many requests” reply, then nothing until its hour " +
+                "is up. Other numbers aren't affected.",
+            "• Max subscriptions (default ${SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS}): how many automatic updates " +
+                "can run at once, across all numbers. A number that is already subscribed can always replace " +
+                "its own. When the limit is reached, a new subscription is refused with a “Too many active " +
+                "subscriptions” reply. Lowering the limit never cancels updates that are already running; it " +
+                "only refuses new ones."
         )
         FaqEntry(
             "How secure is it?",

@@ -26,7 +26,7 @@ Most location-sharing apps require both parties to have internet, accounts, and 
 On the phone to be tracked:
 
 1. Install PhoneTrack, tap the gear (**Settings**) and grant the permissions.
-2. Turn **SMS listening** on (on the main screen or in Settings). Optionally change the keyword (default `phonetrack`) to something private.
+2. Turn **Listening** on (on the main screen or in Settings). Optionally change the keyword (default `phonetrack`) to something private.
 3. Optionally set a PIN (see [Locking the app with a PIN](#locking-the-app-with-a-pin)).
 
 From any other phone:
@@ -114,14 +114,14 @@ Each part is on its own line, in the same SMS whenever everything fits (160 plai
 
 A reply is split into several SMS when it is longer than 160 characters, or longer than 70 if it contains a special character such as the direction arrow in a subscription update (see [Message length and cost](#message-length-and-cost)). Each part is usually billed as an SMS. That is why you can shorten the OpenStreetMap link and change how a subscription update shows the distance moved since the last update: shorter replies cost fewer SMS.
 
-Under **Settings → Replies → Reply contents**, the map link has a **Customize map link** row that opens a screen for how the link is written, and subscription updates have a **Movement in subscription updates** row that opens a screen with the on/off switch and the arrows or compass letters choice. The defaults give the link shown above, and nothing changes until you opt in. Each option has a hint in the app, and each screen shows a sample (a location reply, or a subscription update) with the encoding and length of every message.
+Under **Settings → Replies → Reply contents**, the map link has a **Customize map link** row that opens a screen for how the link is written, and subscription updates have a **Movement in updates** row that opens a screen with the on/off switch and the arrows or compass letters choice. The defaults give the link shown above, and nothing changes until you opt in. Each option has a hint in the app, and each screen shows a sample (a location reply, or a subscription update) with the encoding and length of every message.
 
 | Option | What it does |
 |--------|--------------|
 | osm.org instead of openstreetmap.org | `osm.org` instead of `www.openstreetmap.org` (14 characters shorter; it forwards to the same map) |
 | Compact code | A code instead of coordinates, e.g. `https://osm.org/go/TZHvSR7--?m`: about 50 characters shorter and it opens the same map with a marker. The coordinates can't be read from the compact code, and the pin can be off by up to 153 m (zoom 8 to 10), 19 m (11 to 13), 2.4 m (14 to 16) or under 1 m (17 and 18). Keep the coordinates if a message may be passed on to an emergency dispatcher or rescue team, who can read out the latitude and longitude straight from the standard link, or from the plain text coordinates if enabled in the Reply settings (the geo: link option also carries them) |
 | Zoom | 8 (a region) to 18 (a building); default 12, where the standard link has no `#map=` part because OpenStreetMap opens a marker at zoom 12 on its own. With a compact code, zoom 10, 13 and 16 give the shortest codes |
-| Movement in subscription updates (the switch on the movement screen) | On by default. Off drops the direction and distance from subscription updates, so they read like a location reply |
+| Show movement (the switch on the movement screen) | On by default. Off drops the direction and distance from subscription updates, so they read like a location reply |
 | Compass letters (on the movement screen) | Off by default. Writes the direction as `N`, `NE`, `E`, `SE`, `S`, `SW`, `W` or `NW` (`NE395m`) instead of an arrow (`⇗395m`). The letters are in the standard SMS alphabet, so an update keeps the 160-character limit instead of 70 |
 
 Shorter links keep replies to fewer SMS. For example, a subscription update has to use the 70-character limit because of its movement arrow (compass letters or hiding the movement avoid that), so with the default link the link goes in a second SMS; with the short address and the compact code the whole update is 67 of 70 characters, one SMS (not while it also says "(charging)"):
@@ -186,7 +186,7 @@ The confirmation looks like:
 [PhoneTrack] Subscribed: update every 15 min, only if moved 200m+, for 4h (ends Sep 30 18:32Z). Text "phonetrack unsubscribe" to stop.
 ```
 
-Periodic updates use the same Reply contents settings (battery is included if you switch it on) and add a direction arrow and how far you moved since the previous update, e.g. `⇗120m` (or `NE120m`, or nothing, from the Movement in subscription updates row in Replies) (shown in kilometers from 1 km: `⇗1.2km`, and whole kilometers from 10 km: `⇗12km`). The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
+Periodic updates use the same Reply contents settings (battery is included if you switch it on) and add a direction arrow and how far you moved since the previous update, e.g. `⇗120m` (or `NE120m`, or nothing, from the Movement in updates row in Replies) (shown in kilometers from 1 km: `⇗1.2km`, and whole kilometers from 10 km: `⇗12km`). The end time is in UTC. If an option is unknown, repeated, not a whole number, or outside the allowed range, nothing is subscribed and the phone replies with what was wrong plus the usage line, for example `--freq must be 1-1440 (minutes)`. Values are never silently adjusted.
 
 ### Unsubscribe
 
@@ -216,14 +216,14 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 
 | Setting | Description |
 |---------|-------------|
-| SMS listening | Master on/off switch (also on the main screen) |
+| Listening | Master on/off switch (also on the main screen) |
 | Keyword | The trigger word the phone listens for (default: `phonetrack`). One word, no spaces, and it can't start with `[` |
 | Reply contents | What a location reply contains, with a live preview (see below) |
-| Limits | Commands per number per hour, and most active subscriptions at once |
+| Limits | Max requests per hour (per approved number), and max subscriptions at once |
 | Permissions | SMS, location, background location and notifications, each with a Grant button |
 | PIN | Set, change or remove the PIN that guards Settings and approval changes (see below) |
-| Reset → Restore default settings | Puts the keyword, the reply contents (with the link style and the movement choices) and the limits back to their defaults, after a confirmation. The PIN, SMS listening, approved numbers and subscriptions are not touched |
-| Help → Troubleshooting & FAQ | Answers to the questions people ask most: why a text gets no reply (approval, RCS, a keyword typo, the hourly limit), the *Location permission not granted* and *Location unavailable* messages, `last` vs a fresh request, how subscriptions work, and how secure it is |
+| Reset → Restore default settings | Puts the keyword, the reply contents (with the link style and the movement choices) and the limits back to their defaults, after a confirmation. The PIN, listening, approved numbers and subscriptions are not touched |
+| Help → Troubleshooting & FAQ | Answers to the questions people ask most: why a text gets no reply (approval, RCS, a keyword typo, the hourly limit), the *Location permission not granted* and *Location unavailable* messages, `last` vs a fresh request, how subscriptions work, what the Settings limits do, and how secure it is |
 
 ### The main screen
 
@@ -234,7 +234,7 @@ Open **Settings** from the gear icon on the main screen; Back returns to the mai
 
 ### Locking the app with a PIN
 
-An optional PIN guards the app's settings and approvals: opening Settings, the SMS listening switch, and Approve and Block. It does two jobs:
+An optional PIN guards the app's settings and approvals: opening Settings, the Listening switch, and Approve and Block. It does two jobs:
 
 - **Everyday security.** Anyone else who picks up the phone can't switch PhoneTrack off, change the keyword, or approve their own number.
 - **Setting up a child's phone.** Approve your own number, set a PIN and keep it. The app keeps answering you, and your child can't turn it off or change who can locate the phone. Tell them it is there: PhoneTrack replies only to numbers you approved, and it is meant for consent, not secret monitoring.
@@ -253,7 +253,7 @@ PhoneTrack protects itself, and your SMS bill, against floods:
 | Pending list | 50 numbers | The oldest pending number is dropped to make room (it simply texts again). Approved and blocked numbers are never dropped. |
 | Stale pending numbers | 30 days | Pending numbers that haven't contacted you for a month are removed. |
 
-The first two are set in **Settings → Limits** (commands per number 1–100 per hour, active subscriptions 1–20). Lowering the subscription limit never cancels running subscriptions; it only refuses new ones.
+The first two are set in **Settings → Limits** (max requests per hour 1–100, max subscriptions 1–20). Lowering the subscription limit never cancels running subscriptions; it only refuses new ones.
 
 ### Security notes
 

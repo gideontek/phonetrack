@@ -40,7 +40,7 @@ phonetrack-android-2026/
             │   ├── DecisionsSection.kt    # Pending numbers: tap-to-reveal Approve/Block (no swiping)
             │   ├── SubscriptionsSection.kt # Active subscriptions with Send now / Cancel
             │   ├── KnownNumbersSection.kt # Collapsed approved + blocked list
-            │   ├── FaqScreen.kt           # FAQ (from Settings → Help): seven questions, troubleshooting first; limits come from SmsLimits
+            │   ├── FaqScreen.kt           # FAQ (from Settings → Help): eight questions, troubleshooting first; limits come from SmsLimits
             │   ├── SettingsScreen.kt      # Settings screen: General, Replies, Limits, Permissions, Security, Reset (confirmed Restore default settings), Help (Troubleshooting & FAQ row), About
             │   ├── SettingsComponents.kt  # Section/row building blocks (ToggleRow, StepperRow, PermissionRow, NavigationRow, SubScreen, SampleBlock)
             │   ├── SettingsLogic.kt       # Pure: limit-stepper rules (LimitSteps), reply, map link and movement summaries, sample fix
@@ -62,7 +62,7 @@ phonetrack-android-2026/
             │   ├── ReplyOptions.kt        # Pure: which parts a location reply contains (default: accuracy, battery, map link; at least one of geo link, map link must stay on)
             │   ├── ReplyOptionsStore.kt   # Prefs store for the reply options
             │   ├── MapLinkScreen.kt       # "Customize map link" (from Replies): domain, compact code, zoom, with hints and a live reply sample
-            │   ├── MovementScreen.kt      # "Movement in subscription updates" (from Replies): on/off switch, compass letters vs arrows, with a live subscription-update sample
+            │   ├── MovementScreen.kt      # "Movement in updates" (from Replies): on/off switch, compass letters vs arrows, with a live subscription-update sample
             │   ├── OsmLink.kt             # Pure: MapLinkOptions + OsmLink (full/osm.org domain, readable or OSM shortlink code, zoom)
             │   ├── ReplySettingsCard.kt   # "Replies" section: expandable Reply contents with live preview, movement switch and the Customize rows
             │   ├── SmsLength.kt           # Pure: does text fit one SMS (GSM-7 160 / UCS-2 70); info() gives encoding, units, SMS count

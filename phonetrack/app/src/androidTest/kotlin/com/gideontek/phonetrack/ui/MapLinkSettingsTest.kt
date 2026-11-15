@@ -90,11 +90,11 @@ class MapLinkSettingsTest {
         for (label in listOf("Use osm.org instead of openstreetmap.org", "Compact code instead of coordinates")) {
             toggle(label).performScrollTo().assertIsDisplayed()
         }
-        compose.onNodeWithText("Map zoom level").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Zoom").performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("Saves 14 characters", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("about 50 characters shorter", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Higher is zoomed in", substring = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithText("Levels 10, 13 and 16", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Higher is closer", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Compact codes are shortest at 10, 13 and 16", substring = true).performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -195,13 +195,13 @@ class MapLinkSettingsTest {
             for (k in listOf("coords", "accuracy", "battery", "time", "geo", "osm")) e.putBoolean("reply_$k", k == "geo")
             e.commit()
         }
-        compose.onNodeWithText("The map link is switched off under Replies", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("The map link is off", substring = true).assertIsDisplayed()
     }
 
     @Test
     fun noNoteWhileTheLinkIsOn() {
         openMapLink()
-        assertEquals(0, compose.countWithText("switched off under Replies", substring = true))
+        assertEquals(0, compose.countWithText("The map link is off", substring = true))
     }
 
     // --- the lock --------------------------------------------------------------------

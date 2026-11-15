@@ -72,7 +72,7 @@ class ScreenshotTour {
         compose.waitForIdle()
         save("map-link-$tag-2")
         ui.back()
-        compose.onNodeWithText("Movement in subscription updates").clickVisible()
+        compose.onNodeWithText("Movement in updates").clickVisible()
         compose.onNodeWithText("Direction").assertIsDisplayed()
         compose.waitForIdle()
         save("movement-$tag-1")

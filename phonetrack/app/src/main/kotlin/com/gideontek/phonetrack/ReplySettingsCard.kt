@@ -131,7 +131,7 @@ fun ReplySettingsCard(
             }
             RowDivider()
             Column(modifier = Modifier.padding(16.dp)) {
-                Text("Include in each reply", style = MaterialTheme.typography.labelLarge)
+                Text("Include", style = MaterialTheme.typography.labelLarge)
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -147,7 +147,7 @@ fun ReplySettingsCard(
             RowDivider()
             NavigationRow("Customize map link", MapLinkSummary.text(options.link), onCustomizeLink)
             RowDivider()
-            NavigationRow("Movement in subscription updates", MovementSummary.text(options.movement), onCustomizeMovement)
+            NavigationRow("Movement in updates", MovementSummary.text(options.movement), onCustomizeMovement)
         }
     }
 }

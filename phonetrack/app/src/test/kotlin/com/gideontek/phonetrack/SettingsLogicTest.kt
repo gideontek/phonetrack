@@ -70,7 +70,7 @@ class SettingsLogicTest {
 
     @Test fun lockoutScheduleText() =
         assertEquals(
-            "5 wrong PINs in a row lock unlocking for 1 minute, then 5, 15 and 60 minutes.",
+            "After 5 wrong PINs, unlocking is blocked for 1 minute, then 5, 15 and 60 minutes.",
             PinLockout.scheduleText()
         )
 

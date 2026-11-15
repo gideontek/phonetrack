@@ -92,7 +92,7 @@ fun SettingsScreen(
 
             SettingsSection("General") {
                 ToggleRow(
-                    label = "SMS listening",
+                    label = "Listening",
                     supporting = "Reply to approved numbers that text your keyword",
                     checked = enabled,
                     enabled = !isLocked,
@@ -106,13 +106,13 @@ fun SettingsScreen(
                     OutlinedTextField(
                         value = keyword,
                         onValueChange = { vm.setKeyword(it) },
-                        label = { Text("Keyword (first word of an incoming SMS)") },
+                        label = { Text("Keyword") },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         enabled = !isLocked
                     )
                     Text(
-                        "One word, no spaces. Anyone who texts it is added to your decision list.",
+                        "One word. New numbers that text it appear under Needs your decision.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -131,11 +131,11 @@ fun SettingsScreen(
 
             SettingsSection("Limits") {
                 StepperRow(
-                    label = "Commands per number",
-                    supporting = "Per hour; the rest are ignored",
+                    label = "Max requests per hour",
+                    supporting = "Per approved number",
                     valueText = rateLimit.toString(),
-                    lessDescription = "Fewer commands per hour",
-                    moreDescription = "More commands per hour",
+                    lessDescription = "Fewer requests per hour",
+                    moreDescription = "More requests per hour",
                     lessEnabled = !isLocked && rateLimit > LimitSteps.RATE_MIN,
                     moreEnabled = !isLocked && rateLimit < LimitSteps.RATE_MAX,
                     onLess = { vm.setRateLimitPerHour(LimitSteps.rateDown(rateLimit)) },
@@ -143,11 +143,11 @@ fun SettingsScreen(
                 )
                 RowDivider()
                 StepperRow(
-                    label = "Active subscriptions",
-                    supporting = "Most running at once. Lowering it never cancels existing ones.",
+                    label = "Max subscriptions",
+                    supporting = "Running at once, across all numbers",
                     valueText = maxSubscriptions.toString(),
-                    lessDescription = "Fewer active subscriptions",
-                    moreDescription = "More active subscriptions",
+                    lessDescription = "Fewer subscriptions",
+                    moreDescription = "More subscriptions",
                     lessEnabled = !isLocked && maxSubscriptions > LimitSteps.SUBS_MIN,
                     moreEnabled = !isLocked && maxSubscriptions < LimitSteps.SUBS_MAX,
                     onLess = { vm.setMaxSubscriptions(LimitSteps.subscriptionsDown(maxSubscriptions)) },
@@ -190,7 +190,7 @@ fun SettingsScreen(
                             .fillMaxWidth()
                             .clickable(role = Role.Button) {
                                 vm.removePin()
-                                Toast.makeText(context, "PIN Removed", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "PIN removed", Toast.LENGTH_SHORT).show()
                             }
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                             .defaultMinSize(minHeight = 56.dp),
@@ -246,16 +246,16 @@ fun SettingsScreen(
             title = { Text("Restore default settings?") },
             text = {
                 Text(
-                    "The keyword, reply contents, link and movement choices, and limits go back to " +
-                        "their defaults. The PIN, SMS listening, approved numbers and subscriptions stay as they are."
+                    "Keyword, reply contents, map link, movement and limits go back to their defaults. " +
+                        "Your PIN, listening, approved numbers and subscriptions are not changed."
                 )
             },
             confirmButton = {
                 TextButton(onClick = {
                     vm.resetSettings()
                     confirmReset = false
-                    Toast.makeText(context, "Settings reset", Toast.LENGTH_SHORT).show()
-                }) { Text("Reset", color = MaterialTheme.colorScheme.error) }
+                    Toast.makeText(context, "Defaults restored", Toast.LENGTH_SHORT).show()
+                }) { Text("Restore", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } }
         )
