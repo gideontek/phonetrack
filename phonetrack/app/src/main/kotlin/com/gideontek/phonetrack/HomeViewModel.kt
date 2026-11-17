@@ -171,6 +171,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun setNumberState(number: String, state: ApprovalState) {
         ApprovalStore.setState(getApplication(), number, state)
         _approvalEntries.value = ApprovalStore.getAll(getApplication())
+        PendingAlerts.refresh(getApplication())
     }
 
     /**

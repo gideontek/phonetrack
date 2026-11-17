@@ -1,4 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">PhoneTrack</string>
+
+    <!-- Notification channels -->
+    <string name="channel_reply_name">Location Reply</string>
+    <string name="channel_alert_name">Location Request Alert</string>
+    <string name="channel_alert_desc">Alert when a location request arrives but location services are off</string>
+    <string name="channel_subscriptions_name">Location Subscriptions</string>
+    <string name="channel_host_name">PhoneTrack alerts</string>
+    <string name="channel_host_desc">Problems only the phone\'s owner can fix, such as a missing location permission</string>
+    <string name="channel_pending_name">Pending requests</string>
+    <string name="channel_pending_desc">New numbers waiting for you to approve or block them</string>
+
+    <!-- 1: fetching a location for an SMS reply -->
+    <string name="notif_fetching_title">Fetching location for SMS reply</string>
+
+    <!-- 2: request arrived while location services are off -->
+    <string name="notif_alert_title">Location request from %1$s</string>
+    <string name="notif_alert_text">Enable location services to send location</string>
+    <string name="notif_alert_public_title">Location request</string>
+
+    <!-- 3: subscriptions running -->
+    <plurals name="notif_subs_title">
+        <item quantity="one">PhoneTrack — %d active subscription</item>
+        <item quantity="other">PhoneTrack — %d active subscriptions</item>
+    </plurals>
+    <string name="notif_subs_text">Sending periodic location updates</string>
+
+    <!-- 4: a location permission is missing -->
+    <string name="notif_host_title">PhoneTrack can\'t send location</string>
+    <string name="notif_host_text_requester">A location request from %1$s couldn\'t be answered. Tap to open PhoneTrack, then allow Location \"all the time\". Saved subscriptions start working once you do.</string>
+    <string name="notif_host_text_updates">Location updates couldn\'t be answered. Tap to open PhoneTrack, then allow Location \"all the time\". Saved subscriptions start working once you do.</string>
+
+    <!-- 5: new numbers waiting for approval -->
+    <string name="notif_pending_title_one">New location request</string>
+    <string name="notif_pending_text_one">New location request from %1$s. Tap to review</string>
+    <string name="notif_pending_title_many">Location requests waiting</string>
+    <string name="notif_pending_text_many">%1$d numbers waiting for approval</string>
+    <string name="notif_pending_action_block">Block</string>
+    <string name="notif_pending_action_approve">Approve</string>
+    <string name="notif_pending_action_approve_send">Approve &amp; send</string>
+    <string name="notif_pending_too_old">That request was too old to answer. The number is approved; ask them to try again.</string>
 </resources>

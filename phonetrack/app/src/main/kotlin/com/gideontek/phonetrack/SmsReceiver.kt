@@ -19,6 +19,39 @@ import androidx.core.content.ContextCompat
  */
 class SmsReceiver : BroadcastReceiver() {
 
+    companion object {
+        /**
+         * Starts [SmsLocationService] for a one-shot location fetch, replying with a
+         * permission-error SMS instead if ACCESS_FINE_LOCATION isn't granted or only
+         * foreground-only location is (the latter also notifies the phone's owner).
+         *
+         * That service declares foregroundServiceType="location", and starting it from this
+         * background broadcast without those permissions leads to a guaranteed crash inside the
+         * service (a SecurityException from startForeground() itself on Android 14+, or a
+         * ForegroundServiceDidNotStartInTimeException if it's skipped) — so this must be checked
+         * here, before the service is ever started. Also used by [PendingActionReceiver] for
+         * "Approve & send".
+         */
+        internal fun startLocationFetch(ctx: Context, sender: String) {
+            if (!LocationPermission.hasFine(ctx)) {
+                SmsSender.sendPermissionError(ctx, sender)
+                HostAlerts.locationPermissionNeeded(ctx, sender)
+                return
+            }
+            if (!LocationPermission.canStartLocationService(ctx)) {
+                // The requester can't fix this (it's a setting on this phone), so they only get the
+                // generic error; the owner is told what to change via a notification.
+                SmsSender.sendPermissionError(ctx, sender)
+                HostAlerts.locationPermissionNeeded(ctx, sender)
+                return
+            }
+            ContextCompat.startForegroundService(
+                ctx,
+                Intent(ctx, SmsLocationService::class.java).putExtra("sender", sender)
+            )
+        }
+    }
+
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
 
@@ -51,15 +84,20 @@ class SmsReceiver : BroadcastReceiver() {
         when (ApprovalStore.stateFor(context, sender)) {
             null -> {
                 // First contact: record it (never reply), unless too many new numbers have
-                // shown up this hour. Flooders are dropped silently.
+                // shown up this hour. Flooders are dropped silently. The owner is told.
                 if (RateStore.check(context, "newpending", SmsLimits.NEW_PENDING_PER_HOUR).allowed) {
-                    ApprovalStore.upsertPending(context, sender, System.currentTimeMillis())
+                    val now = System.currentTimeMillis()
+                    val isNew = ApprovalStore.upsertPending(context, sender, now)
+                    PendingAlerts.onContact(context, isNew, now)
                 }
                 return
             }
             ApprovalState.PENDING -> {
-                // Another try while pending: refresh lastSeen (throttled), do not reply
-                ApprovalStore.upsertPending(context, sender, System.currentTimeMillis())
+                // Another try while pending: refresh lastSeen (throttled), do not reply. The
+                // owner's notification, if still showing, gets a fresh request time.
+                val now = System.currentTimeMillis()
+                ApprovalStore.upsertPending(context, sender, now)
+                PendingAlerts.onContact(context, isNew = false, now = now)
                 return
             }
             ApprovalState.BLOCKED -> return
@@ -99,36 +137,6 @@ class SmsReceiver : BroadcastReceiver() {
     }
 
     private fun hasLocationPermission(ctx: Context) = LocationPermission.hasFine(ctx)
-
-    /**
-     * Starts [SmsLocationService] for a one-shot location fetch, replying with a
-     * permission-error SMS instead if ACCESS_FINE_LOCATION isn't granted or only
-     * foreground-only location is (the latter also notifies the phone's owner).
-     *
-     * That service declares foregroundServiceType="location", and starting it from this
-     * background broadcast without those permissions leads to a guaranteed crash inside the
-     * service (a SecurityException from startForeground() itself on Android 14+, or a
-     * ForegroundServiceDidNotStartInTimeException if it's skipped) — so this must be checked
-     * here, before the service is ever started.
-     */
-    private fun startLocationFetch(ctx: Context, sender: String) {
-        if (!hasLocationPermission(ctx)) {
-            SmsSender.sendPermissionError(ctx, sender)
-            HostAlerts.locationPermissionNeeded(ctx, sender)
-            return
-        }
-        if (!LocationPermission.canStartLocationService(ctx)) {
-            // The requester can't fix this (it's a setting on this phone), so they only get the
-            // generic error; the owner is told what to change via a notification.
-            SmsSender.sendPermissionError(ctx, sender)
-            HostAlerts.locationPermissionNeeded(ctx, sender)
-            return
-        }
-        ContextCompat.startForegroundService(
-            ctx,
-            Intent(ctx, SmsLocationService::class.java).putExtra("sender", sender)
-        )
-    }
 
     private fun handleSubscribe(
         ctx: Context,

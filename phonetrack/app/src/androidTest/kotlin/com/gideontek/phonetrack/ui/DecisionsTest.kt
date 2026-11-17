@@ -142,4 +142,22 @@ class DecisionsTest {
         val top = { n: String -> row(n).fetchSemanticsNode().boundsInRoot.top }
         assertTrue(top(b) < top(a))
     }
+
+    @Test
+    fun decidingInTheAppClearsThePendingNotification() {
+        ui.launch {
+            TestState.enableListening()
+            TestState.seedPending(a)
+            com.gideontek.phonetrack.PendingAlerts.onContact(
+                androidx.test.core.app.ApplicationProvider.getApplicationContext(), isNew = true
+            )
+        }
+        org.junit.Assert.assertNotNull(
+            com.gideontek.phonetrack.support.Notifications.await(com.gideontek.phonetrack.PendingAlerts.NOTIFICATION_ID)
+        )
+        compose.onNodeWithText("Approve").performClick()
+        assertTrue(
+            com.gideontek.phonetrack.support.Notifications.awaitGone(com.gideontek.phonetrack.PendingAlerts.NOTIFICATION_ID)
+        )
+    }
 }

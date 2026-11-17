@@ -68,6 +68,7 @@ class SmsLocationService : Service() {
         // would otherwise kill the process, and with it every later incoming command.
         try {
             startForeground(NOTIFICATION_ID, buildForegroundNotification())
+            HostAlerts.clearLocationPermissionNeeded(this)
         } catch (e: SecurityException) {
             Log.w("SmsLocationService", "Cannot start as a location foreground service", e)
             SmsSender.sendPermissionError(this, sender)
@@ -193,15 +194,19 @@ class SmsLocationService : Service() {
     private fun ensureChannels() {
         val nm = getSystemService(NotificationManager::class.java)
         nm.createNotificationChannel(
-            NotificationChannel(CHANNEL_ID, "Location Reply", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(
+                CHANNEL_ID,
+                getString(R.string.channel_reply_name),
+                NotificationManager.IMPORTANCE_LOW
+            )
         )
         nm.createNotificationChannel(
             NotificationChannel(
                 ALERT_CHANNEL_ID,
-                "Location Request Alert",
+                getString(R.string.channel_alert_name),
                 NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Alert when a location request arrives but location services are off"
+                description = getString(R.string.channel_alert_desc)
             }
         )
     }
@@ -209,23 +214,28 @@ class SmsLocationService : Service() {
     private fun buildForegroundNotification(): Notification {
         ensureChannels()
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("Fetching location for SMS reply")
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setContentTitle(getString(R.string.notif_fetching_title))
+            .setSmallIcon(R.drawable.ic_stat_phonetrack)
+            .setContentIntent(NotificationSupport.openApp(this))
             .build()
     }
 
     private fun postAlertNotification(sender: String) {
         // POST_NOTIFICATIONS runtime permission is required on Android 13+
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            ActivityCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
-                != PackageManager.PERMISSION_GRANTED
-        ) return
+        if (!NotificationSupport.canPost(this)) return
 
         ensureChannels()
+        // On a secure lock screen only this version shows, without the requester's number.
+        val publicVersion = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
+            .setContentTitle(getString(R.string.notif_alert_public_title))
+            .setSmallIcon(R.drawable.ic_stat_phonetrack)
+            .build()
         val notification = NotificationCompat.Builder(this, ALERT_CHANNEL_ID)
-            .setContentTitle("Location request from $sender")
-            .setContentText("Enable location services to send location")
-            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle(getString(R.string.notif_alert_title, sender))
+            .setContentText(getString(R.string.notif_alert_text))
+            .setSmallIcon(R.drawable.ic_stat_phonetrack)
+            .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
+            .setPublicVersion(publicVersion)
             // Countdown chrono: setWhen to the deadline, then enable countdown mode
             .setWhen(System.currentTimeMillis() + TIMEOUT_MS)
             .setUsesChronometer(true)

@@ -52,6 +52,16 @@
             </intent-filter>
         </receiver>
 
+        <receiver
+            android:name=".PendingActionReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
+        <receiver
+            android:name=".PendingStaleReceiver"
+            android:enabled="true"
+            android:exported="false" />
+
         <service
             android:name=".SmsLocationService"
             android:exported="false"
