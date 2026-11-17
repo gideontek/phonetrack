@@ -75,6 +75,7 @@ res/6h.png
 res/9m.xml
 res/9w.png
 res/a0.xml
+res/A2.xml
 res/as.png
 res/BW.xml
 res/bX.xml

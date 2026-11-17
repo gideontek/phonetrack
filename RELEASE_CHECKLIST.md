@@ -45,6 +45,11 @@ Do these on real hardware where noted. Tick each one and write what you saw.
   expanded (the headless emulator cannot observe Compose focus, so this is checked only here); reading
   order is sensible; the pending row announces Expanded/Collapsed and offers the Approve and Block actions;
   the stepper values are announced when they change; the switches read as one labelled switch each.
+- [ ] **Notifications on a phone with a secure lock screen** (PIN or pattern, "hide sensitive content" on): a
+  request from a new number shows only "New location request" with no number and no buttons until the
+  phone is unlocked; then the full text with **Block** and **Approve & send** (a stale one: **Block** and
+  **Approve**). The "can't send location" and "location services off" alerts also hide the number. The
+  headless emulator has no secure lock screen, so this is checked only here.
 - [ ] **Screenshots look-through:** open `build/release-gate/.../api-35/screens/` (Main and Settings, light
   and dark, normal and 1.3x text). Nothing clipped, overlapping or unreadable.
 - [ ] **Two real phones** (real SIM cards): phone A texts the keyword to phone B; B shows A as a pending
