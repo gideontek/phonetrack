@@ -61,6 +61,10 @@ An unknown number's request is currently added to the pending list silently
 - **When it fires:** only when `upsertPending` adds a new PENDING entry. Repeat attempts from a number that is already pending, and attempts the `newpending` rate limit rejects (`SmsLimits.NEW_PENDING_PER_HOUR`), do not post. `upsertPending` must report whether it added an entry (or the receiver compares the pending set before and after); it must not post a notification for a refresh of `lastSeen`.
 - **When it updates or clears:** after each Approve or Block, and on app resume, it is re-posted with the current count, or cancelled when no PENDING entries remain. Pruned or evicted pending entries are reflected the next time it is refreshed.
 - **Permission:** requires `POST_NOTIFICATIONS` on Android 13+, checked the same way `HostAlerts` does. If denied, nothing is posted and the in-app list is the only signal.
+- **Actions:** three buttons, Block, Approve, and Approve & send, each handled by a new `PendingActionReceiver` (not exported; the `PendingIntent`s are `FLAG_IMMUTABLE` and name the number). They appear only when all of these hold: exactly one number is PENDING, no settings PIN is set (the in-app approval PIN guard must not be bypassed), and the device is unlocked. The lock-screen public version carries no buttons. In every other case a tap on the notification opens the app.
+  - **Block / Approve:** the same `ApprovalStore` state change the Decisions section makes, then `PendingAlerts.update`.
+  - **Approve & send:** approves, then, only if `now - lastSeen` is within 10 minutes (`SmsLimits.PENDING_ACTION_WINDOW_MS`), starts a one-shot location reply through the same gate as `SmsReceiver.startLocationFetch` (permission checks, `SmsLocationService`). It always sends a one-shot reply, even if the original command was a subscribe; the subscriber is not subscribed. If the window has passed, it approves only, and a toast says the request was too old to answer, so they should ask again. No original command is stored, so `approvals_list` and `prefs_schema_version` are unchanged.
+  - If the number is no longer PENDING when a button is pressed (decided in the app, pruned, evicted), the action does nothing except refresh the notification.
 - **Where it lives:** a new `PendingAlerts` object next to `HostAlerts` (`PendingAlerts.update(ctx)`), so the notification logic stays out of `SmsReceiver` and the approval store.
 
 ## Not changing
@@ -77,11 +81,11 @@ list; nothing new is persisted.
 ## Testing
 
 - JVM unit test for the count-to-text choice (one number vs. N), if it lands in a pure helper.
-- Instrumented/phase checks (`support/Notifications`): the permission alert is gone after the permission is granted; tapping the subscription notification opens `MainActivity`; an unknown sender posts one pending notification, a repeat from that number posts nothing new, a second distinct sender updates it to "2 numbers"; approving or blocking all pending numbers clears it; with `POST_NOTIFICATIONS` revoked, nothing is posted.
+- Instrumented/phase checks (`support/Notifications`): the permission alert is gone after the permission is granted; tapping the subscription notification opens `MainActivity`; an unknown sender posts one pending notification, a repeat from that number posts nothing new, a second distinct sender updates it to "2 numbers"; approving or blocking all pending numbers clears it; with `POST_NOTIFICATIONS` revoked, nothing is posted. Actions: buttons present for exactly one pending number with no PIN, absent with two pending numbers or with a PIN set; Block and Approve change the stored state; Approve & send replies within the window and only approves outside it (seed `lastSeen`); a stale button press on a number already decided is a no-op. A JVM test covers the pure "show buttons" and "within window" rules.
 - Existing notification tests keep passing unchanged (text is identical).
 - Gate: `./gradlew lint` with zero errors, unit tests, and `scripts/fdroid-guard.sh` (a drawable and strings are added, no permission or dependency changes). Notification-related emulator tests run on the dedicated test AVD only.
 - `FaqScreen` gets one line saying the owner is notified of new requests waiting for approval.
 
 ## Docs to update
 
-`CLAUDE.md` project layout: add `NotificationSupport.kt` and `PendingAlerts.kt`.
+`CLAUDE.md` project layout: add `NotificationSupport.kt`, `PendingAlerts.kt` and `PendingActionReceiver.kt`; manifest gains the non-exported receiver (no permission change, so the F-Droid permission baseline is unchanged).
