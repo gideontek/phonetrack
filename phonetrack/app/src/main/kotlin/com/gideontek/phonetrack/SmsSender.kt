@@ -41,6 +41,12 @@ object SmsSender {
             .forEach { sendRaw(ctx, to, it) }
     }
 
+    /** Low-battery alert: [loc] is the newest fix (null = none), [ageMs] non-null when it is a cached one. */
+    fun sendLowBattery(ctx: Context, to: String, loc: Location?, percent: Int, ageMs: Long?) {
+        SmsComposer.composeLowBattery(loc?.let { fixOf(it, null) }, ReplyOptionsStore.read(ctx), percent, ageMs)
+            .forEach { sendRaw(ctx, to, it) }
+    }
+
     fun sendSubscriptionExpired(ctx: Context, to: String) {
         SmsComposer.composeSubscriptionExpired().forEach { sendRaw(ctx, to, it) }
     }

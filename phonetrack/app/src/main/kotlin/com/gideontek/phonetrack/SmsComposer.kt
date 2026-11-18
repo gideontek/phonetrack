@@ -73,6 +73,19 @@ object SmsComposer {
         return assemble(textLines(fix, opts, header = header, movement = null), fix, opts)
     }
 
+    /**
+     * The low-battery alert: "Battery low: 4%" and then the location parts the owner chose (the
+     * battery part is dropped, the header already says it). [fix] null = no location at all;
+     * [ageMs] non-null = the fix is a cached one that old.
+     */
+    fun composeLowBattery(fix: LocationFix?, options: ReplyOptions, percent: Int, ageMs: Long?): List<String> {
+        val level = if (percent in 0..100) "Battery low: $percent%" else "Battery low"
+        if (fix == null) return listOf("$PREFIX$level. No location available.")
+        val opts = options.normalized().copy(battery = false)
+        val header = if (ageMs != null) "$level. Last known (${formatAge(ageMs)} ago)" else level
+        return assemble(textLines(fix, opts, header = header, movement = null), fix, opts)
+    }
+
     /** The message text lines for the selected fields, in display order. */
     private fun textLines(fix: LocationFix, o: ReplyOptions, header: String?, movement: String?): List<String> {
         val lines = mutableListOf<String>()

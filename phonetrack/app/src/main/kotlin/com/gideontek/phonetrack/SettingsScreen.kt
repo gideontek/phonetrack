@@ -60,6 +60,7 @@ fun SettingsScreen(
     val replyOptions by vm.replyOptions.collectAsState()
     val rateLimit by vm.rateLimitPerHour.collectAsState()
     val maxSubscriptions by vm.maxSubscriptions.collectAsState()
+    val lowBattery by vm.lowBatteryPct.collectAsState()
 
     val context = LocalContext.current
     var confirmReset by remember { mutableStateOf(false) }
@@ -117,6 +118,18 @@ fun SettingsScreen(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                RowDivider()
+                StepperRow(
+                    label = "Low-battery alert",
+                    supporting = "Texts people tracking you once when the battery runs low",
+                    valueText = LimitSteps.lowBatteryText(lowBattery),
+                    lessDescription = "Lower battery alert level",
+                    moreDescription = "Higher battery alert level",
+                    lessEnabled = !isLocked && lowBattery > LimitSteps.LOW_BATTERY_STEPS.first(),
+                    moreEnabled = !isLocked && lowBattery < LimitSteps.LOW_BATTERY_STEPS.last(),
+                    onLess = { vm.setLowBatteryPct(LimitSteps.lowBatteryDown(lowBattery)) },
+                    onMore = { vm.setLowBatteryPct(LimitSteps.lowBatteryUp(lowBattery)) }
+                )
             }
 
             ReplySettingsCard(

@@ -663,4 +663,53 @@ class SmsComposerTest {
             SmsComposer.composeLastKnown(fix(), ReplyOptions.DEFAULT.copy(movement = MovementOptions(show = false)), 60_000)
         )
     }
+
+    // -------------------------------------------------------------------------
+    // composeLowBattery
+    // -------------------------------------------------------------------------
+
+    @Test
+    fun `a low-battery alert with a fresh fix has the header and the chosen location parts`() {
+        assertEquals(
+            listOf("[PhoneTrack] Battery low: 4%\nAcc: 5m\n$url"),
+            SmsComposer.composeLowBattery(fix(battery = 4), ReplyOptions.DEFAULT, 4, null)
+        )
+    }
+
+    @Test
+    fun `the battery part is not repeated under the header`() {
+        val text = SmsComposer.composeLowBattery(fix(battery = 4), ReplyOptions.DEFAULT.copy(battery = true), 4, null).joinToString("\n")
+        assertFalse(text, text.contains("Bat:"))
+    }
+
+    @Test
+    fun `a cached fix says how old it is`() {
+        assertEquals(
+            listOf("[PhoneTrack] Battery low: 3%. Last known (12m ago)\nAcc: 5m\n$url"),
+            SmsComposer.composeLowBattery(fix(battery = 3), ReplyOptions.DEFAULT, 3, 12 * 60_000L)
+        )
+    }
+
+    @Test
+    fun `with no location at all the alert says so`() {
+        assertEquals(
+            listOf("[PhoneTrack] Battery low: 4%. No location available."),
+            SmsComposer.composeLowBattery(null, ReplyOptions.DEFAULT, 4, null)
+        )
+    }
+
+    @Test
+    fun `an unknown level leaves the number out`() {
+        assertEquals(
+            listOf("[PhoneTrack] Battery low. No location available."),
+            SmsComposer.composeLowBattery(null, ReplyOptions.DEFAULT, -1, null)
+        )
+    }
+
+    @Test
+    fun `the default low-battery alert fits one SMS`() {
+        val parts = SmsComposer.composeLowBattery(fix(battery = 4), ReplyOptions.DEFAULT, 4, 59 * 60_000L)
+        assertEquals(1, parts.size)
+        assertTrue(SmsLength.fitsOneSms(parts.single()))
+    }
 }

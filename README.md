@@ -196,6 +196,18 @@ phonetrack unsubscribe
 
 Cancels your active subscription. The phone replies to confirm cancellation, or tells you there was nothing to cancel.
 
+### Low-battery alert
+
+While you are subscribed, the phone texts you once when its battery falls to 5% or lower and it is not charging, so you have a last position if it dies:
+
+```
+[PhoneTrack] Battery low: 4%
+Acc: 5m
+https://www.openstreetmap.org/?mlat=37.7749&mlon=-122.4194
+```
+
+It uses the same Reply contents settings, minus the battery line. If no fresh fix arrives in time it sends the last known position and how old it is (`Battery low: 4%. Last known (12m ago)`), and if there is none it says `No location available`. It sends one alert per drop: another follows only after the battery has risen above the level, or been charged, and fallen again. There is nothing to turn on in the command: **Settings → General → Low-battery alert** sets the level (Off, 3, 5, 10, 15 or 20%). It only works while a subscription is running, and it cannot help if the phone dies before the text is sent.
+
 ### Message length and cost
 
 One SMS holds 160 characters, or only 70 if the text contains a special character such as an arrow or an emoji. A longer text is split into parts and sent as several SMS.

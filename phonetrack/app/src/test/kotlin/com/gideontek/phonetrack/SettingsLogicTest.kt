@@ -104,4 +104,24 @@ class SettingsLogicTest {
         assertEquals("Off", MovementSummary.text(MovementOptions(show = false)))
         assertEquals("Off", MovementSummary.text(MovementOptions(show = false, cardinal = true)))
     }
+
+    @Test fun `the low-battery stepper walks Off, 3, 5, 10, 15, 20 and stops at the ends`() {
+        var v = 0
+        val up = mutableListOf(v)
+        repeat(6) { v = LimitSteps.lowBatteryUp(v); up += v }
+        assertEquals(listOf(0, 3, 5, 10, 15, 20, 20), up)
+        val down = mutableListOf(v)
+        repeat(6) { v = LimitSteps.lowBatteryDown(v); down += v }
+        assertEquals(listOf(20, 15, 10, 5, 3, 0, 0), down)
+    }
+
+    @Test fun `a stored value between steps moves to the next step in either direction`() {
+        assertEquals(10, LimitSteps.lowBatteryUp(7))
+        assertEquals(5, LimitSteps.lowBatteryDown(7))
+    }
+
+    @Test fun `the low-battery value reads Off or a percent`() {
+        assertEquals("Off", LimitSteps.lowBatteryText(0))
+        assertEquals("5%", LimitSteps.lowBatteryText(5))
+    }
 }

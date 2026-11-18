@@ -6,8 +6,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationListener
@@ -18,6 +20,7 @@ import android.os.Looper
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 
 /**
  * Long-running foreground service that sends periodic location updates to all active
@@ -34,6 +37,7 @@ class SubscriptionService : Service() {
         private const val CHANNEL_ID = "subscription_service"
         private const val LOCATION_TIMEOUT_MS = 60_000L
         private const val RETRY_DELAY_MS = 5 * 60_000L  // retry after location failure
+        private const val FETCH_BUSY_RETRY_MS = 5_000L  // a tick that finds an alert's fetch still running
     }
 
     private val handler = Handler(Looper.getMainLooper())
@@ -41,6 +45,28 @@ class SubscriptionService : Service() {
     private var locationManager: LocationManager? = null
     private var locationListener: LocationListener? = null
     private var locationTimeoutRunnable: Runnable? = null
+
+    // A location fetch is in flight (a tick's or a low-battery alert's); the fields above hold only one.
+    private var fetching = false
+
+    // Low-battery alert: the armed state between readings (see LowBatteryLogic), the receiver that
+    // feeds it, and an alert that arrived while a tick's fetch was running (that fetch sends it).
+    private var batteryArmed: Boolean? = null
+    private var batteryReceiver: BroadcastReceiver? = null
+    private var pendingAlertPercent: Int? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        // ACTION_BATTERY_CHANGED can't be declared in the manifest on Android 8+, so this running
+        // service is what listens. The current state arrives as soon as the receiver is registered.
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) = onBatteryChanged(intent)
+        }
+        batteryReceiver = receiver
+        ContextCompat.registerReceiver(
+            this, receiver, IntentFilter(Intent.ACTION_BATTERY_CHANGED), ContextCompat.RECEIVER_NOT_EXPORTED
+        )
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // SubscriptionManager.ensureServiceRunning() — the sole caller that starts this
@@ -84,6 +110,12 @@ class SubscriptionService : Service() {
     }
 
     private fun tick() {
+        // A low-battery alert is fetching a fix: let it finish (it has a timeout) rather than start a second fetch.
+        if (fetching) {
+            scheduleTick(FETCH_BUSY_RETRY_MS)
+            return
+        }
+
         // 1. Prune expired subscriptions; notify each one.
         val expired = SubscriptionManager.pruneExpired(this)
         for (sub in expired) {
@@ -139,11 +171,13 @@ class SubscriptionService : Service() {
                         )
                     }
                 }
+                pendingAlertPercent?.let { deliverLowBattery(it, loc) }
                 // Reload subs (tracking was updated) and schedule next tick.
                 val updated = SubscriptionManager.getAll(this)
                 scheduleTick(SubscriptionLogic.nextTickDelay(updated, System.currentTimeMillis()))
             },
             onFailure = {
+                pendingAlertPercent?.let { deliverLowBattery(it, null) }
                 // Location unavailable this cycle; retry sooner than the normal interval.
                 scheduleTick(RETRY_DELAY_MS)
             }
@@ -177,20 +211,85 @@ class SubscriptionService : Service() {
             locationTimeoutRunnable = null
             locationListener?.let { lm.removeUpdates(it) }
             locationListener = null
+            fetching = false
             onFailure()
         }
         locationTimeoutRunnable = timeoutRunnable
+        fetching = true
         handler.postDelayed(timeoutRunnable, LOCATION_TIMEOUT_MS)
 
         locationListener = LocationListener { loc ->
             handler.removeCallbacks(timeoutRunnable)
             locationTimeoutRunnable = null
+            fetching = false
             // Remove the listener via the instance variable (same pattern as SmsLocationService).
             locationListener?.let { lm.removeUpdates(it) }
             locationListener = null
             onLocation(loc)
         }
         lm.requestSingleUpdate(provider, locationListener!!, Looper.getMainLooper())
+    }
+
+    // -------------------------------------------------------------------------
+    // Low-battery alert
+    // -------------------------------------------------------------------------
+
+    private fun onBatteryChanged(intent: Intent) {
+        val battery = DeviceStatus.batteryFrom(intent)
+        val threshold = SmsLimits.coerceLowBattery(
+            getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
+                .getInt(HomeViewModel.KEY_LOW_BATTERY, SmsLimits.DEFAULT_LOW_BATTERY_PCT)
+        )
+        val step = LowBatteryLogic.step(batteryArmed, battery.percent, battery.charging, threshold)
+        batteryArmed = step.armed
+        if (step.alert) startLowBatteryAlert(battery.percent)
+    }
+
+    /** The battery just crossed the threshold: get a fix (or use the cached one) and text the subscribers. */
+    private fun startLowBatteryAlert(percent: Int) {
+        if (!alertRecipients().any()) return
+        if (fetching) {
+            // A tick's fetch is running; its callback delivers this alert with that fix.
+            pendingAlertPercent = percent
+            return
+        }
+        fetchLocation(
+            onLocation = { loc -> deliverLowBattery(percent, loc) },
+            onFailure = { deliverLowBattery(percent, null) }
+        )
+    }
+
+    /** Active subscribers, or none while the SMS listener is off (nothing is sent then, as in the tick loop). */
+    private fun alertRecipients(): List<Subscription> {
+        val smsEnabled = getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
+            .getBoolean("sms_enabled", false)
+        if (!smsEnabled) return emptyList()
+        val now = System.currentTimeMillis()
+        return SubscriptionManager.getAll(this).filter { it.expiresAt > now }
+    }
+
+    /**
+     * Sends the alert to every active subscriber. [fresh] is the fix just taken; without one the
+     * newest cached fix goes out with its age, and without that the message says there is no location.
+     */
+    private fun deliverLowBattery(percent: Int, fresh: Location?) {
+        pendingAlertPercent = null
+        val recipients = alertRecipients()
+        if (recipients.isEmpty()) return
+        val now = System.currentTimeMillis()
+        val cached = if (fresh == null &&
+            ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
+            PackageManager.PERMISSION_GRANTED
+        ) LastKnownLocation.get(this) else null
+        val loc = fresh ?: cached
+        val ageMs = cached?.let { now - it.time }
+        for (sub in recipients) {
+            SmsSender.sendLowBattery(this, sub.number, loc, percent, ageMs)
+            // The next regular update compares against this position, so it doesn't repeat the alert.
+            if (fresh != null) {
+                SubscriptionManager.updateTracking(this, sub.number, fresh.latitude, fresh.longitude, now)
+            }
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -225,6 +324,8 @@ class SubscriptionService : Service() {
 
     override fun onDestroy() {
         handler.removeCallbacksAndMessages(null)
+        batteryReceiver?.let { unregisterReceiver(it) }
+        batteryReceiver = null
         locationListener?.let { locationManager?.removeUpdates(it) }
         super.onDestroy()
     }

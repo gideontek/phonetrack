@@ -26,6 +26,13 @@ object LimitSteps {
         return clampRate(if (v > RATE_COARSE_FROM) maxOf(RATE_COARSE_FROM, v - RATE_COARSE_STEP) else v - 1)
     }
 
+    /** The low-battery alert levels the stepper offers, in percent; 0 is off. */
+    val LOW_BATTERY_STEPS = listOf(0, 3, 5, 10, 15, 20)
+
+    fun lowBatteryUp(value: Int): Int = LOW_BATTERY_STEPS.firstOrNull { it > value } ?: LOW_BATTERY_STEPS.last()
+    fun lowBatteryDown(value: Int): Int = LOW_BATTERY_STEPS.lastOrNull { it < value } ?: LOW_BATTERY_STEPS.first()
+    fun lowBatteryText(value: Int): String = if (value <= 0) "Off" else "$value%"
+
     fun subscriptionsUp(value: Int): Int = clampSubscriptions(value + 1)
     fun subscriptionsDown(value: Int): Int = clampSubscriptions(value - 1)
 }
