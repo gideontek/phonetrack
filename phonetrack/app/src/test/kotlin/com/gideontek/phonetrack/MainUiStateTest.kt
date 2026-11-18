@@ -11,8 +11,10 @@ class MainUiStateTest {
         sms: Boolean = true,
         loc: Boolean = true,
         bg: Boolean = true,
-        services: Boolean = true
-    ) = StatusSummary.from(enabled, sms, loc, bg, services)
+        services: Boolean = true,
+        notifications: Boolean = true,
+        skipped: Boolean = false
+    ) = StatusSummary.from(enabled, sms, loc, bg, services, notifications, skipped)
 
     @Test fun allGood() {
         val s = status()
@@ -38,6 +40,25 @@ class MainUiStateTest {
 
     @Test fun servicesOff() =
         assertEquals(StatusFix.OpenLocationSettings, status(services = false).fix)
+
+    @Test fun notificationsComeAfterEverythingElseAndCanBeSkipped() {
+        val s = status(notifications = false)
+        assertEquals(StatusFix.RequestNotifications, s.fix)
+        assertEquals(true, s.skippable)
+        assertEquals(StatusFix.OpenLocationSettings, status(services = false, notifications = false).fix)
+        assertEquals(false, status(services = false).skippable)
+    }
+
+    @Test fun aSkippedOrGrantedNotificationsPermissionShowsNothing() {
+        assertNull(status(notifications = false, skipped = true).fix)
+        assertNull(status(notifications = true, skipped = true).fix)
+    }
+
+    @Test fun skippingNotificationsDoesNotHideARealProblem() =
+        assertEquals(StatusFix.RequestBgLocation, status(bg = false, notifications = false, skipped = true).fix)
+
+    @Test fun notificationsAreNotNaggedWhileListeningIsOff() =
+        assertNull(status(enabled = false, notifications = false).fix)
 
     @Test fun problemTextAccompaniesFix() {
         val s = status(bg = false)

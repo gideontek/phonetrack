@@ -18,6 +18,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -48,6 +49,7 @@ fun StatusCard(
     now: Long,
     animate: Boolean,
     onFix: (StatusFix) -> Unit,
+    onSkip: () -> Unit = {},
     onDebugCycle: () -> Unit = {}
 ) {
     val detail = buildString {
@@ -126,6 +128,9 @@ fun StatusCard(
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier.weight(1f)
                         )
+                        if (summary.skippable) {
+                            TextButton(onClick = onSkip) { Text("Skip") }
+                        }
                         OutlinedButton(onClick = { onFix(summary.fix) }) { Text("Fix") }
                     }
                 }

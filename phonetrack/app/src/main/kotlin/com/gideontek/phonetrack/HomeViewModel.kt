@@ -31,6 +31,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _isLocked = MutableStateFlow(PinStore.isSet(app))
     val isLocked: StateFlow<Boolean> = _isLocked.asStateFlow()
 
+    // The owner chose to skip the Main-screen nudge to allow notifications. "Restore default
+    // settings" clears it so the nudge shows again.
+    private val _notificationsPromptSkipped =
+        MutableStateFlow(prefs.getBoolean(KEY_NOTIFICATIONS_SKIPPED, false))
+    val notificationsPromptSkipped: StateFlow<Boolean> = _notificationsPromptSkipped.asStateFlow()
+
     private val _replyOptions = MutableStateFlow(ReplyOptionsStore.read(app))
     val replyOptions: StateFlow<ReplyOptions> = _replyOptions.asStateFlow()
 
@@ -70,6 +76,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
             "last_receive_at" -> _lastReceiveAt.value = prefs.getLong("last_receive_at", 0L)
             "last_send_at" -> _lastSendAt.value = prefs.getLong("last_send_at", 0L)
+            KEY_NOTIFICATIONS_SKIPPED -> _notificationsPromptSkipped.value =
+                prefs.getBoolean(KEY_NOTIFICATIONS_SKIPPED, false)
         }
     }
 
@@ -109,6 +117,11 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putInt("max_subscriptions", v).apply()
     }
 
+    fun skipNotificationsPrompt() {
+        _notificationsPromptSkipped.value = true
+        prefs.edit().putBoolean(KEY_NOTIFICATIONS_SKIPPED, true).apply()
+    }
+
     fun setEnabled(value: Boolean) {
         _enabled.value = value
         prefs.edit().putBoolean("sms_enabled", value).apply()
@@ -128,9 +141,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * Puts the keyword, the reply contents (with the link style and the movement choices) and both
-     * limits back to their defaults. The PIN, SMS listening, approvals and subscriptions are untouched.
+     * limits back to their defaults, and brings back the skipped notifications nudge. The PIN, SMS
+     * listening, approvals and subscriptions are untouched.
      */
     fun resetSettings() {
+        _notificationsPromptSkipped.value = false
+        prefs.edit().remove(KEY_NOTIFICATIONS_SKIPPED).apply()
         setKeyword(SmsLimits.DEFAULT_KEYWORD)
         setReplyOptions(ReplyOptions.DEFAULT)
         setRateLimitPerHour(SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR)
@@ -199,5 +215,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     override fun onCleared() {
         super.onCleared()
         prefs.unregisterOnSharedPreferenceChangeListener(prefListener)
+    }
+
+    companion object {
+        const val KEY_NOTIFICATIONS_SKIPPED = "notif_prompt_skipped"
     }
 }

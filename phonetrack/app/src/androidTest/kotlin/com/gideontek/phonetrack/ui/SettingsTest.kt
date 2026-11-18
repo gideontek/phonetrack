@@ -380,6 +380,16 @@ class SettingsTest {
     }
 
     @Test
+    fun resetClearsTheSkippedNotificationsReminder() {
+        openSettings {
+            seedChanged()
+            TestState.prefs.edit().putBoolean("notif_prompt_skipped", true).commit()
+        }
+        confirmReset()
+        ui.waitUntil { !TestState.prefs.contains("notif_prompt_skipped") }
+    }
+
+    @Test
     fun resetKeepsThePinListeningApprovalsAndSubscriptions() {
         ui.launch {
             TestState.seedPin("1234")
