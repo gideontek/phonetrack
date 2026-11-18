@@ -246,7 +246,7 @@ fun SettingsScreen(
             title = { Text("Restore default settings?") },
             text = {
                 Text(
-                    "Keyword, reply contents, map link, movement and limits go back to their defaults, and the notifications reminder on the main screen returns if you skipped it. " +
+                    "Keyword, reply contents, map link, movement and limits go back to their defaults. " +
                         "Your PIN, listening, approved numbers and subscriptions are not changed."
                 )
             },
