@@ -1,29 +1,34 @@
 package com.gideontek.phonetrack
 
 /** What the Fix button on the status banner should do. */
-enum class StatusFix { RequestSms, RequestLocation, RequestBgLocation, OpenLocationSettings }
+enum class StatusFix { RequestSms, RequestLocation, RequestBgLocation, OpenLocationSettings, RequestNotifications }
 
 /**
  * What the Main status card says. [problem] is the single most important thing stopping
  * location replies from working, with the [fix] that resolves it; null when all is well.
+ * A [skippable] problem is a nudge rather than a fault: the banner offers Skip beside Fix.
  */
 data class StatusSummary(
     val headline: String,
     val problem: String?,
-    val fix: StatusFix?
+    val fix: StatusFix?,
+    val skippable: Boolean = false
 ) {
     companion object {
         /**
          * Problems are only reported while listening is on: someone who turned it off
          * deliberately is not nagged about permissions. Priority follows the grant order
-         * (SMS, location, then background location), then location services.
+         * (SMS, location, then background location), then location services, then the optional
+         * notifications permission, which the owner can skip for good ([notificationsSkipped]).
          */
         fun from(
             enabled: Boolean,
             smsGranted: Boolean,
             locationGranted: Boolean,
             bgLocationGranted: Boolean,
-            locationServicesEnabled: Boolean
+            locationServicesEnabled: Boolean,
+            notificationsGranted: Boolean = true,
+            notificationsSkipped: Boolean = false
         ): StatusSummary {
             if (!enabled) return StatusSummary("Listening is off", null, null)
             return when {
@@ -46,6 +51,12 @@ data class StatusSummary(
                     "Listening",
                     "Location services are off on this phone.",
                     StatusFix.OpenLocationSettings
+                )
+                !notificationsGranted && !notificationsSkipped -> StatusSummary(
+                    "Listening",
+                    "Notifications are off, so you won't be told when a new number is waiting for approval.",
+                    StatusFix.RequestNotifications,
+                    skippable = true
                 )
                 else -> StatusSummary("Listening", null, null)
             }

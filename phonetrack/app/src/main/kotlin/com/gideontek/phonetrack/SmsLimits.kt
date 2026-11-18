@@ -44,6 +44,15 @@ object SmsLimits {
     /** A pending number's lastSeen is refreshed at most this often (avoids rewriting the list per message). */
     const val PENDING_TOUCH_INTERVAL_MS = 3_600_000L
 
+    /** A pending number's request is "fresh" (Approve & send is offered) this long after its latest attempt. */
+    const val PENDING_ACTION_WINDOW_MS = 10 * 60_000L
+
+    /** A repeat attempt from an already-pending number re-posts the pending notification at most this often. */
+    const val PENDING_REPOST_INTERVAL_MS = 60_000L
+
+    /** The pending-request notification removes itself this long after its last post. */
+    const val PENDING_NOTIFICATION_TIMEOUT_MS = 24 * 3_600_000L
+
     fun coerceRateLimit(raw: Int): Int = raw.coerceAtLeast(1)
 
     fun coerceMaxSubscriptions(raw: Int): Int = raw.coerceIn(1, MAX_SUBSCRIPTIONS_CEILING)

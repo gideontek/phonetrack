@@ -18,7 +18,8 @@ fun FaqScreen(onBack: () -> Unit) {
             "Why did my first text get no reply?",
             "A number that texts the keyword for the first time waits for the phone's owner to approve it, and gets " +
                 "nothing back until then. The owner sees it under “Needs your decision” on the main " +
-                "screen and taps Approve. After that, every text gets a reply."
+                "screen and taps Approve. The owner also gets a notification when a new number is waiting. " +
+                "After that, every text gets a reply."
         )
         FaqEntry(
             "I'm approved but still get no reply. Why?",

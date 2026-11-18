@@ -59,6 +59,7 @@ class SubscriptionService : Service() {
         // would otherwise kill the process and put it in a restart loop.
         try {
             startForeground(NOTIFICATION_ID, buildNotification())
+            HostAlerts.clearLocationPermissionNeeded(this)
         } catch (e: SecurityException) {
             Log.w("SubscriptionService", "Cannot start as a location foreground service", e)
             HostAlerts.locationPermissionNeeded(this, null)
@@ -201,17 +202,18 @@ class SubscriptionService : Service() {
         nm.createNotificationChannel(
             NotificationChannel(
                 CHANNEL_ID,
-                "Location Subscriptions",
+                getString(R.string.channel_subscriptions_name),
                 NotificationManager.IMPORTANCE_LOW
             )
         )
         val count = SubscriptionManager.getAll(this).size
-        val label = if (count == 1) "1 active subscription" else "$count active subscriptions"
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("PhoneTrack — $label")
-            .setContentText("Sending periodic location updates")
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setContentTitle(resources.getQuantityString(R.plurals.notif_subs_title, count, count))
+            .setContentText(getString(R.string.notif_subs_text))
+            .setSmallIcon(R.drawable.ic_stat_phonetrack)
+            .setContentIntent(NotificationSupport.openApp(this))
             .setOngoing(true)
+            .setOnlyAlertOnce(true)
             .build()
     }
 

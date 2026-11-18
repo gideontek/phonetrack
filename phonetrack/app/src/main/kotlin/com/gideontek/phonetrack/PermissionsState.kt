@@ -106,6 +106,8 @@ fun rememberPermissionsState(): PermissionsState {
                 // Subscriptions stored while a permission was missing start working as soon
                 // as the owner has resolved it and come back here.
                 SubscriptionManager.resumeIfPossible(context)
+                HostAlerts.clearIfResolved(context)
+                PendingAlerts.refresh(context)
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

@@ -57,6 +57,7 @@ fun MainScreen(
     val subscriptions by vm.subscriptions.collectAsState()
     val lastReceiveAt by vm.lastReceiveAt.collectAsState()
     val lastSendAt by vm.lastSendAt.collectAsState()
+    val notificationsSkipped by vm.notificationsPromptSkipped.collectAsState()
 
     val context = LocalContext.current
 
@@ -97,7 +98,9 @@ fun MainScreen(
         smsGranted = permissions.smsGranted,
         locationGranted = permissions.locationGranted,
         bgLocationGranted = permissions.bgLocationGranted,
-        locationServicesEnabled = permissions.locationServicesEnabled
+        locationServicesEnabled = permissions.locationServicesEnabled,
+        notificationsGranted = permissions.notificationsGranted,
+        notificationsSkipped = notificationsSkipped
     )
     // Respect the system "remove animations" setting.
     val animate = Settings.Global.getFloat(
@@ -165,11 +168,13 @@ fun MainScreen(
                 lastReceiveAt = lastReceiveAt,
                 now = clockNow,
                 animate = animate,
+                onSkip = vm::skipNotificationsPrompt,
                 onFix = { fix ->
                     when (fix) {
                         StatusFix.RequestSms -> permissions.requestSms()
                         StatusFix.RequestLocation -> permissions.requestLocation()
                         StatusFix.RequestBgLocation -> permissions.requestBgLocation()
+                        StatusFix.RequestNotifications -> permissions.requestNotifications()
                         StatusFix.OpenLocationSettings ->
                             context.startActivity(Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS))
                     }

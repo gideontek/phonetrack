@@ -30,6 +30,10 @@ object ApprovalLogic {
         else -> ApprovalState.PENDING
     }
 
+    /** True if [sender] has no entry yet, so a contact from them would add a new PENDING one. */
+    fun isNewContact(entries: List<ApprovalEntry>, sender: String): Boolean =
+        entries.none { PhoneNumber.matches(it.number, sender) }
+
     /**
      * Records contact from [sender].
      *
@@ -48,7 +52,7 @@ object ApprovalLogic {
         now: Long,
         maxPending: Int = SmsLimits.MAX_PENDING
     ): List<ApprovalEntry> {
-        if (entries.none { PhoneNumber.matches(it.number, sender) }) {
+        if (isNewContact(entries, sender)) {
             var kept = prune(entries, now)
             val cap = maxPending.coerceAtLeast(1)
             while (kept.count { it.state == ApprovalState.PENDING } >= cap) {

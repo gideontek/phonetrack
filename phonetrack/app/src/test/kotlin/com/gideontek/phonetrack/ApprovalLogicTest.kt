@@ -255,4 +255,11 @@ class ApprovalLogicTest {
     @Test fun `prune of an empty list is empty`() {
         assertEquals(emptyList<ApprovalEntry>(), ApprovalLogic.prune(emptyList(), 1L))
     }
+
+    @Test fun `isNewContact is true only for an unknown number`() {
+        val entries = listOf(ApprovalEntry("+15550001111", ApprovalState.PENDING, 1L, 1L))
+        assertTrue(ApprovalLogic.isNewContact(entries, "+15550002222"))
+        assertFalse(ApprovalLogic.isNewContact(entries, "+15550001111"))
+        assertTrue(ApprovalLogic.isNewContact(emptyList(), "+15550001111"))
+    }
 }

@@ -22,8 +22,14 @@ object ApprovalStore {
     fun stateFor(ctx: Context, sender: String): ApprovalState? =
         ApprovalLogic.stateFor(getAll(ctx), sender)
 
-    fun upsertPending(ctx: Context, sender: String, now: Long) =
-        update(ctx) { ApprovalLogic.upsertPending(it, sender, now) }
+    /** Records contact from [sender]; true if it was a number we had no entry for. */
+    fun upsertPending(ctx: Context, sender: String, now: Long): Boolean = synchronized(lock) {
+        val current = read(ctx)
+        val added = ApprovalLogic.isNewContact(current, sender)
+        val updated = ApprovalLogic.upsertPending(current, sender, now)
+        if (updated != current) write(ctx, updated)
+        added
+    }
 
     fun setState(ctx: Context, number: String, state: ApprovalState) =
         update(ctx) { ApprovalLogic.withState(it, number, state) }
