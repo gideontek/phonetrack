@@ -63,4 +63,13 @@ class SmsLimitsTest {
         assertEquals(50, SmsLimits.MAX_PENDING)
         assertEquals(10, SmsLimits.NEW_PENDING_PER_HOUR)
     }
+
+    @Test
+    fun `the low-battery alert defaults to 5 percent and is coerced to 0 to 20`() {
+        assertEquals(5, SmsLimits.DEFAULT_LOW_BATTERY_PCT)
+        assertEquals(0, SmsLimits.coerceLowBattery(-3))
+        assertEquals(0, SmsLimits.coerceLowBattery(0))
+        assertEquals(7, SmsLimits.coerceLowBattery(7))
+        assertEquals(20, SmsLimits.coerceLowBattery(99))
+    }
 }

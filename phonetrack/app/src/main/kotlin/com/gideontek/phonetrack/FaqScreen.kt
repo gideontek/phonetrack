@@ -72,6 +72,15 @@ fun FaqScreen(onBack: () -> Unit) {
                 "⇗120m. The owner can also cancel a subscription from the main screen."
         )
         FaqEntry(
+            "What happens when the battery runs low?",
+            "While someone is subscribed, the phone texts them once when its battery falls to " +
+                "${SmsLimits.DEFAULT_LOW_BATTERY_PCT}% (Settings → General → Low-battery alert changes the " +
+                "level or turns it off). The text says “Battery low” and gives the location. If no fresh fix " +
+                "comes in time it gives the last known one, with its age.",
+            "It only works while a subscription is running, and it can't help if the phone dies before the " +
+                "text is sent."
+        )
+        FaqEntry(
             "What do the limits in Settings do?",
             "They protect the phone, and your SMS bill, from a number that sends too much. Both are in " +
                 "Settings → Limits.",

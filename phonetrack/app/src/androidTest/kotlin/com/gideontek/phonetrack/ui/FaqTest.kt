@@ -47,6 +47,7 @@ class FaqTest {
             "What does \u201CLocation unavailable\u201D mean?",
             "What is the difference between a request and \u201Clast\u201D?",
             "How do automatic updates work?",
+            "What happens when the battery runs low?",
             "What do the limits in Settings do?",
             "How secure is it?"
         )) {

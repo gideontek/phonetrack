@@ -257,6 +257,37 @@ class SettingsTest {
         compose.onNodeWithText("15").assertIsDisplayed()
     }
 
+    // --- low-battery alert -------------------------------------------------------------
+
+    private fun lowBattery() = TestState.prefs.getInt("low_battery_alert_pct", -1)
+    private fun batteryUp() = compose.onNodeWithContentDescription("Higher battery alert level").performScrollTo().performClick()
+    private fun batteryDown() = compose.onNodeWithContentDescription("Lower battery alert level").performScrollTo().performClick()
+
+    @Test
+    fun theLowBatteryAlertIsOnAtFivePercentByDefault() {
+        openSettings()
+        compose.onNodeWithText("Low-battery alert").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("5%").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun theLowBatteryStepperWalksTheLevelsAndStoresThem() {
+        openSettings()
+        batteryDown(); ui.waitUntil { lowBattery() == 3 }
+        batteryDown(); ui.waitUntil { lowBattery() == 0 }
+        compose.onNodeWithText("Off").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithContentDescription("Lower battery alert level").assertIsNotEnabled()
+        batteryUp(); ui.waitUntil { lowBattery() == 3 }
+        batteryUp(); batteryUp(); ui.waitUntil { lowBattery() == 10 }
+    }
+
+    @Test
+    fun theLowBatteryStepperStopsAtTwenty() {
+        openSettings { TestState.prefs.edit().putInt("low_battery_alert_pct", 20).commit() }
+        compose.onNodeWithContentDescription("Higher battery alert level").performScrollTo().assertIsNotEnabled()
+        compose.onNodeWithText("20%").assertIsDisplayed()
+    }
+
     // --- permissions -------------------------------------------------------------------
 
     @Test
@@ -334,6 +365,7 @@ class SettingsTest {
             .putString("sms_keyword", "where")
             .putInt("rate_limit_per_hour", 5)
             .putInt("max_subscriptions", 3)
+            .putInt("low_battery_alert_pct", 15)
             .putBoolean("reply_coords", true).putBoolean("reply_time", true).putBoolean("reply_geo", true)
             .putBoolean("reply_osm_short", true).putBoolean("reply_osm_encoded", true).putInt("reply_osm_zoom", 15)
             .putBoolean("reply_move_cardinal", true).putBoolean("reply_move_show", false)
@@ -365,6 +397,7 @@ class SettingsTest {
         val p = TestState.prefs
         ui.waitUntil { rate() == 20 }
         assertEquals(10, p.getInt("max_subscriptions", -1))
+        ui.waitUntil { lowBattery() == 5 }
         assertFalse(p.getBoolean("reply_coords", true))
         assertFalse(p.getBoolean("reply_time", true))
         assertFalse(p.getBoolean("reply_geo", true))

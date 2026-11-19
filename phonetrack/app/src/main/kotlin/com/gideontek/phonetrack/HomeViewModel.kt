@@ -49,6 +49,9 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _maxSubscriptions = MutableStateFlow(readMaxSubscriptions())
     val maxSubscriptions: StateFlow<Int> = _maxSubscriptions.asStateFlow()
 
+    private val _lowBatteryPct = MutableStateFlow(readLowBattery())
+    val lowBatteryPct: StateFlow<Int> = _lowBatteryPct.asStateFlow()
+
     private val _subscriptions = MutableStateFlow(SubscriptionManager.getAll(app))
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
 
@@ -73,6 +76,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "approvals_list" -> _approvalEntries.value = ApprovalStore.getAll(app)
             "rate_limit_per_hour" -> _rateLimitPerHour.value = readRateLimit()
             "max_subscriptions" -> _maxSubscriptions.value = readMaxSubscriptions()
+            KEY_LOW_BATTERY -> _lowBatteryPct.value = readLowBattery()
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
             "last_receive_at" -> _lastReceiveAt.value = prefs.getLong("last_receive_at", 0L)
             "last_send_at" -> _lastSendAt.value = prefs.getLong("last_send_at", 0L)
@@ -104,6 +108,16 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private fun readMaxSubscriptions(): Int = SmsLimits.coerceMaxSubscriptions(
         prefs.getInt("max_subscriptions", SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
     )
+
+    private fun readLowBattery(): Int = SmsLimits.coerceLowBattery(
+        prefs.getInt(KEY_LOW_BATTERY, SmsLimits.DEFAULT_LOW_BATTERY_PCT)
+    )
+
+    fun setLowBatteryPct(value: Int) {
+        val v = SmsLimits.coerceLowBattery(value)
+        _lowBatteryPct.value = v
+        prefs.edit().putInt(KEY_LOW_BATTERY, v).apply()
+    }
 
     fun setRateLimitPerHour(value: Int) {
         val v = LimitSteps.clampRate(value)
@@ -141,7 +155,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     /**
      * Puts the keyword, the reply contents (with the link style and the movement choices) and both
-     * limits back to their defaults, and brings back the skipped notifications nudge. The PIN, SMS
+     * limits and the low-battery alert back to their defaults, and brings back the skipped
+     * notifications nudge. The PIN, SMS
      * listening, approvals and subscriptions are untouched.
      */
     fun resetSettings() {
@@ -151,6 +166,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         setReplyOptions(ReplyOptions.DEFAULT)
         setRateLimitPerHour(SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR)
         setMaxSubscriptions(SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
+        setLowBatteryPct(SmsLimits.DEFAULT_LOW_BATTERY_PCT)
     }
 
     /** Save a new PIN and leave the session unlocked. */
@@ -219,5 +235,6 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
 
     companion object {
         const val KEY_NOTIFICATIONS_SKIPPED = "notif_prompt_skipped"
+        const val KEY_LOW_BATTERY = "low_battery_alert_pct"
     }
 }

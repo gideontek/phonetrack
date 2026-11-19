@@ -29,6 +29,10 @@ object SmsLimits {
     const val DEFAULT_MAX_SUBSCRIPTIONS = 10
     const val MAX_SUBSCRIPTIONS_CEILING = 20
 
+    /** Battery percent at or below which subscribers get one low-battery message; pref `low_battery_alert_pct`, 0 = off. */
+    const val DEFAULT_LOW_BATTERY_PCT = 5
+    const val MAX_LOW_BATTERY_PCT = 20
+
     /** Fixed rate-limit window. */
     const val RATE_WINDOW_MS = 3_600_000L
 
@@ -56,6 +60,8 @@ object SmsLimits {
     fun coerceRateLimit(raw: Int): Int = raw.coerceAtLeast(1)
 
     fun coerceMaxSubscriptions(raw: Int): Int = raw.coerceIn(1, MAX_SUBSCRIPTIONS_CEILING)
+
+    fun coerceLowBattery(raw: Int): Int = raw.coerceIn(0, MAX_LOW_BATTERY_PCT)
 
     /**
      * A keyword must be a single token, and must not start with '[': every reply starts with
