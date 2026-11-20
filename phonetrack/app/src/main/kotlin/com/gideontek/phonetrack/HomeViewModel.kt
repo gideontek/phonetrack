@@ -55,6 +55,12 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     private val _subscriptions = MutableStateFlow(SubscriptionManager.getAll(app))
     val subscriptions: StateFlow<List<Subscription>> = _subscriptions.asStateFlow()
 
+    private val _eventLogEnabled = MutableStateFlow(EventLogStore.isEnabled(app))
+    val eventLogEnabled: StateFlow<Boolean> = _eventLogEnabled.asStateFlow()
+
+    private val _eventLog = MutableStateFlow(EventLogStore.read(app))
+    val eventLog: StateFlow<List<EventEntry>> = _eventLog.asStateFlow()
+
     // Timestamps of the most recent inbound SMS request / outbound SMS reply, written by
     // SmsReceiver and SmsSender respectively. Drives the live StreamStatusIndicator state
     // via StreamActivityLogic — see MainScreen.
@@ -78,6 +84,8 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
             "max_subscriptions" -> _maxSubscriptions.value = readMaxSubscriptions()
             KEY_LOW_BATTERY -> _lowBatteryPct.value = readLowBattery()
             "subscriptions_list" -> _subscriptions.value = SubscriptionManager.getAll(app)
+            EventLogStore.KEY_ENABLED -> _eventLogEnabled.value = EventLogStore.isEnabled(app)
+            EventLogStore.KEY_LOG -> _eventLog.value = EventLogStore.read(app)
             "last_receive_at" -> _lastReceiveAt.value = prefs.getLong("last_receive_at", 0L)
             "last_send_at" -> _lastSendAt.value = prefs.getLong("last_send_at", 0L)
             KEY_NOTIFICATIONS_SKIPPED -> _notificationsPromptSkipped.value =
@@ -113,20 +121,30 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         prefs.getInt(KEY_LOW_BATTERY, SmsLimits.DEFAULT_LOW_BATTERY_PCT)
     )
 
+    // True while resetSettings() runs: it logs one "restore-defaults" line instead of one per setting.
+    private var quietSettings = false
+
+    private fun logSetting(setting: Setting, value: Int? = null, on: Boolean? = null) {
+        if (!quietSettings) EventLog.settingChanged(getApplication(), setting, value, on)
+    }
+
     fun setLowBatteryPct(value: Int) {
         val v = SmsLimits.coerceLowBattery(value)
+        if (v != _lowBatteryPct.value) logSetting(Setting.LOW_BATTERY_ALERT, value = v)
         _lowBatteryPct.value = v
         prefs.edit().putInt(KEY_LOW_BATTERY, v).apply()
     }
 
     fun setRateLimitPerHour(value: Int) {
         val v = LimitSteps.clampRate(value)
+        if (v != _rateLimitPerHour.value) logSetting(Setting.RATE_LIMIT, value = v)
         _rateLimitPerHour.value = v
         prefs.edit().putInt("rate_limit_per_hour", v).apply()
     }
 
     fun setMaxSubscriptions(value: Int) {
         val v = LimitSteps.clampSubscriptions(value)
+        if (v != _maxSubscriptions.value) logSetting(Setting.MAX_SUBSCRIPTIONS, value = v)
         _maxSubscriptions.value = v
         prefs.edit().putInt("max_subscriptions", v).apply()
     }
@@ -136,21 +154,40 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
         prefs.edit().putBoolean(KEY_NOTIFICATIONS_SKIPPED, true).apply()
     }
 
+    /** Turns the event log on, or off (which deletes it). */
+    fun setEventLogEnabled(on: Boolean) {
+        EventLog.setEnabled(getApplication(), on)
+    }
+
+    /** Deletes the recorded events and the alias map; the log stays on and re-snapshots the environment. */
+    fun clearEventLog() {
+        EventLog.clear(getApplication())
+    }
+
     fun setEnabled(value: Boolean) {
+        if (value != _enabled.value) logSetting(Setting.LISTENING, on = value)
         _enabled.value = value
         prefs.edit().putBoolean("sms_enabled", value).apply()
     }
 
     fun setKeyword(value: String) {
         val clean = SmsLimits.sanitizeKeyword(value)
+        if (clean != _keyword.value) logSetting(Setting.KEYWORD) // never the keyword itself
         _keyword.value = clean
         prefs.edit().putString("sms_keyword", clean).apply()
     }
 
     /** Saves what location replies contain (a set with no location part gets the map link added). */
     fun setReplyOptions(options: ReplyOptions) {
+        val old = _replyOptions.value
+        val new = options.normalized()
+        if (old.copy(link = new.link, movement = new.movement) != new) logSetting(Setting.REPLY_CONTENTS)
+        if (old.link != new.link) logSetting(Setting.MAP_LINK)
+        if (old.movement != new.movement) {
+            logSetting(Setting.MOVEMENT, on = new.movement.show.takeIf { it != old.movement.show })
+        }
         ReplyOptionsStore.write(getApplication(), options)
-        _replyOptions.value = options.normalized()
+        _replyOptions.value = new
     }
 
     /**
@@ -162,16 +199,23 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun resetSettings() {
         _notificationsPromptSkipped.value = false
         prefs.edit().remove(KEY_NOTIFICATIONS_SKIPPED).apply()
-        setKeyword(SmsLimits.DEFAULT_KEYWORD)
-        setReplyOptions(ReplyOptions.DEFAULT)
-        setRateLimitPerHour(SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR)
-        setMaxSubscriptions(SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
-        setLowBatteryPct(SmsLimits.DEFAULT_LOW_BATTERY_PCT)
+        quietSettings = true
+        try {
+            setKeyword(SmsLimits.DEFAULT_KEYWORD)
+            setReplyOptions(ReplyOptions.DEFAULT)
+            setRateLimitPerHour(SmsLimits.DEFAULT_RATE_LIMIT_PER_HOUR)
+            setMaxSubscriptions(SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
+            setLowBatteryPct(SmsLimits.DEFAULT_LOW_BATTERY_PCT)
+        } finally {
+            quietSettings = false
+        }
+        logSetting(Setting.RESTORE_DEFAULTS)
     }
 
     /** Save a new PIN and leave the session unlocked. */
     fun setPin(pin: String) {
         PinStore.set(getApplication(), pin)
+        logSetting(Setting.PIN_SET)
         _pinSet.value = true
         _isLocked.value = false
     }
@@ -196,12 +240,13 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     /** Clears the stored PIN, leaving settings permanently unlocked until a new PIN is set. */
     fun removePin() {
         PinStore.remove(getApplication())
+        logSetting(Setting.PIN_REMOVED)
         _pinSet.value = false
         _isLocked.value = false
     }
 
     fun setNumberState(number: String, state: ApprovalState) {
-        ApprovalStore.setState(getApplication(), number, state)
+        ApprovalStore.setState(getApplication(), number, state, Reason.IN_APP)
         _approvalEntries.value = ApprovalStore.getAll(getApplication())
         PendingAlerts.refresh(getApplication())
     }
@@ -224,7 +269,7 @@ class HomeViewModel(app: Application) : AndroidViewModel(app) {
     fun cancelSubscription(number: String) {
         val ctx = getApplication<Application>()
         SmsSender.sendSubscriptionCancelled(ctx, number)
-        SubscriptionManager.remove(ctx, number)
+        if (SubscriptionManager.remove(ctx, number)) EventLog.cancelled(ctx, number, Reason.IN_APP)
         _subscriptions.value = SubscriptionManager.getAll(ctx)
     }
 

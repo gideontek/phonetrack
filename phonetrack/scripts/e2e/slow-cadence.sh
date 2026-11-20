@@ -15,7 +15,7 @@ FAR_LON=-122.4094        # about 880 m east
 FARTHER_LON=-122.3994    # about 1.8 km east
 
 clean_start
-seed_prefs "sms_enabled=b:true" "prefs_schema_version=i:2" "approvals_list=s:$APPR"
+seed_prefs "sms_enabled=b:true" "prefs_schema_version=i:2" "reply_coords=b:true" "approvals_list=s:$APPR"
 launch
 BASE=$(sms_max_id)
 sent() { sms_rows_since "$BASE" | grep '^2|'; }

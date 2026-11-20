@@ -67,8 +67,14 @@ object PinStore {
             }
             val failed = PinLockout.onFailure(state, now)
             writeState(ctx, failed)
-            if (PinLockout.isLocked(failed, now)) PinResult.Locked(PinLockout.remainingMs(failed, now))
-            else PinResult.Wrong(PinLockout.attemptsLeft(failed))
+            if (PinLockout.isLocked(failed, now)) {
+                val remaining = PinLockout.remainingMs(failed, now)
+                EventLog.pinLocked(ctx, ((remaining + 59_999) / 60_000).toInt())
+                PinResult.Locked(remaining)
+            } else {
+                EventLog.pinWrong(ctx, PinLockout.attemptsLeft(failed))
+                PinResult.Wrong(PinLockout.attemptsLeft(failed))
+            }
         }
 
     /** Hashes a legacy plaintext PIN once and deletes it. The old PIN keeps working. */

@@ -31,8 +31,14 @@ object ApprovalStore {
         added
     }
 
-    fun setState(ctx: Context, number: String, state: ApprovalState) =
+    /** Sets [number]'s state; an approval or block that changed it is logged, with [source] (in-app or notification). */
+    fun setState(ctx: Context, number: String, state: ApprovalState, source: Reason? = null) {
+        val before = stateFor(ctx, number)
         update(ctx) { ApprovalLogic.withState(it, number, state) }
+        if (before != state && state != ApprovalState.PENDING) {
+            EventLog.numberDecided(ctx, number, approved = state == ApprovalState.APPROVED, source = source)
+        }
+    }
 
     /** Drops stale PENDING entries (see [ApprovalLogic.prune]). */
     fun prune(ctx: Context, now: Long = System.currentTimeMillis()) =
