@@ -47,6 +47,10 @@ object TestState {
         prefs.edit().putBoolean("sms_enabled", true).putString("sms_keyword", keyword).commit()
     }
 
+    fun disableListening() {
+        prefs.edit().putBoolean("sms_enabled", false).commit()
+    }
+
     /** Overwrites the approvals list. Entries are (number, state, lastSeen epoch ms). */
     fun seedApprovals(vararg entries: Triple<String, String, Long>) {
         val array = JSONArray()

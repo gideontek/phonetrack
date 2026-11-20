@@ -100,6 +100,10 @@ object EventLogStore {
         e.freqMin?.let { put("freqMin", it) }
         e.distM?.let { put("distM", it) }
         e.hours?.let { put("hours", it) }
+        e.msg?.let { put("msg", it.text) }
+        e.setting?.let { put("setting", it.text) }
+        e.value?.let { put("value", it) }
+        e.on?.let { put("on", it) }
         if (e.outcomes.isNotEmpty()) {
             val array = JSONArray()
             e.outcomes.forEach { array.put(outcomeToJson(it)) }
@@ -120,6 +124,8 @@ object EventLogStore {
             lateS = int("lateS"), reason = Reason.fromText(str("reason")), fixS = int("fixS"),
             acc = Bucket.fromText(str("acc")), parts = int("parts"), err = str("err"),
             freqMin = int("freqMin"), distM = int("distM"), hours = int("hours"),
+            msg = MessageKind.fromText(str("msg")), setting = Setting.fromText(str("setting")), value = int("value"),
+            on = if (o.isNull("on")) null else o.optBoolean("on"),
             outcomes = outcomes, env = o.optJSONObject("env")?.let { envFromJson(it) },
         )
     }

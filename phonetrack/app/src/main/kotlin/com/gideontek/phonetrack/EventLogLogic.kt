@@ -120,11 +120,40 @@ object EventLogLogic {
         EventType.SUBSCRIBED -> "${alias(e.who)} subscribed: ${settings(e)}"
         EventType.REPLACED -> "${alias(e.who)} replaced subscription: ${settings(e)}"
         EventType.EXPIRED -> "${alias(e.who)} subscription expired"
-        EventType.CANCELLED -> "${alias(e.who)} unsubscribed"
+        EventType.CANCELLED -> "${alias(e.who)} unsubscribed" + reason(e)
         EventType.SUBSCRIBE_REJECTED -> "subscribe rejected" + reason(e)
         EventType.FIX_FAIL -> "no location fix" + reason(e)
         EventType.SEND_FAIL -> "${alias(e.who)} send failed (${errName(e.err)}, ${e.parts ?: 0} part(s))"
         EventType.ENV -> envLine(e.env)
+        EventType.LOW_BATTERY -> lowBatteryLine(e)
+        EventType.NUMBER_PENDING -> "${alias(e.who)} is waiting for approval"
+        EventType.NUMBER_APPROVED -> "${alias(e.who)} approved" + reason(e)
+        EventType.NUMBER_BLOCKED -> "${alias(e.who)} blocked" + reason(e)
+        EventType.MANUAL_SEND -> "location sent to ${alias(e.who)} by the owner" + reason(e)
+        EventType.SETTING_CHANGED -> settingLine(e)
+        EventType.REPLY_SENT -> "replied to ${alias(e.who)}: ${e.msg?.text ?: "?"}"
+        EventType.REQUEST_RECEIVED -> "request from ${alias(e.who)}: ${e.msg?.text ?: "?"}"
+        EventType.INBOUND_DROPPED ->
+            (if (e.who != null) "request from ${alias(e.who)} dropped" else "request dropped") + reason(e)
+        EventType.PIN_WRONG -> "wrong settings PIN (${e.n ?: 0} attempt(s) left)"
+        EventType.PIN_LOCKED -> "settings PIN locked for ${e.value ?: 0} min"
+    }
+
+    private fun lowBatteryLine(e: EventEntry): String {
+        val level = e.value?.let { "$it%" } ?: "?"
+        val to = e.n ?: 0
+        return if (to == 0) "low battery ($level): nobody to alert" + reason(e)
+        else "low battery ($level): alerted $to subscriber(s)" + reason(e)
+    }
+
+    private fun settingLine(e: EventEntry): String {
+        val name = e.setting?.text ?: "unknown"
+        val state = when {
+            e.on != null -> if (e.on) " on" else " off"
+            e.value != null -> if (e.setting == Setting.LOW_BATTERY_ALERT && e.value == 0) " off" else " ${e.value}"
+            else -> ""
+        }
+        return "setting changed: $name$state"
     }
 
     private fun tickLine(e: EventEntry): String {

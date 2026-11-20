@@ -201,6 +201,54 @@ class EventLogLogicTest {
         }
     }
 
+    @Test fun `owner actions, approvals and setting changes read plainly`() {
+        val log = listOf(
+            EventEntry(1_000, EventType.LOW_BATTERY, n = 2, value = 5, reason = Reason.FRESH_FIX),
+            EventEntry(2_000, EventType.LOW_BATTERY, n = 0, value = 4),
+            EventEntry(3_000, EventType.NUMBER_PENDING, who = "Contact-C"),
+            EventEntry(4_000, EventType.NUMBER_APPROVED, who = "Contact-C", reason = Reason.NOTIFICATION),
+            EventEntry(5_000, EventType.NUMBER_BLOCKED, who = "Contact-D", reason = Reason.IN_APP),
+            EventEntry(6_000, EventType.MANUAL_SEND, who = "Contact-A", reason = Reason.SEND_NOW),
+            EventEntry(7_000, EventType.SETTING_CHANGED, setting = Setting.LISTENING, on = false),
+            EventEntry(8_000, EventType.SETTING_CHANGED, setting = Setting.LOW_BATTERY_ALERT, value = 10),
+            EventEntry(9_000, EventType.SETTING_CHANGED, setting = Setting.LOW_BATTERY_ALERT, value = 0),
+            EventEntry(10_000, EventType.SETTING_CHANGED, setting = Setting.KEYWORD),
+            EventEntry(11_000, EventType.SETTING_CHANGED, setting = Setting.RESTORE_DEFAULTS),
+            EventEntry(12_000, EventType.REPLY_SENT, who = "Contact-A", msg = MessageKind.HELP),
+            EventEntry(13_000, EventType.INBOUND_DROPPED, reason = Reason.NEW_NUMBER_LIMIT),
+            EventEntry(14_000, EventType.PIN_WRONG, n = 2),
+            EventEntry(15_000, EventType.PIN_LOCKED, value = 5),
+            EventEntry(16_000, EventType.REQUEST_RECEIVED, who = "Contact-A", msg = MessageKind.ONE_SHOT),
+            EventEntry(17_000, EventType.INBOUND_DROPPED, who = "Contact-E", reason = Reason.BLOCKED),
+            EventEntry(18_000, EventType.INBOUND_DROPPED, reason = Reason.LISTENING_OFF),
+            EventEntry(19_000, EventType.CANCELLED, who = "Contact-A", reason = Reason.IN_APP),
+        )
+        val text = EventLogLogic.render(log, "1.1", 35, ZoneOffset.UTC)
+        for (line in listOf(
+            "low battery (5%): alerted 2 subscriber(s) (fresh-fix)",
+            "low battery (4%): nobody to alert",
+            "Contact-C is waiting for approval",
+            "Contact-C approved (notification)",
+            "Contact-D blocked (in-app)",
+            "location sent to Contact-A by the owner (send-now)",
+            "setting changed: listening off",
+            "setting changed: low-battery-alert 10",
+            "setting changed: low-battery-alert off",
+            "setting changed: keyword",
+            "setting changed: restore-defaults",
+            "replied to Contact-A: help",
+            "request dropped (new-number-limit)",
+            "wrong settings PIN (2 attempt(s) left)",
+            "settings PIN locked for 5 min",
+            "request from Contact-A: location",
+            "request from Contact-E dropped (blocked)",
+            "request dropped (listening-off)",
+            "Contact-A unsubscribed (in-app)",
+        )) {
+            assertTrue("missing '$line' in:\n$text", text.lines().any { it.endsWith("  $line") })
+        }
+    }
+
     @Test fun `an empty log renders the header and says so`() {
         val text = EventLogLogic.render(emptyList(), "1.1", 35, ZoneOffset.UTC)
         assertTrue(text.startsWith("PhoneTrack event log\n"))

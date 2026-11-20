@@ -101,8 +101,9 @@ object EventLog {
     fun expired(ctx: Context, number: String) =
         log(ctx) { EventEntry(now(), EventType.EXPIRED, who = alias(ctx, number)) }
 
-    fun cancelled(ctx: Context, number: String) =
-        log(ctx) { EventEntry(now(), EventType.CANCELLED, who = alias(ctx, number)) }
+    /** [source] is [Reason.IN_APP] when the owner cancelled it; null when the subscriber did. */
+    fun cancelled(ctx: Context, number: String, source: Reason? = null) =
+        log(ctx) { EventEntry(now(), EventType.CANCELLED, who = alias(ctx, number), reason = source) }
 
     fun subscribeRejected(ctx: Context, reason: Reason) =
         log(ctx) { EventEntry(now(), EventType.SUBSCRIBE_REJECTED, reason = reason) }
@@ -117,6 +118,52 @@ object EventLog {
                 err = EventLogLogic.safeText(error.javaClass.simpleName, 60)
             )
         }
+
+    // --- owner actions and approvals ---------------------------------------------------------
+
+    /** The low-battery alert fired for [percent]; [recipients] subscribers were told, with [fix] as the position source. */
+    fun lowBattery(ctx: Context, percent: Int, recipients: Int, fix: Reason?) =
+        log(ctx, durable = true) {
+            EventEntry(now(), EventType.LOW_BATTERY, n = recipients, value = percent, reason = fix)
+        }
+
+    /** A number we had not heard from before asked for the location and now waits for the owner. */
+    fun numberPending(ctx: Context, number: String) =
+        log(ctx) { EventEntry(now(), EventType.NUMBER_PENDING, who = alias(ctx, number)) }
+
+    /** The owner approved or blocked [number], from the app ([Reason.IN_APP]) or the notification. */
+    fun numberDecided(ctx: Context, number: String, approved: Boolean, source: Reason?) = log(ctx) {
+        EventEntry(
+            now(), if (approved) EventType.NUMBER_APPROVED else EventType.NUMBER_BLOCKED,
+            who = alias(ctx, number), reason = source
+        )
+    }
+
+    /** The owner sent their location to [number] by hand ([Reason.SEND_NOW] or [Reason.APPROVE_SEND]). */
+    fun manualSend(ctx: Context, number: String, source: Reason) =
+        log(ctx) { EventEntry(now(), EventType.MANUAL_SEND, who = alias(ctx, number), reason = source) }
+
+    /** A setting changed. [value] or [on] only for plain configuration; never the keyword or the PIN. */
+    fun settingChanged(ctx: Context, setting: Setting, value: Int? = null, on: Boolean? = null) =
+        log(ctx) { EventEntry(now(), EventType.SETTING_CHANGED, setting = setting, value = value, on = on) }
+
+    /** A reply of this [kind] was handed to the phone for [number]. */
+    fun replied(ctx: Context, number: String, kind: MessageKind) =
+        log(ctx) { EventEntry(now(), EventType.REPLY_SENT, who = alias(ctx, number), msg = kind) }
+
+    /** An approved sender's command was accepted: the start of the flow that ends in a reply, an update or an error. */
+    fun requested(ctx: Context, number: String, kind: MessageKind) =
+        log(ctx) { EventEntry(now(), EventType.REQUEST_RECEIVED, who = alias(ctx, number), msg = kind) }
+
+    /** A request got no answer; [reason] says why. [number] is shown as an alias, null when no one sender is to blame. */
+    fun inboundDropped(ctx: Context, reason: Reason, number: String? = null) =
+        log(ctx) { EventEntry(now(), EventType.INBOUND_DROPPED, who = number?.let { alias(ctx, it) }, reason = reason) }
+
+    fun pinWrong(ctx: Context, attemptsLeft: Int) =
+        log(ctx, durable = true) { EventEntry(now(), EventType.PIN_WRONG, n = attemptsLeft) }
+
+    fun pinLocked(ctx: Context, minutes: Int) =
+        log(ctx, durable = true) { EventEntry(now(), EventType.PIN_LOCKED, value = minutes) }
 
     // --- environment -------------------------------------------------------------------------
 

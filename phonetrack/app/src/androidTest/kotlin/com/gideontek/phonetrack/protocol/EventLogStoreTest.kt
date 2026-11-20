@@ -11,6 +11,7 @@ import com.gideontek.phonetrack.EventType
 import com.gideontek.phonetrack.Outcome
 import com.gideontek.phonetrack.OutcomeKind
 import com.gideontek.phonetrack.Reason
+import com.gideontek.phonetrack.Setting
 import com.gideontek.phonetrack.support.ResetStateRule
 import com.gideontek.phonetrack.support.TestState
 import org.junit.Assert.assertEquals
@@ -31,6 +32,7 @@ class EventLogStoreTest {
         t = System.currentTimeMillis(), type = EventType.TICK,
         who = "Contact-A", n = 3, due = 2, lateS = 7, reason = Reason.TIMEOUT, fixS = 4, acc = Bucket.M10_50,
         parts = 2, err = "SecurityException", freqMin = 15, distM = 200, hours = 4,
+        setting = Setting.LOW_BATTERY_ALERT, value = 10, on = false,
         outcomes = listOf(
             Outcome("Contact-A", OutcomeKind.SENT),
             Outcome("Contact-B", OutcomeKind.NOT_MOVED, Bucket.M50_100, 200),

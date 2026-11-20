@@ -3,11 +3,14 @@ package com.gideontek.phonetrack.protocol
 import android.content.Context
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
+import com.gideontek.phonetrack.ApprovalState
+import com.gideontek.phonetrack.ApprovalStore
 import com.gideontek.phonetrack.Bucket
 import com.gideontek.phonetrack.EventEntry
 import com.gideontek.phonetrack.EventLogLogic
 import com.gideontek.phonetrack.EventLogStore
 import com.gideontek.phonetrack.EventType
+import com.gideontek.phonetrack.MessageKind
 import com.gideontek.phonetrack.OutcomeKind
 import com.gideontek.phonetrack.PhoneNumber
 import com.gideontek.phonetrack.Reason
@@ -63,6 +66,54 @@ class EventLogTest {
         assertTrue(log().isEmpty())
         assertFalse(TestState.prefs.contains("event_log"))
         assertFalse(TestState.prefs.contains("event_log_aliases"))
+    }
+
+    @Test
+    fun aNewNumberIsLoggedAsPendingOnceAndThenApprovedWithoutShowingTheNumber() {
+        EventLogStore.setEnabled(context, true)
+        val stranger = "+15550001111"
+        val s = Scenario()
+        TestState.enableListening()
+        s.send("phonetrack", from = stranger)
+        s.send("phonetrack", from = stranger) // a second try while pending adds nothing
+        waitForLog { l -> l.any { it.type == EventType.NUMBER_PENDING } }
+        ApprovalStore.setState(context, stranger, ApprovalState.APPROVED, Reason.IN_APP)
+        ApprovalStore.setState(context, stranger, ApprovalState.APPROVED, Reason.IN_APP) // no change, no line
+        ApprovalStore.setState(context, stranger, ApprovalState.BLOCKED, Reason.NOTIFICATION)
+        val entries = log()
+        assertEquals(1, entries.count { it.type == EventType.NUMBER_PENDING })
+        val approved = entries.single { it.type == EventType.NUMBER_APPROVED }
+        assertEquals(Reason.IN_APP, approved.reason)
+        assertEquals(Reason.NOTIFICATION, entries.single { it.type == EventType.NUMBER_BLOCKED }.reason)
+        assertEquals("Contact-A", approved.who)
+        assertFalse(TestState.prefs.getString("event_log", "")!!.contains("5550001111"))
+    }
+
+    @Test
+    fun ignoredRequestsAreLoggedOncePerReasonAndSender() {
+        EventLogStore.setEnabled(context, true)
+        val s = Scenario()
+        val blocked = "+15550002222"
+        TestState.enableListening()
+        TestState.seedApprovals(Triple(blocked, "BLOCKED", System.currentTimeMillis()))
+        repeat(3) { s.send("phonetrack", from = blocked) }
+        TestState.disableListening()
+        repeat(2) { s.send("phonetrack help") }
+        val drops = waitForLog { l -> l.count { it.type == EventType.INBOUND_DROPPED } >= 2 }
+            .filter { it.type == EventType.INBOUND_DROPPED }
+        assertEquals(listOf(Reason.BLOCKED, Reason.LISTENING_OFF), drops.map { it.reason })
+        assertTrue("a blocked sender is shown by alias", drops.first().who!!.startsWith("Contact-"))
+        assertFalse(TestState.prefs.getString("event_log", "")!!.contains("5550002222"))
+    }
+
+    @Test
+    fun anAcceptedCommandIsLoggedAsARequestBeforeItsReply() {
+        EventLogStore.setEnabled(context, true)
+        Scenario().ready().ask("phonetrack help")
+        val entries = waitForLog { l -> l.any { it.type == EventType.REPLY_SENT } }
+        val types = entries.map { it.type }
+        assertTrue(types.indexOf(EventType.REQUEST_RECEIVED) < types.indexOf(EventType.REPLY_SENT))
+        assertEquals(MessageKind.HELP, entries.single { it.type == EventType.REQUEST_RECEIVED }.msg)
     }
 
     @Test

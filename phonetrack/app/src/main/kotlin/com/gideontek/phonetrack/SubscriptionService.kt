@@ -329,13 +329,20 @@ class SubscriptionService : Service() {
     private fun deliverLowBattery(percent: Int, fresh: Location?) {
         pendingAlertPercent = null
         val recipients = alertRecipients()
-        if (recipients.isEmpty()) return
+        if (recipients.isEmpty()) {
+            EventLog.lowBattery(this, percent, 0, null)
+            return
+        }
         val now = System.currentTimeMillis()
         val cached = if (fresh == null &&
             ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
         ) LastKnownLocation.get(this) else null
         val loc = fresh ?: cached
+        EventLog.lowBattery(
+            this, percent, recipients.size,
+            if (fresh != null) Reason.FRESH_FIX else if (cached != null) Reason.CACHED_FIX else Reason.NO_FIX
+        )
         val ageMs = cached?.let { now - it.time }
         for (sub in recipients) {
             SmsSender.sendLowBattery(this, sub.number, loc, percent, ageMs)

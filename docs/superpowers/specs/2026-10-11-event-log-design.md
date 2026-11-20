@@ -26,7 +26,7 @@ drop or delay an update silently today:
 
 ## Non-goals (v1)
 
-Inbound-gate drop reasons (keyword mismatch, blocked, pending, rate-limited, etc.), SMS
+Inbound-gate drop reasons (keyword mismatch, blocked or pending sender repeating, rate-limited, over the new-number-per-hour limit), SMS
 sent/delivery-report callbacks, a share sheet, export to a file.
 
 ## Constraints (from CLAUDE.md)
@@ -67,6 +67,7 @@ Event codes:
 - Location: `FIX_FAIL` (a successful fix is not an event; its latency and accuracy are TICK fields)
 - Send: `SEND_FAIL`
 - Environment: `ENV`
+- Owner actions and approvals: `LOW_BATTERY` (alert fired: `n` subscribers told, `value` the percent, `reason` the position source `fresh-fix`, `cached-fix` or `no-fix`; `n` is 0 when nobody was subscribed), `NUMBER_PENDING` (a number we had not heard from asked, logged once, not on repeat tries), `NUMBER_APPROVED` / `NUMBER_BLOCKED` (only when the state really changed; `reason` is `in-app` or `notification`), `MANUAL_SEND` (the owner sent their location by hand; `reason` `send-now` or `approve-and-send`), `SETTING_CHANGED` (`setting` name, plus `value` or `on` where it is plain configuration)
 
 A due subscriber's result in a tick is an outcome (`sent`, `not-moved`, `listener-off`) stored as a
 field of that `TICK` entry, not as an event of its own.
@@ -85,6 +86,12 @@ Reasons:
 - Service stop: `no-subs`, `startForeground-denied`
 - Boot resume failure: `cannot-start` (the service could not be started from the boot receiver)
 - Rejection: `limit`, `invalid-flags`
+
+Flow of a request: `REQUEST_RECEIVED` (an approved sender's command was accepted; `msg` is location, last-known location, help, subscribe, unsubscribe or invalid subscribe) starts the flow, and the lines after it (fix, `REPLY_SENT`, `SEND_FAIL`, `TICK` outcomes) are what came of it. `INBOUND_DROPPED` covers a request that got no answer, with `reason` `listening-off`, `blocked`, `awaiting-approval`, `rate-limited` or `new-number-limit`, and the sender's alias where one sender is to blame. Each drop is logged at most once an hour per reason and sender, so a spammer cannot fill the log. A text that does not start with the keyword is never logged. `CANCELLED` says `in-app` when the owner cancelled it.
+
+Replies and drops: `REPLY_SENT` (`msg` kind: location, last-known location, no saved location, help, no subscription to cancel, rate limit notice, and the four location errors; logged once, inside `SmsSender.send`, only when the system accepted every text, and only for replies no other event already describes), `PIN_WRONG` (`n` attempts left) and `PIN_LOCKED` (`value` minutes). Subscription updates, subscribe acks, expiry and low-battery messages get no `REPLY_SENT` line: the `TICK`, `SUBSCRIBED`, `EXPIRED` and `LOW_BATTERY` lines already say so.
+
+Settings logged: listening (on/off), keyword (changed, never the value), reply contents, map link, movement (on/off), rate limit, max subscriptions, low-battery alert (percent, 0 = off), PIN set / removed (never the PIN) and restore-defaults (one line, not one per setting). The event log's own switch is not logged.
 
 ## Privacy rules
 
