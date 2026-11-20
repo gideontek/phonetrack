@@ -152,6 +152,8 @@ class SmsLocationService : Service() {
         val request = FixRequest(lm, handler).also { fixRequest = it }
 
         val timeoutRunnable = Runnable {
+            // A coarse fix still waiting for GPS is better than an error.
+            if (request.deliverHeld()) return@Runnable
             request.cancel()
             SmsSender.sendTimeoutError(this, sender)
             stopSelf()

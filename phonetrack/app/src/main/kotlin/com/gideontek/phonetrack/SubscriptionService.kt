@@ -198,6 +198,8 @@ class SubscriptionService : Service() {
         val request = FixRequest(lm, handler).also { fixRequest = it }
 
         val timeoutRunnable = Runnable {
+            // A coarse fix still waiting for GPS is better than a failed tick.
+            if (request.deliverHeld()) return@Runnable
             locationTimeoutRunnable = null
             request.cancel()
             fixRequest = null

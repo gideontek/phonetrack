@@ -14,6 +14,7 @@ import android.os.Looper
  */
 class FixRequest(private val lm: LocationManager, private val handler: Handler) {
     private val listeners = mutableListOf<LocationListener>()
+    private var onFix: ((Location) -> Unit)? = null
     private var held: Location? = null
     private var grace: Runnable? = null
     private var done = false
@@ -27,12 +28,24 @@ class FixRequest(private val lm: LocationManager, private val handler: Handler) 
             networkOn = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
         )
         if (sources.isEmpty()) return false
+        this.onFix = onFix
         for (source in sources) {
-            val listener = LocationListener { loc -> onLocation(source, loc, onFix) }
+            val listener = LocationListener { loc -> onLocation(source, loc) }
             listeners += listener
             val provider = if (source == FixSource.GPS) LocationManager.GPS_PROVIDER else LocationManager.NETWORK_PROVIDER
             lm.requestSingleUpdate(provider, listener, Looper.getMainLooper())
         }
+        return true
+    }
+
+    /**
+     * For the caller's deadline: if a coarse fix is still waiting for a better one, deliver it now and
+     * return true. False means there is nothing to deliver (no fix yet, or already delivered or cancelled).
+     */
+    fun deliverHeld(): Boolean {
+        if (done) return false
+        val loc = held ?: return false
+        finish(loc)
         return true
     }
 
@@ -46,21 +59,22 @@ class FixRequest(private val lm: LocationManager, private val handler: Handler) 
         held = null
     }
 
-    private fun onLocation(source: FixSource, loc: Location, onFix: (Location) -> Unit) {
+    private fun onLocation(source: FixSource, loc: Location) {
         if (done) return
         val best = held?.takeIf { !FixPolicy.isBetter(loc.accuracy, it.accuracy) } ?: loc
         if (FixPolicy.sendNow(source, loc.accuracy)) {
-            finish(best, onFix)
+            finish(best)
         } else {
             held = best
             if (grace == null) {
-                grace = Runnable { held?.let { finish(it, onFix) } }.also { handler.postDelayed(it, FixPolicy.GRACE_MS) }
+                grace = Runnable { held?.let { finish(it) } }.also { handler.postDelayed(it, FixPolicy.GRACE_MS) }
             }
         }
     }
 
-    private fun finish(loc: Location, onFix: (Location) -> Unit) {
+    private fun finish(loc: Location) {
+        val callback = onFix
         cancel()
-        onFix(loc)
+        callback?.invoke(loc)
     }
 }
