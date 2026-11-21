@@ -1,0 +1,30 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: ["bug"]
+body:
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Settings → About
+    validations:
+      required: true
+  - type: input
+    id: android
+    attributes:
+      label: Android version and phone model
+      placeholder: Android 14, Pixel 7
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you text, what did you expect, and what did you get instead (or nothing)?
+    validations:
+      required: true
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else?
+      description: Is location turned on? Is the number approved? Did it ever work?
