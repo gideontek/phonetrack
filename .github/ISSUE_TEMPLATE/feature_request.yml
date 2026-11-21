@@ -1,0 +1,19 @@
+name: Feature request
+description: Suggest an improvement
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        PhoneTrack uses SMS only: no internet, no third-party libraries. Requests that need those can't be accepted.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem do you want solved?
+      description: Describe the situation, not the solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: Your idea (optional)
