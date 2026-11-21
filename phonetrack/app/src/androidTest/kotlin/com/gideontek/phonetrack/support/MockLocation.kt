@@ -13,7 +13,7 @@ import org.junit.runner.Description
 import org.junit.runners.model.Statement
 
 /**
- * Makes the GPS provider report a fixed position for the duration of a test, so replies carry
+ * Makes the GPS provider (or the providers in [reporting]) report a fixed position for the duration of a test, so replies carry
  * known coordinates. A fresh fix is pushed every 300 ms because `requestSingleUpdate` only sees
  * locations reported after it registers. If the device refuses mock locations the test is skipped
  * with the reason rather than passing without having checked anything.
@@ -23,7 +23,14 @@ class MockLocationRule(
     private val lon: Double = -122.4194,
     private val accuracy: Float = 5f,
     /** False: the providers are replaced by empty ones, so no fix is cached (for the "nothing saved" case). */
-    private val reportFixes: Boolean = true
+    private val reportFixes: Boolean = true,
+    /**
+     * Which providers report the fix. The others are enabled but silent (e.g. `setOf(NETWORK_PROVIDER)`: GPS is on
+     * but never answers, as indoors). The network provider is always mocked, so a test never sees the device's real one.
+     */
+    private val reporting: Set<String> = setOf(LocationManager.GPS_PROVIDER),
+    /** A provider in [reporting] stays silent for this many ms after the rule starts (e.g. a GPS that is slow to fix). */
+    private val delayMs: Map<String, Long> = emptyMap()
 ) : TestRule {
 
     override fun apply(base: Statement, description: Description) = object : Statement() {
@@ -40,7 +47,7 @@ class MockLocationRule(
             // Location must be on for the provider to be usable; ignore failures on images without the command.
             Shell.run("cmd location set-location-enabled true")
             Shell.run("settings put secure location_mode 3")
-            val providers = if (reportFixes) listOf(LocationManager.GPS_PROVIDER)
+            val providers = if (reportFixes) listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER)
             else listOf(LocationManager.GPS_PROVIDER, LocationManager.NETWORK_PROVIDER, LocationManager.PASSIVE_PROVIDER)
             val added = mutableListOf<String>()
             try {
@@ -60,10 +67,15 @@ class MockLocationRule(
                 assumeNoException("device refused mock locations; reply content cannot be checked", e)
             }
             val running = java.util.concurrent.atomic.AtomicBoolean(true)
+            val startedAt = SystemClock.elapsedRealtime()
             val pusher = Thread {
                 while (running.get()) {
                     try {
-                        if (reportFixes) lm.setTestProviderLocation(LocationManager.GPS_PROVIDER, fix())
+                        if (reportFixes) reporting.forEach {
+                            if (SystemClock.elapsedRealtime() - startedAt >= (delayMs[it] ?: 0L)) {
+                                lm.setTestProviderLocation(it, fix(it))
+                            }
+                        }
                     } catch (_: Exception) {
                         // provider removed while shutting down
                     }
@@ -83,7 +95,7 @@ class MockLocationRule(
             }
         }
 
-        private fun fix() = Location(LocationManager.GPS_PROVIDER).also {
+        private fun fix(provider: String) = Location(provider).also {
             it.latitude = lat
             it.longitude = lon
             it.accuracy = accuracy

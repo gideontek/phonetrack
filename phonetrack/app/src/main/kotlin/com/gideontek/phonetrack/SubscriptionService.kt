@@ -12,7 +12,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Handler
 import android.os.IBinder
@@ -42,8 +41,7 @@ class SubscriptionService : Service() {
 
     private val handler = Handler(Looper.getMainLooper())
     private var tickRunnable: Runnable? = null
-    private var locationManager: LocationManager? = null
-    private var locationListener: LocationListener? = null
+    private var fixRequest: FixRequest? = null
     private var locationTimeoutRunnable: Runnable? = null
 
     // A location fetch is in flight (a tick's or a low-battery alert's); the fields above hold only one.
@@ -188,8 +186,6 @@ class SubscriptionService : Service() {
     // Location fetch (Handler + LocationListener, same pattern as SmsLocationService)
     // -------------------------------------------------------------------------
 
-    @SuppressLint("MissingPermission")
-    @Suppress("DEPRECATION") // requestSingleUpdate deprecated at API 30; acceptable for MVP
     private fun fetchLocation(onLocation: (Location) -> Unit, onFailure: () -> Unit) {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
@@ -199,18 +195,14 @@ class SubscriptionService : Service() {
         }
 
         val lm = (getSystemService(Context.LOCATION_SERVICE) as LocationManager)
-            .also { locationManager = it }
-
-        val provider = when {
-            lm.isProviderEnabled(LocationManager.GPS_PROVIDER) -> LocationManager.GPS_PROVIDER
-            lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER) -> LocationManager.NETWORK_PROVIDER
-            else -> { onFailure(); return }
-        }
+        val request = FixRequest(lm, handler).also { fixRequest = it }
 
         val timeoutRunnable = Runnable {
+            // A network fix that was waiting for GPS is better than a failed tick.
+            if (request.deliverHeld()) return@Runnable
             locationTimeoutRunnable = null
-            locationListener?.let { lm.removeUpdates(it) }
-            locationListener = null
+            request.cancel()
+            fixRequest = null
             fetching = false
             onFailure()
         }
@@ -218,16 +210,20 @@ class SubscriptionService : Service() {
         fetching = true
         handler.postDelayed(timeoutRunnable, LOCATION_TIMEOUT_MS)
 
-        locationListener = LocationListener { loc ->
+        val started = request.start { loc ->
             handler.removeCallbacks(timeoutRunnable)
             locationTimeoutRunnable = null
+            fixRequest = null
             fetching = false
-            // Remove the listener via the instance variable (same pattern as SmsLocationService).
-            locationListener?.let { lm.removeUpdates(it) }
-            locationListener = null
             onLocation(loc)
         }
-        lm.requestSingleUpdate(provider, locationListener!!, Looper.getMainLooper())
+        if (!started) {
+            handler.removeCallbacks(timeoutRunnable)
+            locationTimeoutRunnable = null
+            fixRequest = null
+            fetching = false
+            onFailure()
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -326,7 +322,7 @@ class SubscriptionService : Service() {
         handler.removeCallbacksAndMessages(null)
         batteryReceiver?.let { unregisterReceiver(it) }
         batteryReceiver = null
-        locationListener?.let { locationManager?.removeUpdates(it) }
+        fixRequest?.cancel()
         super.onDestroy()
     }
 }
