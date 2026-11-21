@@ -13,21 +13,16 @@ class FixPolicyTest {
         assertTrue(FixPolicy.sources(gpsOn = false, networkOn = false).isEmpty())
     }
 
-    @Test fun `a GPS fix is sent at once whatever its accuracy`() {
-        assertTrue(FixPolicy.sendNow(FixSource.GPS, 5f))
-        assertTrue(FixPolicy.sendNow(FixSource.GPS, 0f))
-        assertTrue(FixPolicy.sendNow(FixSource.GPS, 900f))
+    @Test fun `a GPS fix is always sent at once`() {
+        assertTrue(FixPolicy.sendNow(FixSource.GPS, gpsAsked = true))
     }
 
-    @Test fun `a network fix is sent at once only if accurate enough`() {
-        assertTrue(FixPolicy.sendNow(FixSource.NETWORK, 30f))
-        assertTrue(FixPolicy.sendNow(FixSource.NETWORK, FixPolicy.ACCURATE_ENOUGH_M))
-        assertFalse(FixPolicy.sendNow(FixSource.NETWORK, 51f))
-        assertFalse(FixPolicy.sendNow(FixSource.NETWORK, 1_800f))
+    @Test fun `a network fix waits for GPS when GPS was asked`() {
+        assertFalse(FixPolicy.sendNow(FixSource.NETWORK, gpsAsked = true))
     }
 
-    @Test fun `a network fix with no accuracy waits`() {
-        assertFalse(FixPolicy.sendNow(FixSource.NETWORK, 0f))
+    @Test fun `a network fix is sent at once when GPS is off`() {
+        assertTrue(FixPolicy.sendNow(FixSource.NETWORK, gpsAsked = false))
     }
 
     @Test fun `a smaller accuracy number is better and unknown ranks last`() {

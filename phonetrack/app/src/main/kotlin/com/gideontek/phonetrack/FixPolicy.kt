@@ -4,22 +4,17 @@ enum class FixSource { GPS, NETWORK }
 
 /**
  * Pure rules for a fresh location fix. We ask every enabled provider at once, because GPS alone can
- * time out indoors or in a pocket while Wi-Fi and cell positioning would have answered in seconds.
- * A GPS or an accurate fix is sent at once; a coarse network fix waits a short while for a better one.
+ * stay silent indoors or in a pocket while Wi-Fi and cell positioning answer in seconds. GPS is the
+ * more accurate source, so a network fix is only held and sent if GPS has not answered by the
+ * caller's deadline. The exception is a phone with GPS switched off: nothing better can arrive, so
+ * the network fix is sent at once.
  */
 object FixPolicy {
-    /** How long a coarse fix waits for a better one before it is used. */
-    const val GRACE_MS = 8_000L
-
-    /** A network fix at least this accurate (metres) is used without waiting. */
-    const val ACCURATE_ENOUGH_M = 50f
-
     fun sources(gpsOn: Boolean, networkOn: Boolean): List<FixSource> =
         listOfNotNull(FixSource.GPS.takeIf { gpsOn }, FixSource.NETWORK.takeIf { networkOn })
 
-    /** A GPS fix, or one accurate enough, is sent at once. A fix without an accuracy is never "accurate enough". */
-    fun sendNow(source: FixSource, accuracyM: Float): Boolean =
-        source == FixSource.GPS || accuracyM in 0.001f..ACCURATE_ENOUGH_M
+    /** A GPS fix is sent at once; so is a network fix when GPS was not asked, as no better fix can come. */
+    fun sendNow(source: FixSource, gpsAsked: Boolean): Boolean = source == FixSource.GPS || !gpsAsked
 
     /** True if a fix of [candidateM] metres beats [currentM]; no accuracy (0 or less) ranks last. */
     fun isBetter(candidateM: Float, currentM: Float?): Boolean {

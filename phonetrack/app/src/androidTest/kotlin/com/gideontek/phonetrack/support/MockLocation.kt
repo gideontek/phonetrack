@@ -28,7 +28,9 @@ class MockLocationRule(
      * Which providers report the fix. The others are enabled but silent (e.g. `setOf(NETWORK_PROVIDER)`: GPS is on
      * but never answers, as indoors). The network provider is always mocked, so a test never sees the device's real one.
      */
-    private val reporting: Set<String> = setOf(LocationManager.GPS_PROVIDER)
+    private val reporting: Set<String> = setOf(LocationManager.GPS_PROVIDER),
+    /** A provider in [reporting] stays silent for this many ms after the rule starts (e.g. a GPS that is slow to fix). */
+    private val delayMs: Map<String, Long> = emptyMap()
 ) : TestRule {
 
     override fun apply(base: Statement, description: Description) = object : Statement() {
@@ -65,10 +67,15 @@ class MockLocationRule(
                 assumeNoException("device refused mock locations; reply content cannot be checked", e)
             }
             val running = java.util.concurrent.atomic.AtomicBoolean(true)
+            val startedAt = SystemClock.elapsedRealtime()
             val pusher = Thread {
                 while (running.get()) {
                     try {
-                        if (reportFixes) reporting.forEach { lm.setTestProviderLocation(it, fix(it)) }
+                        if (reportFixes) reporting.forEach {
+                            if (SystemClock.elapsedRealtime() - startedAt >= (delayMs[it] ?: 0L)) {
+                                lm.setTestProviderLocation(it, fix(it))
+                            }
+                        }
                     } catch (_: Exception) {
                         // provider removed while shutting down
                     }

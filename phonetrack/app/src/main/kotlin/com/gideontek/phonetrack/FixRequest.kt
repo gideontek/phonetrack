@@ -8,15 +8,16 @@ import android.os.Handler
 import android.os.Looper
 
 /**
- * One request for a fresh fix: asks every enabled provider (see [FixPolicy]) and hands the first
- * good fix to the caller exactly once. The caller keeps its own timeout and must call [cancel] when
- * it gives up or its service is destroyed. Single use: make a new one for each fetch.
+ * One request for a fresh fix: asks every enabled provider (see [FixPolicy]). A GPS fix is handed to
+ * the caller at once; a network fix is held until GPS answers or the caller's deadline arrives and it
+ * calls [deliverHeld]. The caller keeps its own timeout and must call [cancel] when it gives up or its
+ * service is destroyed. Single use: make a new one for each fetch.
  */
 class FixRequest(private val lm: LocationManager, private val handler: Handler) {
     private val listeners = mutableListOf<LocationListener>()
     private var onFix: ((Location) -> Unit)? = null
+    private var gpsAsked = false
     private var held: Location? = null
-    private var grace: Runnable? = null
     private var done = false
 
     /** Starts asking; false if no provider is enabled. The caller must hold ACCESS_FINE_LOCATION. */
@@ -29,6 +30,7 @@ class FixRequest(private val lm: LocationManager, private val handler: Handler) 
         )
         if (sources.isEmpty()) return false
         this.onFix = onFix
+        gpsAsked = FixSource.GPS in sources
         for (source in sources) {
             val listener = LocationListener { loc -> onLocation(source, loc) }
             listeners += listener
@@ -39,8 +41,8 @@ class FixRequest(private val lm: LocationManager, private val handler: Handler) 
     }
 
     /**
-     * For the caller's deadline: if a coarse fix is still waiting for a better one, deliver it now and
-     * return true. False means there is nothing to deliver (no fix yet, or already delivered or cancelled).
+     * For the caller's deadline: if a network fix is still waiting for GPS, deliver it now and return
+     * true. False means there is nothing to deliver (no fix yet, or already delivered or cancelled).
      */
     fun deliverHeld(): Boolean {
         if (done) return false
@@ -54,21 +56,17 @@ class FixRequest(private val lm: LocationManager, private val handler: Handler) 
         done = true
         listeners.forEach { lm.removeUpdates(it) }
         listeners.clear()
-        grace?.let { handler.removeCallbacks(it) }
-        grace = null
         held = null
     }
 
     private fun onLocation(source: FixSource, loc: Location) {
         if (done) return
-        val best = held?.takeIf { !FixPolicy.isBetter(loc.accuracy, it.accuracy) } ?: loc
-        if (FixPolicy.sendNow(source, loc.accuracy)) {
-            finish(best)
+        val waiting = held
+        if (FixPolicy.sendNow(source, gpsAsked)) {
+            // A held network fix only wins if it is strictly more accurate than the GPS fix.
+            finish(if (waiting != null && FixPolicy.isBetter(waiting.accuracy, loc.accuracy)) waiting else loc)
         } else {
-            held = best
-            if (grace == null) {
-                grace = Runnable { held?.let { finish(it) } }.also { handler.postDelayed(it, FixPolicy.GRACE_MS) }
-            }
+            held = if (waiting != null && !FixPolicy.isBetter(loc.accuracy, waiting.accuracy)) waiting else loc
         }
     }
 
