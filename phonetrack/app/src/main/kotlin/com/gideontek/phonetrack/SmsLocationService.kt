@@ -12,7 +12,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
-import android.location.LocationListener
 import android.location.LocationManager
 import android.os.Build
 import android.os.Handler
@@ -43,7 +42,7 @@ class SmsLocationService : Service() {
     }
 
     private var locationManager: LocationManager? = null
-    private var locationListener: LocationListener? = null
+    private var fixRequest: FixRequest? = null
     private val handler = Handler(Looper.getMainLooper())
 
     // Held while waiting for the user to enable location services
@@ -148,20 +147,21 @@ class SmsLocationService : Service() {
     // ACCESS_FINE_LOCATION is verified in fetchAndSend() before this can be reached
     @SuppressLint("MissingPermission")
     private fun startLocationRequest(sender: String) {
-        if (locationManager == null) {
-            locationManager = getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        }
+        val lm = locationManager
+            ?: (getSystemService(Context.LOCATION_SERVICE) as LocationManager).also { locationManager = it }
+        val request = FixRequest(lm, handler).also { fixRequest = it }
 
         val timeoutRunnable = Runnable {
-            locationManager?.removeUpdates(locationListener ?: return@Runnable)
+            // A network fix that was waiting for GPS is better than an error.
+            if (request.deliverHeld()) return@Runnable
+            request.cancel()
             SmsSender.sendTimeoutError(this, sender)
             stopSelf()
         }
         handler.postDelayed(timeoutRunnable, TIMEOUT_MS)
 
-        locationListener = LocationListener { location ->
+        val started = request.start { location ->
             handler.removeCallbacks(timeoutRunnable)
-            locationManager?.removeUpdates(locationListener!!)
             SmsSender.sendOneShotLocation(this, sender, location, DeviceStatus.battery(this))
             // Seed subscription tracking so the first periodic update has a meaningful delta.
             if (SubscriptionManager.getFor(this, sender) != null) {
@@ -169,22 +169,11 @@ class SmsLocationService : Service() {
             }
             stopSelf()
         }
-
-        val provider = when {
-            locationManager!!.isProviderEnabled(LocationManager.GPS_PROVIDER) ->
-                LocationManager.GPS_PROVIDER
-            locationManager!!.isProviderEnabled(LocationManager.NETWORK_PROVIDER) ->
-                LocationManager.NETWORK_PROVIDER
-            else -> {
-                handler.removeCallbacks(timeoutRunnable)
-                SmsSender.sendNoProviderError(this, sender)
-                stopSelf()
-                return
-            }
+        if (!started) {
+            handler.removeCallbacks(timeoutRunnable)
+            SmsSender.sendNoProviderError(this, sender)
+            stopSelf()
         }
-
-        @Suppress("DEPRECATION") // requestSingleUpdate deprecated at API 30; acceptable for MVP
-        locationManager!!.requestSingleUpdate(provider, locationListener!!, Looper.getMainLooper())
     }
 
     // -------------------------------------------------------------------------
@@ -272,7 +261,7 @@ class SmsLocationService : Service() {
         handler.removeCallbacksAndMessages(null)
         unregisterProviderReceiver()
         dismissAlertNotification()
-        locationListener?.let { locationManager?.removeUpdates(it) }
+        fixRequest?.cancel()
         super.onDestroy()
     }
 }
