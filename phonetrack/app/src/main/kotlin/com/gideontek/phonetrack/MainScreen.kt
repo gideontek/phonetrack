@@ -108,6 +108,7 @@ fun MainScreen(
     ) != 0f
 
     val sendLocation = { number: String ->
+        EventLog.manualSend(context, number, Reason.SEND_NOW)
         ContextCompat.startForegroundService(
             context,
             Intent(context, SmsLocationService::class.java).putExtra("sender", number)

@@ -20,12 +20,13 @@ class PendingActionReceiver : BroadcastReceiver() {
         if (stillPending && !PinStore.isSet(context)) {
             when (intent.action) {
                 PendingAlerts.ACTION_BLOCK ->
-                    ApprovalStore.setState(context, number, ApprovalState.BLOCKED)
+                    ApprovalStore.setState(context, number, ApprovalState.BLOCKED, Reason.NOTIFICATION)
                 PendingAlerts.ACTION_APPROVE ->
-                    ApprovalStore.setState(context, number, ApprovalState.APPROVED)
+                    ApprovalStore.setState(context, number, ApprovalState.APPROVED, Reason.NOTIFICATION)
                 PendingAlerts.ACTION_APPROVE_SEND -> {
-                    ApprovalStore.setState(context, number, ApprovalState.APPROVED)
+                    ApprovalStore.setState(context, number, ApprovalState.APPROVED, Reason.NOTIFICATION)
                     if (PendingNotificationLogic.isFresh(requestedAt, now)) {
+                        EventLog.manualSend(context, number, Reason.APPROVE_SEND)
                         SmsReceiver.startLocationFetch(context, number)
                     } else {
                         Toast.makeText(context, R.string.notif_pending_too_old, Toast.LENGTH_LONG).show()

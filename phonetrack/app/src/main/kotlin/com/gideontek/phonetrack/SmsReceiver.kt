@@ -60,7 +60,7 @@ class SmsReceiver : BroadcastReceiver() {
         val prefs = context.getSharedPreferences("phonetrack_prefs", Context.MODE_PRIVATE)
         val enabled = prefs.getBoolean("sms_enabled", false)
         val keyword = prefs.getString("sms_keyword", "phonetrack")?.lowercase() ?: return
-        if (!enabled || keyword.isBlank()) return
+        if (keyword.isBlank()) return
         // Our own replies start with "[PhoneTrack]"; a keyword that could match them would
         // let two phones answer each other forever.
         if (keyword.startsWith("[")) return
@@ -75,6 +75,10 @@ class SmsReceiver : BroadcastReceiver() {
         val tokens = body.trim().split("\\s+".toRegex())
         val firstWord = tokens.firstOrNull()?.lowercase()
         if (firstWord != keyword) return
+        if (!enabled) {
+            logDropOnce(context, Reason.LISTENING_OFF, null)
+            return
+        }
 
         // --- Approvals gate ---
         // We can't reply to alphanumeric sender IDs or short codes, so there is nothing useful
@@ -88,7 +92,10 @@ class SmsReceiver : BroadcastReceiver() {
                 if (RateStore.check(context, "newpending", SmsLimits.NEW_PENDING_PER_HOUR).allowed) {
                     val now = System.currentTimeMillis()
                     val isNew = ApprovalStore.upsertPending(context, sender, now)
+                    if (isNew) EventLog.numberPending(context, sender)
                     PendingAlerts.onContact(context, isNew, now)
+                } else {
+                    logDropOnce(context, Reason.NEW_NUMBER_LIMIT, null)
                 }
                 return
             }
@@ -98,9 +105,13 @@ class SmsReceiver : BroadcastReceiver() {
                 val now = System.currentTimeMillis()
                 ApprovalStore.upsertPending(context, sender, now)
                 PendingAlerts.onContact(context, isNew = false, now = now)
+                logDropOnce(context, Reason.AWAITING_APPROVAL, sender)
                 return
             }
-            ApprovalState.BLOCKED -> return
+            ApprovalState.BLOCKED -> {
+                logDropOnce(context, Reason.BLOCKED, sender)
+                return
+            }
             ApprovalState.APPROVED -> Unit
         }
         // --- End approvals gate ---
@@ -113,16 +124,21 @@ class SmsReceiver : BroadcastReceiver() {
         val decision = RateStore.check(context, "in:" + PhoneNumber.rateKey(sender), rateLimit)
         if (!decision.allowed) {
             if (decision.sendNotice) SmsSender.sendRateLimited(context, sender)
+            logDropOnce(context, Reason.RATE_LIMITED, sender)
             return
         }
 
         prefs.edit().putLong("last_receive_at", System.currentTimeMillis()).apply()
 
-        when (val command = SmsCommandParser.parse(tokens.drop(1))) {
+        val command = SmsCommandParser.parse(tokens.drop(1))
+        EventLog.requested(context, sender, command.logKind())
+        when (command) {
             SmsCommand.OneShot -> startLocationFetch(context, sender)
             is SmsCommand.Subscribe -> handleSubscribe(context, sender, keyword, command.params)
-            is SmsCommand.InvalidSubscribe ->
+            is SmsCommand.InvalidSubscribe -> {
+                EventLog.subscribeRejected(context, Reason.INVALID_FLAGS)
                 SmsSender.sendInvalidSubscribe(context, sender, command.message, keyword)
+            }
             SmsCommand.Unsubscribe -> handleUnsubscribe(context, sender)
             SmsCommand.Last -> handleLast(context, sender, keyword)
             SmsCommand.Help -> SmsSender.sendHelp(context, sender, keyword)
@@ -134,6 +150,25 @@ class SmsReceiver : BroadcastReceiver() {
         // stops the service, and stopping it right after startForegroundService() but before it
         // reaches startForeground() crashes the app.
         SubscriptionManager.resumeIfPossible(context)
+    }
+
+    private fun SmsCommand.logKind() = when (this) {
+        SmsCommand.OneShot -> MessageKind.ONE_SHOT
+        is SmsCommand.Subscribe -> MessageKind.SUBSCRIBE
+        is SmsCommand.InvalidSubscribe -> MessageKind.INVALID_SUBSCRIBE
+        SmsCommand.Unsubscribe -> MessageKind.UNSUBSCRIBE
+        SmsCommand.Last -> MessageKind.LAST
+        SmsCommand.Help -> MessageKind.HELP
+    }
+
+    /**
+     * Logs an ignored request, at most once an hour per reason and sender, so a spammer or a flood
+     * cannot fill the event log. [sender] null means no one sender is to blame.
+     */
+    private fun logDropOnce(ctx: Context, reason: Reason, sender: String?) {
+        if (!EventLog.isEnabled(ctx)) return
+        val key = "log:drop:${reason.text}:" + (sender?.let { PhoneNumber.rateKey(it) } ?: "")
+        if (RateStore.check(ctx, key, 1).allowed) EventLog.inboundDropped(ctx, reason, sender)
     }
 
     private fun hasLocationPermission(ctx: Context) = LocationPermission.hasFine(ctx)
@@ -150,9 +185,11 @@ class SmsReceiver : BroadcastReceiver() {
                 .getInt("max_subscriptions", SmsLimits.DEFAULT_MAX_SUBSCRIPTIONS)
         )
         if (!SubscriptionLogic.canAdd(SubscriptionManager.getAll(ctx), sender, now, maxSubscriptions)) {
+            EventLog.subscribeRejected(ctx, Reason.LIMIT)
             SmsSender.sendSubscriptionLimit(ctx, sender)
             return
         }
+        val replaced = SubscriptionManager.getFor(ctx, sender) != null
         val sub = Subscription(
             number = PhoneNumber.normalize(sender),
             distMeters = params.dist,
@@ -165,6 +202,7 @@ class SmsReceiver : BroadcastReceiver() {
             lastSentAt = now
         )
         SubscriptionManager.add(ctx, sub)
+        EventLog.subscribed(ctx, sender, sub, replaced)
         SubscriptionManager.ensureServiceRunning(ctx)
         SmsSender.sendSubscribeAck(ctx, sender, keyword, params, sub.expiresAt)
         // Immediate location fix (same as one-shot)
@@ -188,6 +226,7 @@ class SmsReceiver : BroadcastReceiver() {
 
     private fun handleUnsubscribe(ctx: Context, sender: String) {
         if (SubscriptionManager.remove(ctx, sender)) {
+            EventLog.cancelled(ctx, sender)
             SmsSender.sendSubscriptionCancelled(ctx, sender)
         } else {
             SmsSender.sendNoSubscription(ctx, sender)

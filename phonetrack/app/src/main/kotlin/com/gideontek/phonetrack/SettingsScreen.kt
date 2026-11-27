@@ -31,6 +31,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +53,7 @@ fun SettingsScreen(
     onOpenMapLink: () -> Unit,
     onOpenMovement: () -> Unit,
     onBack: () -> Unit,
+    onOpenEventLog: () -> Unit,
 ) {
     val enabled by vm.enabled.collectAsState()
     val keyword by vm.keyword.collectAsState()
@@ -61,6 +63,9 @@ fun SettingsScreen(
     val rateLimit by vm.rateLimitPerHour.collectAsState()
     val maxSubscriptions by vm.maxSubscriptions.collectAsState()
     val lowBattery by vm.lowBatteryPct.collectAsState()
+    val eventLogEnabled by vm.eventLogEnabled.collectAsState()
+    val eventLog by vm.eventLog.collectAsState()
+    var confirmEventLogOff by rememberSaveable { mutableStateOf(false) }
 
     val context = LocalContext.current
     var confirmReset by remember { mutableStateOf(false) }
@@ -225,6 +230,46 @@ fun SettingsScreen(
                 )
             }
 
+            SettingsSection("Diagnostics") {
+                ToggleRow(
+                    label = "Event log",
+                    supporting = "Records timing and reasons for subscription updates. " +
+                        "No phone numbers or locations. Kept ${EventLogLogic.MAX_AGE_MS / 3_600_000} hours.",
+                    checked = eventLogEnabled,
+                    enabled = !isLocked,
+                    onCheckedChange = { on ->
+                        if (!on && eventLog.isNotEmpty()) confirmEventLogOff = true
+                        else vm.setEventLogEnabled(on)
+                    }
+                )
+                if (eventLogEnabled) {
+                    RowDivider()
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(enabled = !isLocked, role = Role.Button, onClick = onOpenEventLog)
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .defaultMinSize(minHeight = 56.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            // Dimmed like the other controls while settings are locked.
+                            val dim = if (isLocked) 0.38f else 1f
+                            Text(
+                                "View event log",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = dim)
+                            )
+                            Text(
+                                if (eventLog.size == 1) "1 event" else "${eventLog.size} events",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = dim)
+                            )
+                        }
+                    }
+                }
+            }
+
             SettingsSection("Reset") {
                 Row(
                     modifier = Modifier
@@ -271,6 +316,23 @@ fun SettingsScreen(
                 }) { Text("Restore", color = MaterialTheme.colorScheme.error) }
             },
             dismissButton = { TextButton(onClick = { confirmReset = false }) { Text("Cancel") } }
+        )
+    }
+
+    if (confirmEventLogOff) {
+        AlertDialog(
+            onDismissRequest = { confirmEventLogOff = false },
+            title = { Text("Turn off event log?") },
+            text = { Text("Turning it off deletes the recorded events.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    confirmEventLogOff = false
+                    vm.setEventLogEnabled(false)
+                }) { Text("Turn off") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmEventLogOff = false }) { Text("Keep on") }
+            }
         )
     }
 }
